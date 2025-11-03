@@ -1,5 +1,9 @@
 # LuCICodex - OpenWrt 自然语言助手
 
+<p align="center">
+  <img src="assets/logo.png" alt="LuciCodex Logo" width="240">
+</p>
+
 **用简单的中文命令控制你的 OpenWrt 路由器**
 
 作者: AZ <Aezi.zhu@icloud.com>

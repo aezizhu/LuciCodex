@@ -1,5 +1,9 @@
 # LuCICodex - Asistente de Lenguaje Natural para OpenWrt
 
+<p align="center">
+  <img src="assets/logo.png" alt="LuciCodex Logo" width="240">
+</p>
+
 **Controla tu router OpenWrt con comandos en español simple**
 
 Autor: AZ <Aezi.zhu@icloud.com>
