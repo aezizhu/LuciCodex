@@ -97,9 +97,25 @@ wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-mip
 # 适用于 ARM 路由器
 wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-arm.ipk
 
+# 适用于 ARM64 (aarch64) 路由器 - 标准 OpenWrt
+wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-arm64.ipk
+
 # 适用于 x86_64 路由器
 wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-amd64.ipk
 ```
+
+> **GL-iNet 路由器用户注意：** 如果你使用的是 GL-iNet 路由器（GL-MT6000、GL-AX1800 等），请使用 `_aarch64_cortex-a53.ipk` 文件而不是 `_aarch64.ipk`。GL-iNet 固件使用不同的 IPK 格式（gzip tar 而不是 ar 归档）。名称中包含 `_cortex-a53` 的包是专门为 GL-iNet 兼容性构建的：
+> 
+> ```bash
+> # 对于 GL-iNet 路由器（GL-MT6000 等）
+> cd /tmp
+> wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex_0.4.0_aarch64_cortex-a53.ipk
+> opkg install lucicodex_0.4.0_aarch64_cortex-a53.ipk
+> 
+> # 对于 GL-iNet LuCI 网页界面
+> wget https://github.com/aezizhu/LuciCodex/releases/latest/download/luci-app-lucicodex_0.4.0_all_glinet.ipk
+> opkg install luci-app-lucicodex_0.4.0_all_glinet.ipk
+> ```
 
 #### 步骤 2：安装软件包
 

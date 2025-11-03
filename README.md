@@ -97,9 +97,25 @@ wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-mip
 # For ARM routers
 wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-arm.ipk
 
+# For ARM64 (aarch64) routers - Standard OpenWrt
+wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-arm64.ipk
+
 # For x86_64 routers
 wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-amd64.ipk
 ```
+
+> **Note for GL-iNet Router Users:** If you have a GL-iNet router (GL-MT6000, GL-AX1800, etc.), use the `_aarch64_cortex-a53.ipk` file instead of `_aarch64.ipk`. GL-iNet firmware uses a different IPK format (gzip tar instead of ar archive). The package with `_cortex-a53` in the name is specifically built for GL-iNet compatibility:
+> 
+> ```bash
+> # For GL-iNet routers (GL-MT6000, etc.)
+> cd /tmp
+> wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex_0.4.0_aarch64_cortex-a53.ipk
+> opkg install lucicodex_0.4.0_aarch64_cortex-a53.ipk
+> 
+> # For GL-iNet LuCI web interface
+> wget https://github.com/aezizhu/LuciCodex/releases/latest/download/luci-app-lucicodex_0.4.0_all_glinet.ipk
+> opkg install luci-app-lucicodex_0.4.0_all_glinet.ipk
+> ```
 
 #### Step 2: Install the Package
 
@@ -120,7 +136,7 @@ opkg install luci-app-lucicodex
 lucicodex -version
 ```
 
-You should see: `LuciCodex version 0.3.0`
+You should see: `LuciCodex version 0.4.0`
 
 ### Getting Your API Key
 
