@@ -16,7 +16,7 @@ Author: AZ <Aezi.zhu@icloud.com>
   <a href="https://github.com/aezizhu/LuciCodex/actions/workflows/build.yml"><img alt="CI" src="https://github.com/aezizhu/LuciCodex/actions/workflows/build.yml/badge.svg"></a>
 </p>
 
-**[English](README.md)** | **[中文](README.zh-CN.md)** | **[Español](README.es.md)**
+**[English](README.md)** | **[Chinese](README.zh-CN.md)** | **[Español](README.es.md)**
 
 ---
 
