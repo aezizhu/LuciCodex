@@ -1,7 +1,40 @@
 local m, s, o
+local uci = require "luci.model.uci"
 
 m = Map("lucicodex", translate("LuciCodex Configuration"),
     translate("Configure LLM providers and API keys for the LuciCodex natural language router assistant."))
+
+-- Ensure API and settings sections exist (required for anonymous sections to display)
+local cursor = uci.cursor()
+cursor:load("lucicodex")
+
+-- Check if api section exists using foreach
+local has_api = false
+cursor:foreach("lucicodex", "api", function(s) has_api = true end)
+
+if not has_api then
+    local api_id = cursor:add("lucicodex", "api")
+    cursor:set("lucicodex", api_id, "provider", "gemini")
+    cursor:set("lucicodex", api_id, "key", "")
+    cursor:set("lucicodex", api_id, "model", "gemini-1.5-flash")
+    cursor:commit("lucicodex")
+    cursor:load("lucicodex")
+end
+
+-- Check if settings section exists
+local has_settings = false
+cursor:foreach("lucicodex", "settings", function(s) has_settings = true end)
+
+if not has_settings then
+    local settings_id = cursor:add("lucicodex", "settings")
+    cursor:set("lucicodex", settings_id, "dry_run", "1")
+    cursor:set("lucicodex", settings_id, "confirm_each", "0")
+    cursor:set("lucicodex", settings_id, "timeout", "30")
+    cursor:set("lucicodex", settings_id, "max_commands", "10")
+    cursor:set("lucicodex", settings_id, "log_file", "/tmp/lucicodex.log")
+    cursor:commit("lucicodex")
+    cursor:load("lucicodex")
+end
 
 s = m:section(TypedSection, "api", translate("API Configuration"))
 s.anonymous = true
