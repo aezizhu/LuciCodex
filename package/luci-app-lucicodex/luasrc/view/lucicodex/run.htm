@@ -1,126 +1,481 @@
 <%+header%>
 
-<h2 name="content"><%:Run LuciCodex%></h2>
+<style>
+.lucicodex-run {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
 
-<div class="cbi-map">
-    <div class="cbi-section">
-        <div class="cbi-section-descr">
-            <%:Enter a natural language request and the AI will generate safe OpenWrt commands.%>
-            <br/><br/>
-            <strong><%:Execution Modes:%></strong>
-            <ul style="margin-top: 8px;">
-                <li><strong><%:Manual Approve (Default):%></strong> <%:Commands are shown to you for review before execution. Safe and recommended.%></li>
-                <li><strong><%:Auto-Approve:%></strong> <%:Commands execute immediately without review. Use with caution - can make irreversible changes.%></li>
-            </ul>
-        </div>
+.hero-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    color: white;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+}
+
+.hero-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.hero-header p {
+    font-size: 1.05rem;
+    opacity: 0.95;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+}
+
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+}
+
+textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: all 0.3s;
+    min-height: 120px;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+.examples {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.example-tag {
+    display: inline-block;
+    background: #edf2f7;
+    color: #4a5568;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.example-tag:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.mode-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.mode-option {
+    position: relative;
+    padding: 0;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: white;
+    overflow: hidden;
+}
+
+.mode-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.mode-content {
+    padding: 1.5rem;
+    transition: all 0.3s;
+}
+
+.mode-option:hover {
+    border-color: #cbd5e0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.mode-option input[type="radio"]:checked ~ .mode-content {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color: #667eea;
+}
+
+.mode-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #2d3748;
+}
+
+.mode-desc {
+    font-size: 0.9rem;
+    color: #718096;
+    line-height: 1.5;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-safe {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-danger {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.btn-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.875rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-secondary {
+    background: #e2e8f0;
+    color: #2d3748;
+}
+
+.btn-secondary:hover {
+    background: #cbd5e0;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.alert {
+    padding: 1.25rem 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.alert-error {
+    background: #fee;
+    border-left: 4px solid #f56565;
+    color: #742a2a;
+}
+
+.alert-success {
+    background: #d4edda;
+    border-left: 4px solid #48bb78;
+    color: #22543d;
+}
+
+.plan-card {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.plan-summary {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.command-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.command-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s;
+}
+
+.command-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateX(4px);
+}
+
+.command-code {
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    background: #1a202c;
+    color: #68d391;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+}
+
+.command-desc {
+    color: #718096;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.warnings {
+    background: #fffbf0;
+    border: 2px solid #fbbf24;
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+}
+
+.warnings h4 {
+    color: #92400e;
+    margin-bottom: 0.75rem;
+}
+
+.warnings ul {
+    margin: 0;
+    padding-left: 1.5rem;
+    color: #78350f;
+}
+
+.result-output {
+    background: #1a202c;
+    color: #68d391;
+    padding: 1.5rem;
+    border-radius: 10px;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.9rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.6;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.loading-card {
+    text-align: center;
+    padding: 2rem;
+}
+
+.loading-card .spinner {
+    margin-right: 1rem;
+}
+</style>
+
+<div class="lucicodex-run">
+    <div class="hero-header">
+        <h2>🚀 Run LuciCodex</h2>
+        <p>Enter a natural language request and the AI will generate safe OpenWrt commands</p>
     </div>
 
-    <div class="cbi-section">
-        <div class="cbi-section-node">
-            <div class="cbi-value">
-                <label class="cbi-value-title" for="prompt"><%:Request%></label>
-                <div class="cbi-value-field">
-                    <textarea id="prompt" name="prompt" rows="4" style="width: 100%; max-width: 600px;" placeholder="Example: Show me the current network configuration"></textarea>
-                </div>
-            </div>
-
-            <div class="cbi-value">
-                <label class="cbi-value-title"><%:Execution Mode%></label>
-                <div class="cbi-value-field">
-                    <select id="execution_mode" name="execution_mode" onchange="updateExecutionMode()" style="min-width: 300px;">
-                        <option value="manual" selected="selected"><%:Manual Approve (Review before execution) - RECOMMENDED%></option>
-                        <option value="auto"><%:Auto-Approve (Execute immediately) - USE WITH CAUTION%></option>
-                    </select>
-                    <div id="mode-description" style="margin-top: 8px; padding: 8px; border-left: 3px solid #4a90e2; background-color: #f0f7ff; font-size: 0.9em;">
-                        <strong>Manual Approve Mode (Default):</strong> Commands are reviewed by you before execution. This is the safest option and is recommended for all users.
-                    </div>
-                </div>
-            </div>
-
-            <div class="cbi-value">
-                <label class="cbi-value-title"></label>
-                <div class="cbi-value-field">
-                    <button class="cbi-button cbi-button-apply" onclick="generatePlan()"><%:Generate Plan%></button>
-                    <button class="cbi-button cbi-button-reset" onclick="clearResults()"><%:Clear%></button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="loading" style="display: none; margin: 20px 0;">
-        <p><em><%:Generating plan...%></em></p>
-    </div>
-
-    <div id="error" style="display: none; margin: 20px 0; padding: 10px; background-color: #fee; border: 1px solid #fcc;">
-        <strong><%:Error:%></strong> <span id="error-message"></span>
-    </div>
-
-    <div id="plan-section" style="display: none; margin: 20px 0;">
-        <div class="cbi-section">
-            <h3><%:Generated Plan%></h3>
-            <div id="plan-summary" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0;"></div>
-            <div id="plan-commands"></div>
-            <div id="plan-warnings" style="margin: 10px 0;"></div>
+    <div class="card">
+        <div class="input-group">
+            <label for="prompt">📝 Your Request</label>
+            <textarea id="prompt" name="prompt" rows="4" placeholder="Example: Show me the current network configuration"></textarea>
             
-            <div style="margin: 20px 0;">
-                <button class="cbi-button cbi-button-save" onclick="executePlan()" id="execute-button"><%:Execute Commands%></button>
+            <div class="examples">
+                <strong style="font-size: 0.9rem; color: #718096; margin-right: 0.5rem;">Quick examples:</strong>
+                <span class="example-tag" onclick="setExample('Show me the network configuration')">📡 Network</span>
+                <span class="example-tag" onclick="setExample('Check system memory and uptime')">💻 System</span>
+                <span class="example-tag" onclick="setExample('List installed packages')">📦 Packages</span>
+                <span class="example-tag" onclick="setExample('Show firewall rules')">🔥 Firewall</span>
+                <span class="example-tag" onclick="setExample('Restart WiFi')">📶 WiFi</span>
             </div>
+        </div>
+
+        <div class="input-group">
+            <label>⚙️ Execution Mode</label>
+            <div class="mode-selector">
+                <label class="mode-option">
+                    <input type="radio" name="execution_mode" value="manual" checked onchange="updateExecutionMode()">
+                    <div class="mode-content">
+                        <div class="mode-title">
+                            <span>🛡️ Manual Approve</span>
+                            <span class="badge badge-safe">Recommended</span>
+                        </div>
+                        <div class="mode-desc">Review commands before execution. Safe and recommended for all users.</div>
+                    </div>
+                </label>
+                
+                <label class="mode-option">
+                    <input type="radio" name="execution_mode" value="auto" onchange="updateExecutionMode()">
+                    <div class="mode-content">
+                        <div class="mode-title">
+                            <span>⚡ Auto-Approve</span>
+                            <span class="badge badge-danger">Caution</span>
+                        </div>
+                        <div class="mode-desc">Execute immediately without review. Use with caution - can make irreversible changes.</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="generatePlan()" id="generateBtn">
+                ✨ Generate Plan
+            </button>
+            <button class="btn btn-secondary" onclick="clearResults()">🗑️ Clear</button>
         </div>
     </div>
 
-    <div id="result-section" style="display: none; margin: 20px 0;">
-        <div class="cbi-section">
-            <h3><%:Execution Result%></h3>
-            <pre id="result-output" style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; overflow-x: auto;"></pre>
+    <div id="loading" class="card hidden">
+        <div class="loading-card">
+            <div class="spinner"></div>
+            <span id="loading-text"><%:Generating plan...%></span>
         </div>
+    </div>
+
+    <div id="error" class="alert alert-error hidden">
+        <strong>❌ <%:Error:%></strong> <span id="error-message"></span>
+    </div>
+
+    <div id="plan-section" class="card hidden">
+        <h3 style="margin-bottom: 1.5rem; color: #2d3748; font-size: 1.5rem;">📋 Generated Plan</h3>
+        <div class="plan-card">
+            <div class="plan-summary" id="plan-summary"></div>
+            <ul class="command-list" id="plan-commands"></ul>
+            <div id="plan-warnings"></div>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="executePlan()" id="execute-button">
+                ✅ Execute Commands
+            </button>
+        </div>
+    </div>
+
+    <div id="result-section" class="card hidden">
+        <h3 style="margin-bottom: 1.5rem; color: #2d3748; font-size: 1.5rem;">✅ Execution Result</h3>
+        <div class="result-output" id="result-output"></div>
     </div>
 </div>
 
 <script type="text/javascript">
 var currentPlan = null;
 
+function setExample(text) {
+    document.getElementById('prompt').value = text;
+    document.getElementById('prompt').focus();
+}
+
 function updateExecutionMode() {
-    var mode = document.getElementById('execution_mode').value;
-    var description = document.getElementById('mode-description');
-    
-    if (mode === 'auto') {
-        description.innerHTML = '<strong style="color: #d9534f;">⚠️ Auto-Approve Mode:</strong> Commands will be executed <strong>immediately without review</strong>. Use this only if you fully trust the AI and understand the risks. This mode can make irreversible changes to your router.';
-        description.style.borderLeftColor = '#d9534f';
-        description.style.backgroundColor = '#fff5f5';
-    } else {
-        description.innerHTML = '<strong>✓ Manual Approve Mode (Default):</strong> Commands are reviewed by you before execution. This is the safest option and is recommended for all users.';
-        description.style.borderLeftColor = '#4a90e2';
-        description.style.backgroundColor = '#f0f7ff';
-    }
+    // Visual feedback is handled by CSS
 }
 
 function generatePlan() {
     var prompt = document.getElementById('prompt').value.trim();
-    var mode = document.getElementById('execution_mode').value;
+    var modeEl = document.querySelector('input[name="execution_mode"]:checked');
+    var mode = modeEl ? modeEl.value : 'manual';
     
     if (!prompt) {
         showError('Please enter a request');
         return;
     }
     
-    // If auto-approve mode, show warning confirmation
     if (mode === 'auto') {
         if (!confirm('⚠️ AUTO-APPROVE MODE WARNING\n\nYou are about to execute commands WITHOUT reviewing them first.\n\nThe AI will:\n• Generate commands based on your request\n• Execute them IMMEDIATELY on your router\n• Make changes that may be IRREVERSIBLE\n\nThis can potentially:\n• Disrupt your network\n• Change critical settings\n• Affect router stability\n\nAre you absolutely sure you want to proceed with Auto-Approve Mode?\n\nClick CANCEL to switch to Manual Approve Mode (recommended).')) {
             return;
         }
     }
 
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('error').style.display = 'none';
-    document.getElementById('plan-section').style.display = 'none';
-    document.getElementById('result-section').style.display = 'none';
+    hideAll();
+    showLoading('Generating plan...');
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '<%=url("admin/system/lucicodex/plan")%>', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
     xhr.onload = function() {
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         
         if (xhr.status === 200) {
             try {
@@ -128,13 +483,10 @@ function generatePlan() {
                 if (response.ok && response.plan) {
                     currentPlan = response.plan;
                     
-                    // If auto-approve mode, execute immediately
                     if (mode === 'auto') {
-                        document.getElementById('loading').style.display = 'block';
-                        document.getElementById('loading').innerHTML = '<p><em>Auto-executing commands...</em></p>';
+                        showLoading('Auto-executing commands...');
                         executeAutoApprove(prompt);
                     } else {
-                        // Manual mode: display plan for review
                         displayPlan(response.plan);
                     }
                 } else {
@@ -154,7 +506,7 @@ function generatePlan() {
     };
     
     xhr.onerror = function() {
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         showError('Network error');
     };
     
@@ -162,61 +514,41 @@ function generatePlan() {
 }
 
 function displayPlan(plan) {
-    document.getElementById('plan-section').style.display = 'block';
+    document.getElementById('plan-section').classList.remove('hidden');
     
-    // Show mode indicator
-    var modeIndicator = '<div style="padding: 10px; margin-bottom: 15px; background-color: #e8f4f8; border-left: 4px solid #4a90e2;">';
-    modeIndicator += '<strong>📋 Manual Approve Mode:</strong> Review the commands below. Click "Execute Commands" to proceed.';
-    modeIndicator += '</div>';
+    var summaryHtml = '<strong>Summary:</strong> ' + escapeHtml(plan.summary || 'Commands ready to execute');
+    summaryHtml = '<div style="padding: 1rem; background: #e8f4f8; border-left: 4px solid #4a90e2; border-radius: 8px; margin-bottom: 1.5rem;"><strong>📋 Manual Approve Mode:</strong> Review the commands below. Click "Execute Commands" to proceed.</div>' + summaryHtml;
+    document.getElementById('plan-summary').innerHTML = summaryHtml;
     
-    if (plan.summary) {
-        document.getElementById('plan-summary').innerHTML = modeIndicator + '<strong>Summary:</strong> ' + escapeHtml(plan.summary);
-    } else {
-        document.getElementById('plan-summary').innerHTML = modeIndicator;
-    }
-    
-    var commandsHtml = '<div style="margin: 10px 0;">';
+    var commandsHtml = '';
     if (plan.commands && plan.commands.length > 0) {
-        commandsHtml += '<strong>Commands (' + plan.commands.length + '):</strong><ul>';
-        for (var i = 0; i < plan.commands.length; i++) {
-            var cmd = plan.commands[i];
+        plan.commands.forEach(function(cmd, idx) {
             var cmdText = cmd.command.join(' ');
-            commandsHtml += '<li style="margin: 5px 0;">';
-            commandsHtml += '<code style="background-color: #f0f0f0; padding: 2px 5px;">' + escapeHtml(cmdText) + '</code>';
+            commandsHtml += '<li class="command-item">';
+            commandsHtml += '<div class="command-code">' + escapeHtml(cmdText) + '</div>';
             if (cmd.description) {
-                commandsHtml += '<br/><em>' + escapeHtml(cmd.description) + '</em>';
-            }
-            if (cmd.needs_root) {
-                commandsHtml += ' <span style="color: #c00;">(requires root)</span>';
+                commandsHtml += '<div class="command-desc">' + escapeHtml(cmd.description) + '</div>';
             }
             commandsHtml += '</li>';
-        }
-        commandsHtml += '</ul>';
+        });
     } else {
-        commandsHtml += '<p><em>No commands generated</em></p>';
+        commandsHtml = '<li><em>No commands generated</em></li>';
     }
-    commandsHtml += '</div>';
     document.getElementById('plan-commands').innerHTML = commandsHtml;
     
     if (plan.warnings && plan.warnings.length > 0) {
-        var warningsHtml = '<div style="padding: 10px; background-color: #ffc; border: 1px solid #cc9;">';
-        warningsHtml += '<strong>⚠️ Warnings:</strong><ul>';
-        for (var i = 0; i < plan.warnings.length; i++) {
-            warningsHtml += '<li>' + escapeHtml(plan.warnings[i]) + '</li>';
-        }
+        var warningsHtml = '<div class="warnings"><h4>⚠️ Warnings:</h4><ul>';
+        plan.warnings.forEach(function(warning) {
+            warningsHtml += '<li>' + escapeHtml(warning) + '</li>';
+        });
         warningsHtml += '</ul></div>';
         document.getElementById('plan-warnings').innerHTML = warningsHtml;
     } else {
         document.getElementById('plan-warnings').innerHTML = '';
     }
-    
-    // Always show execute button in manual mode
-    var executeButton = document.getElementById('execute-button');
-    executeButton.style.display = 'inline-block';
 }
 
 function executeAutoApprove(prompt) {
-    // Auto-approve execution (no confirmation needed, already confirmed)
     executeCommands(prompt, false);
 }
 
@@ -227,7 +559,6 @@ function executePlan() {
         return;
     }
 
-    // Show detailed confirmation for manual execution
     var confirmMsg = '🔍 MANUAL EXECUTION CONFIRMATION\n\n';
     confirmMsg += 'You are about to execute the commands shown above on your router.\n\n';
     
@@ -251,19 +582,15 @@ function executePlan() {
 }
 
 function executeCommands(prompt, isManual) {
-
-    var loadingMsg = isManual ? 'Executing commands...' : 'Auto-executing commands...';
-    document.getElementById('loading').innerHTML = '<p><em>' + loadingMsg + '</em></p>';
-    document.getElementById('loading').style.display = 'block';
-    document.getElementById('error').style.display = 'none';
-    document.getElementById('result-section').style.display = 'none';
+    hideAll();
+    showLoading(isManual ? 'Executing commands...' : 'Auto-executing commands...');
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '<%=url("admin/system/lucicodex/execute")%>', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
     xhr.onload = function() {
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         
         if (xhr.status === 200) {
             try {
@@ -295,7 +622,7 @@ function executeCommands(prompt, isManual) {
     };
     
     xhr.onerror = function() {
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         showError('Network error');
     };
     
@@ -307,20 +634,34 @@ function executeCommands(prompt, isManual) {
 }
 
 function displayResult(output) {
-    document.getElementById('result-section').style.display = 'block';
+    document.getElementById('result-section').classList.remove('hidden');
     document.getElementById('result-output').textContent = output;
 }
 
 function showError(message) {
-    document.getElementById('error').style.display = 'block';
+    document.getElementById('error').classList.remove('hidden');
     document.getElementById('error-message').textContent = message;
+}
+
+function showLoading(text) {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('loading-text').textContent = text;
+}
+
+function hideLoading() {
+    document.getElementById('loading').classList.add('hidden');
+}
+
+function hideAll() {
+    document.getElementById('error').classList.add('hidden');
+    document.getElementById('plan-section').classList.add('hidden');
+    document.getElementById('result-section').classList.add('hidden');
+    document.getElementById('loading').classList.add('hidden');
 }
 
 function clearResults() {
     document.getElementById('prompt').value = '';
-    document.getElementById('error').style.display = 'none';
-    document.getElementById('plan-section').style.display = 'none';
-    document.getElementById('result-section').style.display = 'none';
+    hideAll();
 }
 
 function escapeHtml(text) {

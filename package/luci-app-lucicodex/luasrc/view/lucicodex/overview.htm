@@ -1,47 +1,265 @@
 <%+header%>
 
-<h2 name="content"><%:LuciCodex Natural Language Assistant%></h2>
+<style>
+.lucicodex-overview {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
 
-<div class="cbi-map">
-    <div class="cbi-section">
-        <div class="cbi-section-descr">
-            <%:LuciCodex translates natural language requests into safe OpenWrt commands. Configure your LLM provider API keys, then use the Run page to interact with your router using plain English.%>
+.hero-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    color: white;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    text-align: center;
+}
+
+.hero-banner h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.hero-banner p {
+    font-size: 1.2rem;
+    opacity: 0.95;
+    margin-top: 0.5rem;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.feature-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border: 1px solid #e2e8f0;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    color: #2d3748;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-icon {
+    font-size: 2rem;
+}
+
+.feature-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-card li {
+    padding: 0.75rem 0;
+    color: #4a5568;
+    border-bottom: 1px solid #f7fafc;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.feature-card li:last-child {
+    border-bottom: none;
+}
+
+.feature-card li:before {
+    content: "✓";
+    color: #48bb78;
+    font-weight: bold;
+    margin-top: 2px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+}
+
+.btn {
+    flex: 1;
+    min-width: 200px;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-secondary {
+    background: #48bb78;
+    color: white;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+}
+
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+    background: #38a169;
+}
+
+.example-card {
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.example-card h3 {
+    color: #2d3748;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.example-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.example-item {
+    background: white;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #4a5568;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.example-item:hover {
+    background: #edf2f7;
+    transform: translateX(4px);
+}
+
+.doc-link {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #edf2f7;
+    border-radius: 12px;
+}
+
+.doc-link a {
+    color: #667eea;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 1.1rem;
+}
+
+.doc-link a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<div class="lucicodex-overview">
+    <div class="hero-banner">
+        <h1>🤖 LuciCodex</h1>
+        <p>Natural Language Assistant for OpenWrt</p>
+        <p style="font-size: 1rem; margin-top: 1rem; opacity: 0.9;">Control your router with plain English instead of memorizing complex commands</p>
+    </div>
+
+    <div class="action-buttons">
+        <a href="<%=url('admin/system/lucicodex/config')%>" class="btn btn-primary">
+            ⚙️ Configure API Keys
+        </a>
+        <a href="<%=url('admin/system/lucicodex/run')%>" class="btn btn-secondary">
+            🚀 Run Commands
+        </a>
+    </div>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h3><span class="feature-icon">🛡️</span> Safety First</h3>
+            <ul>
+                <li>Dry-run mode by default</li>
+                <li>Policy-based command filtering</li>
+                <li>No shell execution vulnerabilities</li>
+                <li>Human confirmation required</li>
+                <li>Configurable timeouts & limits</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h3><span class="feature-icon">⚡</span> Quick Start</h3>
+            <ul>
+                <li>Configure your API key</li>
+                <li>Type requests in plain English</li>
+                <li>Review generated commands</li>
+                <li>Execute with one click</li>
+                <li>See results instantly</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h3><span class="feature-icon">🔌</span> Multi-Provider</h3>
+            <ul>
+                <li>Google Gemini (free tier)</li>
+                <li>OpenAI GPT-4/3.5</li>
+                <li>Anthropic Claude</li>
+                <li>Switch providers anytime</li>
+                <li>Secure API key storage</li>
+            </ul>
         </div>
     </div>
 
-    <div class="cbi-section">
-        <h3><%:Quick Start%></h3>
-        <ul>
-            <li><a href="<%=url('admin/system/lucicodex/config')%>"><%:Configure API Keys%></a> - Set up your LLM provider credentials</li>
-            <li><a href="<%=url('admin/system/lucicodex/run')%>"><%:Run Commands%></a> - Interact with your router using natural language</li>
-        </ul>
+    <div class="example-card">
+        <h3>💡 Example Requests</h3>
+        <div class="example-grid">
+            <div class="example-item">"Show me the current network configuration"</div>
+            <div class="example-item">"List all installed packages"</div>
+            <div class="example-item">"Check system uptime and memory usage"</div>
+            <div class="example-item">"Show firewall rules"</div>
+            <div class="example-item">"Display wireless interface status"</div>
+            <div class="example-item">"Restart the WiFi"</div>
+        </div>
     </div>
 
-    <div class="cbi-section">
-        <h3><%:Safety Features%></h3>
-        <ul>
-            <li><%:Dry-run mode by default - commands are displayed but not executed%></li>
-            <li><%:Policy-based allow/deny lists for command filtering%></li>
-            <li><%:No shell execution - commands use argv-only for safety%></li>
-            <li><%:Human confirmation required before execution%></li>
-            <li><%:Configurable timeouts and command limits%></li>
-        </ul>
-    </div>
-
-    <div class="cbi-section">
-        <h3><%:Example Requests%></h3>
-        <ul>
-            <li>"Show me the current network configuration"</li>
-            <li>"List all installed packages"</li>
-            <li>"Check system uptime and memory usage"</li>
-            <li>"Show firewall rules"</li>
-            <li>"Display wireless interface status"</li>
-        </ul>
-    </div>
-
-    <div class="cbi-section">
-        <h3><%:Documentation%></h3>
-        <p><%:For more information, visit the%> <a href="https://github.com/aezizhu/LuciCodex" target="_blank"><%:LuciCodex project on GitHub%></a>.</p>
+    <div class="doc-link">
+        <p><%:For more information, visit the%> <a href="https://github.com/aezizhu/LuciCodex" target="_blank"><%:LuciCodex project on GitHub%></a></p>
     </div>
 </div>
 
