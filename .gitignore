@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Build artifacts
+/bin/
+/dist/
+/dist-glinet/
+/build/
+/coverage/
+/lucicodex
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# IDE settings
+.vscode/
+.idea/
+
+# Internal technical documentation
+WEB_INTERFACE_FIX.md
+FIXES_APPLIED.md
+QUICKSTART_FIXED.md

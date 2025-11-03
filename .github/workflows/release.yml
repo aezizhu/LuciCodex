@@ -1,0 +1,54 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+
+      - name: Build release assets
+        run: |
+          chmod +x scripts/build-release-assets.sh
+          VERSION=${GITHUB_REF_NAME#v} OUT=dist ./scripts/build-release-assets.sh
+
+      - name: Create simplified release files
+        run: |
+          mkdir -p release
+          # Copy and rename to user-friendly names matching README (primary)
+          cp dist/lucicodex_*_mips_24kc.ipk release/lucicodex-mips.ipk
+          cp dist/lucicodex_*_arm_cortex-a7.ipk release/lucicodex-arm.ipk
+          cp dist/lucicodex_*_x86_64.ipk release/lucicodex-amd64.ipk
+          cp dist/lucicodex_*_aarch64.ipk release/lucicodex-arm64.ipk
+          cp dist/lucicodex_*_mipsel_24kc.ipk release/lucicodex-mipsle.ipk
+          cp dist/luci-app-lucicodex_*_all.ipk release/luci-app-lucicodex.ipk
+          # DEPRECATED: Keep versioned files for backward compatibility (will be removed in v0.4.0)
+          cp dist/*.ipk release/
+          # Generate SHA256SUMS for all files
+          cp dist/SHA256SUMS release/
+          # Add deprecation notice
+          cp DEPRECATION_NOTICE.md release/
+
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

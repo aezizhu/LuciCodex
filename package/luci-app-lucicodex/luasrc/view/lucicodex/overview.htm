@@ -1,0 +1,48 @@
+<%+header%>
+
+<h2 name="content"><%:LuciCodex Natural Language Assistant%></h2>
+
+<div class="cbi-map">
+    <div class="cbi-section">
+        <div class="cbi-section-descr">
+            <%:LuciCodex translates natural language requests into safe OpenWrt commands. Configure your LLM provider API keys, then use the Run page to interact with your router using plain English.%>
+        </div>
+    </div>
+
+    <div class="cbi-section">
+        <h3><%:Quick Start%></h3>
+        <ul>
+            <li><a href="<%=url('admin/system/lucicodex/config')%>"><%:Configure API Keys%></a> - Set up your LLM provider credentials</li>
+            <li><a href="<%=url('admin/system/lucicodex/run')%>"><%:Run Commands%></a> - Interact with your router using natural language</li>
+        </ul>
+    </div>
+
+    <div class="cbi-section">
+        <h3><%:Safety Features%></h3>
+        <ul>
+            <li><%:Dry-run mode by default - commands are displayed but not executed%></li>
+            <li><%:Policy-based allow/deny lists for command filtering%></li>
+            <li><%:No shell execution - commands use argv-only for safety%></li>
+            <li><%:Human confirmation required before execution%></li>
+            <li><%:Configurable timeouts and command limits%></li>
+        </ul>
+    </div>
+
+    <div class="cbi-section">
+        <h3><%:Example Requests%></h3>
+        <ul>
+            <li>"Show me the current network configuration"</li>
+            <li>"List all installed packages"</li>
+            <li>"Check system uptime and memory usage"</li>
+            <li>"Show firewall rules"</li>
+            <li>"Display wireless interface status"</li>
+        </ul>
+    </div>
+
+    <div class="cbi-section">
+        <h3><%:Documentation%></h3>
+        <p><%:For more information, visit the%> <a href="https://github.com/aezizhu/LuciCodex" target="_blank"><%:LuciCodex project on GitHub%></a>.</p>
+    </div>
+</div>
+
+<%+footer%>

@@ -1,0 +1,333 @@
+<%+header%>
+
+<h2 name="content"><%:Run LuciCodex%></h2>
+
+<div class="cbi-map">
+    <div class="cbi-section">
+        <div class="cbi-section-descr">
+            <%:Enter a natural language request and the AI will generate safe OpenWrt commands.%>
+            <br/><br/>
+            <strong><%:Execution Modes:%></strong>
+            <ul style="margin-top: 8px;">
+                <li><strong><%:Manual Approve (Default):%></strong> <%:Commands are shown to you for review before execution. Safe and recommended.%></li>
+                <li><strong><%:Auto-Approve:%></strong> <%:Commands execute immediately without review. Use with caution - can make irreversible changes.%></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <label class="cbi-value-title" for="prompt"><%:Request%></label>
+                <div class="cbi-value-field">
+                    <textarea id="prompt" name="prompt" rows="4" style="width: 100%; max-width: 600px;" placeholder="Example: Show me the current network configuration"></textarea>
+                </div>
+            </div>
+
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:Execution Mode%></label>
+                <div class="cbi-value-field">
+                    <select id="execution_mode" name="execution_mode" onchange="updateExecutionMode()" style="min-width: 300px;">
+                        <option value="manual" selected="selected"><%:Manual Approve (Review before execution) - RECOMMENDED%></option>
+                        <option value="auto"><%:Auto-Approve (Execute immediately) - USE WITH CAUTION%></option>
+                    </select>
+                    <div id="mode-description" style="margin-top: 8px; padding: 8px; border-left: 3px solid #4a90e2; background-color: #f0f7ff; font-size: 0.9em;">
+                        <strong>Manual Approve Mode (Default):</strong> Commands are reviewed by you before execution. This is the safest option and is recommended for all users.
+                    </div>
+                </div>
+            </div>
+
+            <div class="cbi-value">
+                <label class="cbi-value-title"></label>
+                <div class="cbi-value-field">
+                    <button class="cbi-button cbi-button-apply" onclick="generatePlan()"><%:Generate Plan%></button>
+                    <button class="cbi-button cbi-button-reset" onclick="clearResults()"><%:Clear%></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading" style="display: none; margin: 20px 0;">
+        <p><em><%:Generating plan...%></em></p>
+    </div>
+
+    <div id="error" style="display: none; margin: 20px 0; padding: 10px; background-color: #fee; border: 1px solid #fcc;">
+        <strong><%:Error:%></strong> <span id="error-message"></span>
+    </div>
+
+    <div id="plan-section" style="display: none; margin: 20px 0;">
+        <div class="cbi-section">
+            <h3><%:Generated Plan%></h3>
+            <div id="plan-summary" style="margin: 10px 0; padding: 10px; background-color: #f0f0f0;"></div>
+            <div id="plan-commands"></div>
+            <div id="plan-warnings" style="margin: 10px 0;"></div>
+            
+            <div style="margin: 20px 0;">
+                <button class="cbi-button cbi-button-save" onclick="executePlan()" id="execute-button"><%:Execute Commands%></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-section" style="display: none; margin: 20px 0;">
+        <div class="cbi-section">
+            <h3><%:Execution Result%></h3>
+            <pre id="result-output" style="background-color: #f9f9f9; padding: 10px; border: 1px solid #ddd; overflow-x: auto;"></pre>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+var currentPlan = null;
+
+function updateExecutionMode() {
+    var mode = document.getElementById('execution_mode').value;
+    var description = document.getElementById('mode-description');
+    
+    if (mode === 'auto') {
+        description.innerHTML = '<strong style="color: #d9534f;">⚠️ Auto-Approve Mode:</strong> Commands will be executed <strong>immediately without review</strong>. Use this only if you fully trust the AI and understand the risks. This mode can make irreversible changes to your router.';
+        description.style.borderLeftColor = '#d9534f';
+        description.style.backgroundColor = '#fff5f5';
+    } else {
+        description.innerHTML = '<strong>✓ Manual Approve Mode (Default):</strong> Commands are reviewed by you before execution. This is the safest option and is recommended for all users.';
+        description.style.borderLeftColor = '#4a90e2';
+        description.style.backgroundColor = '#f0f7ff';
+    }
+}
+
+function generatePlan() {
+    var prompt = document.getElementById('prompt').value.trim();
+    var mode = document.getElementById('execution_mode').value;
+    
+    if (!prompt) {
+        showError('Please enter a request');
+        return;
+    }
+    
+    // If auto-approve mode, show warning confirmation
+    if (mode === 'auto') {
+        if (!confirm('⚠️ AUTO-APPROVE MODE WARNING\n\nYou are about to execute commands WITHOUT reviewing them first.\n\nThe AI will:\n• Generate commands based on your request\n• Execute them IMMEDIATELY on your router\n• Make changes that may be IRREVERSIBLE\n\nThis can potentially:\n• Disrupt your network\n• Change critical settings\n• Affect router stability\n\nAre you absolutely sure you want to proceed with Auto-Approve Mode?\n\nClick CANCEL to switch to Manual Approve Mode (recommended).')) {
+            return;
+        }
+    }
+
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('plan-section').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '<%=url("admin/system/lucicodex/plan")%>', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    xhr.onload = function() {
+        document.getElementById('loading').style.display = 'none';
+        
+        if (xhr.status === 200) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                if (response.ok && response.plan) {
+                    currentPlan = response.plan;
+                    
+                    // If auto-approve mode, execute immediately
+                    if (mode === 'auto') {
+                        document.getElementById('loading').style.display = 'block';
+                        document.getElementById('loading').innerHTML = '<p><em>Auto-executing commands...</em></p>';
+                        executeAutoApprove(prompt);
+                    } else {
+                        // Manual mode: display plan for review
+                        displayPlan(response.plan);
+                    }
+                } else {
+                    showError(response.error || 'Failed to generate plan');
+                }
+            } catch (e) {
+                showError('Invalid response from server');
+            }
+        } else {
+            try {
+                var error = JSON.parse(xhr.responseText);
+                showError(error.error || 'Request failed');
+            } catch (e) {
+                showError('Request failed with status ' + xhr.status);
+            }
+        }
+    };
+    
+    xhr.onerror = function() {
+        document.getElementById('loading').style.display = 'none';
+        showError('Network error');
+    };
+    
+    xhr.send(JSON.stringify({ prompt: prompt }));
+}
+
+function displayPlan(plan) {
+    document.getElementById('plan-section').style.display = 'block';
+    
+    // Show mode indicator
+    var modeIndicator = '<div style="padding: 10px; margin-bottom: 15px; background-color: #e8f4f8; border-left: 4px solid #4a90e2;">';
+    modeIndicator += '<strong>📋 Manual Approve Mode:</strong> Review the commands below. Click "Execute Commands" to proceed.';
+    modeIndicator += '</div>';
+    
+    if (plan.summary) {
+        document.getElementById('plan-summary').innerHTML = modeIndicator + '<strong>Summary:</strong> ' + escapeHtml(plan.summary);
+    } else {
+        document.getElementById('plan-summary').innerHTML = modeIndicator;
+    }
+    
+    var commandsHtml = '<div style="margin: 10px 0;">';
+    if (plan.commands && plan.commands.length > 0) {
+        commandsHtml += '<strong>Commands (' + plan.commands.length + '):</strong><ul>';
+        for (var i = 0; i < plan.commands.length; i++) {
+            var cmd = plan.commands[i];
+            var cmdText = cmd.command.join(' ');
+            commandsHtml += '<li style="margin: 5px 0;">';
+            commandsHtml += '<code style="background-color: #f0f0f0; padding: 2px 5px;">' + escapeHtml(cmdText) + '</code>';
+            if (cmd.description) {
+                commandsHtml += '<br/><em>' + escapeHtml(cmd.description) + '</em>';
+            }
+            if (cmd.needs_root) {
+                commandsHtml += ' <span style="color: #c00;">(requires root)</span>';
+            }
+            commandsHtml += '</li>';
+        }
+        commandsHtml += '</ul>';
+    } else {
+        commandsHtml += '<p><em>No commands generated</em></p>';
+    }
+    commandsHtml += '</div>';
+    document.getElementById('plan-commands').innerHTML = commandsHtml;
+    
+    if (plan.warnings && plan.warnings.length > 0) {
+        var warningsHtml = '<div style="padding: 10px; background-color: #ffc; border: 1px solid #cc9;">';
+        warningsHtml += '<strong>⚠️ Warnings:</strong><ul>';
+        for (var i = 0; i < plan.warnings.length; i++) {
+            warningsHtml += '<li>' + escapeHtml(plan.warnings[i]) + '</li>';
+        }
+        warningsHtml += '</ul></div>';
+        document.getElementById('plan-warnings').innerHTML = warningsHtml;
+    } else {
+        document.getElementById('plan-warnings').innerHTML = '';
+    }
+    
+    // Always show execute button in manual mode
+    var executeButton = document.getElementById('execute-button');
+    executeButton.style.display = 'inline-block';
+}
+
+function executeAutoApprove(prompt) {
+    // Auto-approve execution (no confirmation needed, already confirmed)
+    executeCommands(prompt, false);
+}
+
+function executePlan() {
+    var prompt = document.getElementById('prompt').value.trim();
+    if (!prompt) {
+        showError('Please enter a request');
+        return;
+    }
+
+    // Show detailed confirmation for manual execution
+    var confirmMsg = '🔍 MANUAL EXECUTION CONFIRMATION\n\n';
+    confirmMsg += 'You are about to execute the commands shown above on your router.\n\n';
+    
+    if (currentPlan && currentPlan.commands) {
+        confirmMsg += 'Commands to execute (' + currentPlan.commands.length + '):\n';
+        for (var i = 0; i < Math.min(currentPlan.commands.length, 5); i++) {
+            confirmMsg += '  ' + (i + 1) + '. ' + currentPlan.commands[i].command.join(' ') + '\n';
+        }
+        if (currentPlan.commands.length > 5) {
+            confirmMsg += '  ... and ' + (currentPlan.commands.length - 5) + ' more\n';
+        }
+    }
+    
+    confirmMsg += '\nAre you sure you want to proceed?';
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    executeCommands(prompt, true);
+}
+
+function executeCommands(prompt, isManual) {
+
+    var loadingMsg = isManual ? 'Executing commands...' : 'Auto-executing commands...';
+    document.getElementById('loading').innerHTML = '<p><em>' + loadingMsg + '</em></p>';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '<%=url("admin/system/lucicodex/execute")%>', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    
+    xhr.onload = function() {
+        document.getElementById('loading').style.display = 'none';
+        
+        if (xhr.status === 200) {
+            try {
+                var response = JSON.parse(xhr.responseText);
+                if (response.ok) {
+                    var resultOutput = response.output || JSON.stringify(response.result, null, 2);
+                    var modeLabel = isManual ? '✓ Manual Execution' : '⚡ Auto-Execution';
+                    var resultPrefix = '═══════════════════════════════════════\n';
+                    resultPrefix += modeLabel + ' - Completed Successfully\n';
+                    resultPrefix += '═══════════════════════════════════════\n\n';
+                    displayResult(resultPrefix + resultOutput);
+                } else {
+                    showError(response.error || 'Execution failed');
+                }
+            } catch (e) {
+                showError('Invalid response from server');
+            }
+        } else {
+            try {
+                var error = JSON.parse(xhr.responseText);
+                showError(error.error || 'Request failed');
+                if (error.output) {
+                    displayResult(error.output);
+                }
+            } catch (e) {
+                showError('Request failed with status ' + xhr.status);
+            }
+        }
+    };
+    
+    xhr.onerror = function() {
+        document.getElementById('loading').style.display = 'none';
+        showError('Network error');
+    };
+    
+    xhr.send(JSON.stringify({ 
+        prompt: prompt,
+        dry_run: false,
+        timeout: 30
+    }));
+}
+
+function displayResult(output) {
+    document.getElementById('result-section').style.display = 'block';
+    document.getElementById('result-output').textContent = output;
+}
+
+function showError(message) {
+    document.getElementById('error').style.display = 'block';
+    document.getElementById('error-message').textContent = message;
+}
+
+function clearResults() {
+    document.getElementById('prompt').value = '';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('plan-section').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+
+<%+footer%>

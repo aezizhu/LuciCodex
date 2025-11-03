@@ -1,0 +1,46 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goarch: [ amd64, arm64, arm, mipsle, mips ]
+        include:
+          - goarch: arm
+            goarm: '7'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+
+      - name: Build
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.goarch }}" = "arm" ]; then
+            GOOS=linux GOARCH=${{ matrix.goarch }} GOARM=${{ matrix.goarm }} \
+              go build -trimpath -ldflags "-s -w" -o dist/lucicodex-linux-${{ matrix.goarch }}v${{ matrix.goarm }} ./cmd/lucicodex
+          else
+            GOOS=linux GOARCH=${{ matrix.goarch }} \
+              go build -trimpath -ldflags "-s -w" -o dist/lucicodex-linux-${{ matrix.goarch }} ./cmd/lucicodex
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lucicodex-linux-${{ matrix.goarch }}${{ matrix.goarm && format('v{0}', matrix.goarm) || '' }}
+          path: dist/*
+
+

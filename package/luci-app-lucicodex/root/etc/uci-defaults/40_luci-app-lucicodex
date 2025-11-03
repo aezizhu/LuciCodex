@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Initialize lucicodex configuration
+uci -q batch <<-EOF >/dev/null
+	delete ucitrack.@lucicodex[-1]
+	add ucitrack lucicodex
+	set ucitrack.@lucicodex[-1].init=lucicodex
+	commit ucitrack
+EOF
+
+# Create default lucicodex config if it doesn't exist
+if ! uci -q get lucicodex.@api[0] >/dev/null; then
+	uci -q batch <<-EOF
+		add lucicodex api
+		set lucicodex.@api[0].provider='gemini'
+		set lucicodex.@api[0].key=''
+		set lucicodex.@api[0].model='gemini-1.5-flash'
+		set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta'
+		set lucicodex.@api[0].openai_key=''
+		set lucicodex.@api[0].anthropic_key=''
+		commit lucicodex
+	EOF
+fi
+
+if ! uci -q get lucicodex.@settings[0] >/dev/null; then
+	uci -q batch <<-EOF
+		add lucicodex settings
+		set lucicodex.@settings[0].dry_run='1'
+		set lucicodex.@settings[0].confirm_each='0'
+		set lucicodex.@settings[0].timeout='30'
+		set lucicodex.@settings[0].max_commands='10'
+		set lucicodex.@settings[0].log_file='/tmp/lucicodex.log'
+		commit lucicodex
+	EOF
+fi
+
+# Set proper permissions on config file
+chmod 600 /etc/config/lucicodex 2>/dev/null || true
+
+exit 0
