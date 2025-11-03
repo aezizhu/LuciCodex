@@ -26,8 +26,6 @@
 
 **例如：** 不需要记住 `uci set wireless.radio0.disabled=0 && uci commit wireless && wifi reload`，只需说：*"打开 WiFi"*
 
-注意：本项目之前名为 "g"。所有旧的别名已被移除，请仅使用 `lucicodex`。
-
 ---
 
 ## 目录

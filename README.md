@@ -26,8 +26,6 @@ Author: AZ <Aezi.zhu@icloud.com>
 
 **Example:** Instead of remembering `uci set wireless.radio0.disabled=0 && uci commit wireless && wifi reload`, just say: *"turn on the wifi"*
 
-Note: This project was previously named "g". All legacy aliases have been removed; use `lucicodex` exclusively.
-
 ---
 
 ## Table of Contents

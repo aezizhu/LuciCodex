@@ -30,7 +30,6 @@ mkdir -p "$OUT"
 build_bin() {
   local arch="$1"
   local outbin
-  local legacy_bin
   if [[ "$arch" == "arm" ]]; then
     GOOS=linux GOARCH=arm GOARM=${GOARM:-$GOARM_DEFAULT} \
       go build -trimpath -ldflags "-s -w" -o "$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}" ./cmd/lucicodex

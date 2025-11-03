@@ -26,8 +26,6 @@ Autor: AZ <Aezi.zhu@icloud.com>
 
 **Ejemplo:** En lugar de recordar `uci set wireless.radio0.disabled=0 && uci commit wireless && wifi reload`, solo di: *"enciende el wifi"*
 
-Nota: Este proyecto se llamaba anteriormente "g". Todos los alias heredados han sido eliminados; usa `lucicodex` exclusivamente.
-
 ---
 
 ## Tabla de Contenidos
