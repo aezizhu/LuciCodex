@@ -1,41 +1,44 @@
 local m, s, o
-local uci = require "luci.model.uci"
 
 m = Map("lucicodex", translate("LuciCodex Configuration"),
     translate("Configure LLM providers and API keys for the LuciCodex natural language router assistant."))
 
--- Ensure API and settings sections exist (required for anonymous sections to display)
-local cursor = uci.cursor()
-cursor:load("lucicodex")
-
--- Check if api section exists using foreach
-local has_api = false
-cursor:foreach("lucicodex", "api", function(s) has_api = true end)
-
-if not has_api then
-    local api_id = cursor:add("lucicodex", "api")
-    cursor:set("lucicodex", api_id, "provider", "gemini")
-    cursor:set("lucicodex", api_id, "key", "")
-    cursor:set("lucicodex", api_id, "model", "gemini-1.5-flash")
-    cursor:commit("lucicodex")
-    cursor:load("lucicodex")
+-- Ensure config sections exist
+local function ensure_config()
+    local f = io.popen("uci -q get lucicodex.@api[0] >/dev/null 2>&1")
+    local has_api = f and f:close() == nil
+    f = io.popen("uci -q get lucicodex.@settings[0] >/dev/null 2>&1")
+    local has_settings = f and f:close() == nil
+    
+    if not has_api then
+        os.execute("uci -q batch <<'EOUCI' >/dev/null 2>&1\n" ..
+            "add lucicodex api\n" ..
+            "set lucicodex.@api[0].provider='gemini'\n" ..
+            "set lucicodex.@api[0].key=''\n" ..
+            "set lucicodex.@api[0].model='gemini-1.5-flash'\n" ..
+            "set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta'\n" ..
+            "set lucicodex.@api[0].openai_key=''\n" ..
+            "set lucicodex.@api[0].anthropic_key=''\n" ..
+            "commit lucicodex\n" ..
+            "EOUCI")
+    end
+    
+    if not has_settings then
+        os.execute("uci -q batch <<'EOUCI' >/dev/null 2>&1\n" ..
+            "add lucicodex settings\n" ..
+            "set lucicodex.@settings[0].dry_run='1'\n" ..
+            "set lucicodex.@settings[0].confirm_each='0'\n" ..
+            "set lucicodex.@settings[0].timeout='30'\n" ..
+            "set lucicodex.@settings[0].max_commands='10'\n" ..
+            "set lucicodex.@settings[0].log_file='/tmp/lucicodex.log'\n" ..
+            "commit lucicodex\n" ..
+            "EOUCI")
+    end
 end
 
--- Check if settings section exists
-local has_settings = false
-cursor:foreach("lucicodex", "settings", function(s) has_settings = true end)
+ensure_config()
 
-if not has_settings then
-    local settings_id = cursor:add("lucicodex", "settings")
-    cursor:set("lucicodex", settings_id, "dry_run", "1")
-    cursor:set("lucicodex", settings_id, "confirm_each", "0")
-    cursor:set("lucicodex", settings_id, "timeout", "30")
-    cursor:set("lucicodex", settings_id, "max_commands", "10")
-    cursor:set("lucicodex", settings_id, "log_file", "/tmp/lucicodex.log")
-    cursor:commit("lucicodex")
-    cursor:load("lucicodex")
-end
-
+-- API Configuration Section
 s = m:section(TypedSection, "api", translate("API Configuration"))
 s.anonymous = true
 s.addremove = false
@@ -51,7 +54,7 @@ o.default = "gemini"
 o = s:option(Value, "key", translate("Gemini API Key"),
     translate("API key for Google Gemini. Get one from https://makersuite.google.com/app/apikey"))
 o.password = true
-o.rmempty = false
+o.rmempty = true
 o:depends("provider", "gemini")
 
 o = s:option(Value, "openai_key", translate("OpenAI API Key"),
@@ -76,6 +79,7 @@ o = s:option(Value, "endpoint", translate("API Endpoint"),
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
 o.rmempty = true
 
+-- Safety Settings Section
 s = m:section(TypedSection, "settings", translate("Safety Settings"))
 s.anonymous = true
 s.addremove = false
