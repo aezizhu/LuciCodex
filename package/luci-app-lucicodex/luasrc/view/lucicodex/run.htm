@@ -689,8 +689,6 @@ function saveHistory(history) {
 }
 
 function saveCurrentSession() {
-    if (currentSessionMessages.length === 0) return;
-    
     var messages = [];
     var messagesDiv = document.getElementById('chatMessages');
     var messageElements = messagesDiv.querySelectorAll('.chat-message');
@@ -710,6 +708,7 @@ function saveCurrentSession() {
         }
     });
     
+    // Only save if there are actual conversation messages (more than just welcome)
     if (messages.length > 1) { // More than just the welcome message
         var title = messages.find(function(m) { return m.role === 'user' && m.type === 'text'; });
         var sessionTitle = title ? (title.content.length > 30 ? title.content.substring(0, 30) + '...' : title.content) : 'Chat ' + new Date().toLocaleString();
@@ -738,6 +737,11 @@ function saveCurrentSession() {
         }
         renderHistory();
     }
+}
+
+// Track messages for history
+function trackMessage(role, content, type) {
+    currentSessionMessages.push({ role: role, content: content, type: type || 'text' });
 }
 
 function renderHistory() {
@@ -780,7 +784,7 @@ function loadSession(sessionId) {
     if (!session) return;
     
     currentSessionId = sessionId;
-    currentSessionMessages = session.messages;
+    currentSessionMessages = session.messages || [];
     
     // Clear and load messages
     var messagesDiv = document.getElementById('chatMessages');
@@ -800,7 +804,10 @@ function loadSession(sessionId) {
     document.querySelectorAll('.chat-history-item').forEach(function(item) {
         item.classList.remove('active');
     });
-    event.target.closest('.chat-history-item').classList.add('active');
+    var clickedItem = document.querySelector('[onclick*="' + sessionId + '"]');
+    if (clickedItem) {
+        clickedItem.closest('.chat-history-item').classList.add('active');
+    }
     
     renderHistory();
 }
