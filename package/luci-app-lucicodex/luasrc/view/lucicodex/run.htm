@@ -130,6 +130,74 @@ body {
     border-color: #475569;
 }
 
+.chat-history-item-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.chat-history-item-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.chat-history-item-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.chat-history-item:hover .chat-history-item-actions {
+    opacity: 1;
+}
+
+.btn-delete-history {
+    padding: 0.25rem 0.5rem;
+    background: #7f1d1d;
+    border: 1px solid #991b1b;
+    border-radius: 4px;
+    color: #fca5a5;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-history:hover {
+    background: #991b1b;
+    border-color: #b91c1c;
+}
+
+.btn-clear-all {
+    width: 100%;
+    padding: 0.5rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #ef4444;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+.btn-clear-all:hover {
+    background: #7f1d1d;
+    border-color: #991b1b;
+    color: #fca5a5;
+}
+
+.chat-history-item.active {
+    background: #1e3a5f;
+    border-color: #3b82f6;
+}
+
 /* Main Chat Area */
 .chat-main {
     flex: 1;
@@ -545,9 +613,16 @@ body {
         </div>
         
         <div class="sidebar-section">
-            <h3>History</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h3>History</h3>
+                <button class="btn-clear-all" onclick="clearAllHistory()" title="Clear all history">Clear All</button>
+            </div>
             <ul class="chat-history" id="chatHistory">
-                <li class="chat-history-item">Current Session</li>
+                <li class="chat-history-item active" id="currentSession" onclick="loadCurrentSession()">
+                    <div class="chat-history-item-content">
+                        <span class="chat-history-item-title">Current Session</span>
+                    </div>
+                </li>
             </ul>
         </div>
     </div>
@@ -592,6 +667,194 @@ body {
 var chatHistory = [];
 var currentPlan = null;
 var execMode = 'manual';
+var currentSessionId = 'current';
+var currentSessionMessages = [];
+
+// History management with localStorage
+function getStoredHistory() {
+    try {
+        var stored = localStorage.getItem('lucicodex_history');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveHistory(history) {
+    try {
+        localStorage.setItem('lucicodex_history', JSON.stringify(history));
+    } catch (e) {
+        console.error('Failed to save history:', e);
+    }
+}
+
+function saveCurrentSession() {
+    if (currentSessionMessages.length === 0) return;
+    
+    var messages = [];
+    var messagesDiv = document.getElementById('chatMessages');
+    var messageElements = messagesDiv.querySelectorAll('.chat-message');
+    
+    messageElements.forEach(function(el) {
+        var role = el.classList.contains('user') ? 'user' : 'ai';
+        var textEl = el.querySelector('.message-text');
+        var codeEl = el.querySelector('.code-content pre');
+        var resultEl = el.querySelector('.result-content');
+        
+        if (textEl) {
+            messages.push({ role: role, type: 'text', content: textEl.textContent });
+        } else if (codeEl) {
+            messages.push({ role: role, type: 'code', content: codeEl.textContent });
+        } else if (resultEl) {
+            messages.push({ role: role, type: 'result', content: resultEl.textContent });
+        }
+    });
+    
+    if (messages.length > 1) { // More than just the welcome message
+        var title = messages.find(function(m) { return m.role === 'user' && m.type === 'text'; });
+        var sessionTitle = title ? (title.content.length > 30 ? title.content.substring(0, 30) + '...' : title.content) : 'Chat ' + new Date().toLocaleString();
+        
+        var history = getStoredHistory();
+        var session = {
+            id: currentSessionId === 'current' ? 'session_' + Date.now() : currentSessionId,
+            title: sessionTitle,
+            timestamp: Date.now(),
+            messages: messages
+        };
+        
+        // Remove existing session if updating
+        history = history.filter(function(s) { return s.id !== session.id; });
+        history.unshift(session);
+        
+        // Keep only last 50 sessions
+        if (history.length > 50) {
+            history = history.slice(0, 50);
+        }
+        
+        saveHistory(history);
+        currentSessionMessages = messages;
+        if (currentSessionId === 'current') {
+            currentSessionId = session.id;
+        }
+        renderHistory();
+    }
+}
+
+function renderHistory() {
+    var history = getStoredHistory();
+    var historyList = document.getElementById('chatHistory');
+    var currentItem = document.getElementById('currentSession');
+    
+    // Clear existing items except current session
+    var items = historyList.querySelectorAll('.chat-history-item:not(#currentSession)');
+    items.forEach(function(item) { item.remove(); });
+    
+    // Add history items
+    history.forEach(function(session) {
+        var li = document.createElement('li');
+        li.className = 'chat-history-item';
+        if (session.id === currentSessionId) {
+            li.classList.add('active');
+        }
+        li.innerHTML = `
+            <div class="chat-history-item-content">
+                <span class="chat-history-item-title" onclick="loadSession('${session.id}')" title="${escapeHtml(session.title)}">${escapeHtml(session.title)}</span>
+                <div class="chat-history-item-actions">
+                    <button class="btn-delete-history" onclick="deleteSession('${session.id}', event)" title="Delete">×</button>
+                </div>
+            </div>
+        `;
+        historyList.appendChild(li);
+    });
+}
+
+function loadSession(sessionId) {
+    if (sessionId === currentSessionId) return;
+    
+    // Save current session before loading
+    saveCurrentSession();
+    
+    var history = getStoredHistory();
+    var session = history.find(function(s) { return s.id === sessionId; });
+    
+    if (!session) return;
+    
+    currentSessionId = sessionId;
+    currentSessionMessages = session.messages;
+    
+    // Clear and load messages
+    var messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML = '';
+    
+    session.messages.forEach(function(msg) {
+        if (msg.type === 'text') {
+            addMessage(msg.role, msg.content, false, null, false);
+        } else if (msg.type === 'code') {
+            addMessage(msg.role, 'Command', true, msg.content, false);
+        } else if (msg.type === 'result') {
+            displayResult(msg.content, true);
+        }
+    });
+    
+    // Update active state
+    document.querySelectorAll('.chat-history-item').forEach(function(item) {
+        item.classList.remove('active');
+    });
+    event.target.closest('.chat-history-item').classList.add('active');
+    
+    renderHistory();
+}
+
+function loadCurrentSession() {
+    if (currentSessionId === 'current') return;
+    
+    saveCurrentSession();
+    
+    currentSessionId = 'current';
+    currentSessionMessages = [];
+    
+    document.getElementById('chatMessages').innerHTML = `
+        <div class="chat-message ai">
+            <div class="message-avatar ai">AI</div>
+            <div class="message-content">
+                <div class="message-bubble ai">
+                    <p class="message-text">Hello! I'm LuciCodex, your AI-powered OpenWrt assistant. I can help you manage your router using natural language. Just tell me what you'd like to do!</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.querySelectorAll('.chat-history-item').forEach(function(item) {
+        item.classList.remove('active');
+    });
+    document.getElementById('currentSession').classList.add('active');
+}
+
+function deleteSession(sessionId, event) {
+    event.stopPropagation();
+    
+    if (!confirm('Delete this conversation?')) return;
+    
+    var history = getStoredHistory();
+    history = history.filter(function(s) { return s.id !== sessionId; });
+    saveHistory(history);
+    
+    if (sessionId === currentSessionId) {
+        loadCurrentSession();
+    }
+    
+    renderHistory();
+}
+
+function clearAllHistory() {
+    if (!confirm('Clear all conversation history? This cannot be undone.')) return;
+    
+    localStorage.removeItem('lucicodex_history');
+    currentSessionId = 'current';
+    currentSessionMessages = [];
+    renderHistory();
+    loadCurrentSession();
+}
 
 function autoResize(textarea) {
     textarea.style.height = 'auto';
@@ -610,8 +873,12 @@ function updateExecMode() {
 }
 
 function newChat() {
-    if (confirm('Start a new chat? Current conversation will be cleared.')) {
-        chatHistory = [];
+    // Save current session before starting new one
+    saveCurrentSession();
+    
+    if (confirm('Start a new chat? Current conversation will be saved to history.')) {
+        currentSessionId = 'current';
+        currentSessionMessages = [];
         currentPlan = null;
         document.getElementById('chatMessages').innerHTML = `
             <div class="chat-message ai">
@@ -624,8 +891,18 @@ function newChat() {
             </div>
         `;
         document.getElementById('chatInput').value = '';
+        
+        document.querySelectorAll('.chat-history-item').forEach(function(item) {
+            item.classList.remove('active');
+        });
+        document.getElementById('currentSession').classList.add('active');
+        
+        renderHistory();
     }
 }
+
+// Initialize history on page load
+renderHistory();
 
 function addMessage(role, content, isCode, code, needsApproval) {
     var messagesDiv = document.getElementById('chatMessages');
@@ -707,6 +984,12 @@ function sendMessage() {
     var prompt = input.value.trim();
     
     if (!prompt) return;
+    
+    // Save current session periodically
+    if (currentSessionId === 'current') {
+        currentSessionId = 'session_' + Date.now();
+        document.getElementById('currentSession').classList.remove('active');
+    }
     
     // Add user message
     addMessage('user', prompt, false, null, false);
@@ -790,6 +1073,9 @@ function displayPlan(plan, prompt) {
         var needsApproval = execMode === 'manual';
         addMessage('ai', description || 'Command ' + (idx + 1), true, cmdText, needsApproval);
     });
+    
+    // Auto-save session after adding messages
+    setTimeout(saveCurrentSession, 500);
     
     // If auto mode, execute immediately
     if (execMode === 'auto') {
@@ -876,6 +1162,9 @@ function displayResult(output, isSuccess) {
     
     messagesDiv.appendChild(resultDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    
+    // Auto-save session after displaying result
+    setTimeout(saveCurrentSession, 500);
 }
 
 function escapeHtml(text) {
