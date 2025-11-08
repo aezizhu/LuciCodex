@@ -36,9 +36,6 @@ jobs:
           cp dist/lucicodex_*_aarch64.ipk release/lucicodex-arm64.ipk
           cp dist/lucicodex_*_mipsel_24kc.ipk release/lucicodex-mipsle.ipk
           cp dist/luci-app-lucicodex_*_all.ipk release/luci-app-lucicodex.ipk
-          # Include GL-iNet packages
-          cp dist/lucicodex_*_aarch64_cortex-a53.ipk release/ || true
-          cp dist/luci-app-lucicodex_*_all_glinet.ipk release/ || true
           # Copy all versioned files for backward compatibility
           cp dist/*.ipk release/
           # Generate SHA256SUMS for all files

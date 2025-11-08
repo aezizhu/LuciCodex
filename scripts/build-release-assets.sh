@@ -42,19 +42,6 @@ build_bin() {
   echo "$outbin"
 }
 
-# Map architecture to GL-iNet architecture identifiers
-get_glinet_arch() {
-  local arch="$1"
-  case "$arch" in
-    amd64) echo "x86_64";;
-    arm64) echo "aarch64_cortex-a53";; # GL-iNet specific!
-    arm) echo "arm_cortex-a7";;
-    mipsle) echo "mipsel_24kc";;
-    mips) echo "mips_24kc";;
-    *) echo "$arch";;
-  esac
-}
-
 ipk_pack_lucicodex() {
   local arch="$1"; shift
   local binpath="$1"; shift
@@ -85,31 +72,6 @@ EOF
   # Build standard OpenWrt IPK (ar format)
   (cd "$work"; echo 2.0 > debian-binary; tar -czf control.tar.gz -C control .; tar -czf data.tar.gz -C data .; ar -r "$outdir/lucicodex_${VERSION}_${arch_ipk}.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null)
   
-  # Build GL-iNet IPK (gzip tar format) - only for arm64 (GL-iNet routers)
-  if [ "$arch" = "arm64" ]; then
-    local glinet_arch=$(get_glinet_arch "$arch")
-    local glinet_work=$(mktemp -d)
-    mkdir -p "$glinet_work/control" "$glinet_work/data/usr/bin"
-    install -m0755 "$binpath" "$glinet_work/data/usr/bin/lucicodex"
-    cat > "$glinet_work/control/control" <<EOF
-Package: lucicodex
-Version: $VERSION
-Architecture: $glinet_arch
-Maintainer: aezizhu
-Section: utils
-Priority: optional
-Depends: libc
-Description: LuciCodex - Natural-language CLI for OpenWrt
-EOF
-    # Build GL-iNet format IPK (gzip tar, not ar)
-    (cd "$glinet_work" && \
-      echo "2.0" > debian-binary && \
-      $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf control.tar.gz -C control . && \
-      $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf data.tar.gz -C data . && \
-      $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf "$outdir/lucicodex_${VERSION}_${glinet_arch}.ipk" debian-binary control.tar.gz data.tar.gz)
-    rm -rf "$glinet_work"
-  fi
-  
   rm -rf "$work"
 }
 
@@ -136,32 +98,6 @@ Description: LuCI web UI for LuciCodex
 EOF
   # Build standard OpenWrt IPK (ar format)
   (cd "$work"; echo 2.0 > debian-binary; tar -czf control.tar.gz -C control .; tar -czf data.tar.gz -C data .; ar -r "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null)
-  
-  # Build GL-iNet IPK (gzip tar format) for LuCI app
-  local glinet_work=$(mktemp -d)
-  mkdir -p "$glinet_work/control" "$glinet_work/data/usr/lib/lua/luci/controller" "$glinet_work/data/usr/lib/lua/luci/model/cbi" "$glinet_work/data/usr/lib/lua/luci/view/lucicodex"
-  install -m0644 package/luci-app-lucicodex/luasrc/controller/lucicodex.lua "$glinet_work/data/usr/lib/lua/luci/controller/lucicodex.lua"
-  install -m0644 package/luci-app-lucicodex/luasrc/model/cbi/lucicodex.lua "$glinet_work/data/usr/lib/lua/luci/model/cbi/lucicodex.lua"
-  install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/overview.htm "$glinet_work/data/usr/lib/lua/luci/view/lucicodex/overview.htm"
-  install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/run.htm "$glinet_work/data/usr/lib/lua/luci/view/lucicodex/run.htm"
-  install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/modern_run.htm "$glinet_work/data/usr/lib/lua/luci/view/lucicodex/modern_run.htm" 2>/dev/null || true
-  cat > "$glinet_work/control/control" <<EOF
-Package: luci-app-lucicodex
-Version: $VERSION
-Architecture: all
-Maintainer: aezizhu
-Section: luci
-Priority: optional
-Depends: luci-base, lucicodex
-Description: LuCI web UI for LuciCodex
-EOF
-  # Build GL-iNet format IPK (gzip tar, not ar)
-  (cd "$glinet_work" && \
-    echo "2.0" > debian-binary && \
-    $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf control.tar.gz -C control . && \
-    $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf data.tar.gz -C data . && \
-    $TAR_CMD --numeric-owner --owner=0 --group=0 --mtime='1970-01-01 00:00:00' -czf "$outdir/luci-app-lucicodex_${VERSION}_all_glinet.ipk" debian-binary control.tar.gz data.tar.gz)
-  rm -rf "$glinet_work"
   
   rm -rf "$work"
 }
