@@ -80,11 +80,12 @@ ipk_pack_luci() {
   work=$(mktemp -d)
   local outdir
   outdir=$(readlink -f "$OUT")
-  mkdir -p "$work/control" "$work/data/usr/lib/lua/luci/controller" "$work/data/usr/lib/lua/luci/model/cbi" "$work/data/usr/lib/lua/luci/view/lucicodex"
+  mkdir -p "$work/control" "$work/data/usr/lib/lua/luci/controller" "$work/data/usr/lib/lua/luci/model/cbi" "$work/data/usr/lib/lua/luci/view/lucicodex" "$work/data/usr/lib/lua/luci/view/cbi"
   install -m0644 package/luci-app-lucicodex/luasrc/controller/lucicodex.lua "$work/data/usr/lib/lua/luci/controller/lucicodex.lua"
   install -m0644 package/luci-app-lucicodex/luasrc/model/cbi/lucicodex.lua "$work/data/usr/lib/lua/luci/model/cbi/lucicodex.lua"
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/overview.htm "$work/data/usr/lib/lua/luci/view/lucicodex/overview.htm"
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/run.htm"
+  install -m0644 package/luci-app-lucicodex/luasrc/view/cbi/lucicodex.htm "$work/data/usr/lib/lua/luci/view/cbi/lucicodex.htm" 2>/dev/null || true
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/modern_run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/modern_run.htm" 2>/dev/null || true
   cat > "$work/control/control" <<EOF
 Package: luci-app-lucicodex

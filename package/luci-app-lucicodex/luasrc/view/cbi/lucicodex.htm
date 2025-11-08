@@ -18,7 +18,8 @@ body {
     min-height: calc(100vh - 60px);
 }
 
-.cbi-section {
+.cbi-section,
+.cbi-section-node {
     background: #1e293b !important;
     border: 1px solid #334155 !important;
     border-radius: 12px !important;
@@ -27,7 +28,8 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
-.cbi-section-title {
+.cbi-section-title,
+.cbi-section-descr {
     color: #e2e8f0 !important;
     font-size: 1.5rem !important;
     font-weight: 600 !important;
@@ -36,7 +38,8 @@ body {
     border-bottom: 1px solid #334155 !important;
 }
 
-.cbi-value-title {
+.cbi-value-title,
+.cbi-value-title label {
     color: #cbd5e1 !important;
     font-weight: 600 !important;
     margin-bottom: 0.5rem !important;
@@ -44,7 +47,10 @@ body {
 
 .cbi-input-text,
 .cbi-input-select,
-.cbi-input-password {
+.cbi-input-password,
+input[type="text"],
+input[type="password"],
+select {
     background: #0f172a !important;
     border: 1px solid #334155 !important;
     border-radius: 8px !important;
@@ -57,13 +63,17 @@ body {
 
 .cbi-input-text:focus,
 .cbi-input-select:focus,
-.cbi-input-password:focus {
+.cbi-input-password:focus,
+input[type="text"]:focus,
+input[type="password"]:focus,
+select:focus {
     outline: none !important;
     border-color: #3b82f6 !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
 }
 
-.cbi-input-text::placeholder {
+.cbi-input-text::placeholder,
+input::placeholder {
     color: #64748b !important;
 }
 
@@ -74,7 +84,9 @@ body {
     margin-bottom: 1rem !important;
 }
 
-.cbi-button {
+.cbi-button,
+input[type="submit"],
+button[type="submit"] {
     background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) !important;
     color: white !important;
     border: none !important;
@@ -87,44 +99,35 @@ body {
     margin-right: 0.5rem !important;
 }
 
-.cbi-button:hover {
+.cbi-button:hover,
+input[type="submit"]:hover,
+button[type="submit"]:hover {
     transform: translateY(-2px) !important;
     box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4) !important;
 }
 
-.cbi-button-reset {
+.cbi-button-reset,
+button.cbi-button-reset {
     background: #1e293b !important;
     border: 1px solid #334155 !important;
     color: #e2e8f0 !important;
 }
 
-.cbi-button-reset:hover {
+.cbi-button-reset:hover,
+button.cbi-button-reset:hover {
     background: #334155 !important;
     border-color: #475569 !important;
 }
 
-.cbi-button-save {
+.cbi-button-save,
+button.cbi-button-save {
     background: #10b981 !important;
 }
 
-.cbi-button-save:hover {
+.cbi-button-save:hover,
+button.cbi-button-save:hover {
     background: #059669 !important;
     box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4) !important;
-}
-
-.cbi-tabmenu {
-    background: #1e293b !important;
-    border-bottom: 1px solid #334155 !important;
-}
-
-.cbi-tab {
-    color: #cbd5e1 !important;
-    border-bottom: 2px solid transparent !important;
-}
-
-.cbi-tab.active {
-    color: #3b82f6 !important;
-    border-bottom-color: #3b82f6 !important;
 }
 
 .cbi-section-empty {
@@ -132,13 +135,6 @@ body {
     font-style: italic !important;
     padding: 1rem !important;
     text-align: center !important;
-}
-
-/* Override LuCI default styles */
-.cbi-section,
-.cbi-section-descr,
-.cbi-section-node {
-    background: transparent !important;
 }
 
 .cbi-value {
@@ -149,8 +145,8 @@ body {
     margin-top: 0.5rem !important;
 }
 
-/* Select dropdown styling */
-select.cbi-input-select {
+select,
+.cbi-input-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cbd5e1' d='M6 9L1 4h10z'/%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
     background-position: right 0.75rem center !important;
@@ -160,33 +156,49 @@ select.cbi-input-select {
     -moz-appearance: none !important;
 }
 
-select.cbi-input-select option {
+select option,
+.cbi-input-select option {
     background: #0f172a !important;
     color: #e2e8f0 !important;
 }
 
-/* Checkbox/Flag styling */
-.cbi-input-checkbox {
+.cbi-input-checkbox,
+input[type="checkbox"] {
     width: 20px !important;
     height: 20px !important;
     accent-color: #3b82f6 !important;
     cursor: pointer !important;
 }
 
-/* Label styling */
 label {
     color: #cbd5e1 !important;
 }
 
-/* Page title */
-.cbi-page-head {
+.cbi-page-head,
+h2 {
     color: #e2e8f0 !important;
     margin-bottom: 1rem !important;
 }
 
-.cbi-page-descr {
+.cbi-page-descr,
+p {
     color: #94a3b8 !important;
     margin-bottom: 2rem !important;
+}
+
+form {
+    background: transparent !important;
+}
+
+table {
+    background: transparent !important;
+    border: none !important;
+}
+
+td, th {
+    background: transparent !important;
+    border: none !important;
+    color: #e2e8f0 !important;
 }
 </style>
 
