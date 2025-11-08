@@ -8,40 +8,55 @@ m = Map("lucicodex", translate("LuciCodex Configuration"),
 local cursor = uci.cursor()
 cursor:load("lucicodex")
 
--- Check and create api section
+-- Check and create api section with explicit name
 local has_api = false
-cursor:foreach("lucicodex", "api", function(s) has_api = true end)
+local api_section_name = nil
+cursor:foreach("lucicodex", "api", function(s)
+    has_api = true
+    api_section_name = s[".name"]
+end)
 
 if not has_api then
-    local api_id = cursor:add("lucicodex", "api")
-    cursor:set("lucicodex", api_id, "provider", "gemini")
-    cursor:set("lucicodex", api_id, "key", "")
-    cursor:set("lucicodex", api_id, "model", "gemini-1.5-flash")
-    cursor:set("lucicodex", api_id, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
-    cursor:set("lucicodex", api_id, "openai_key", "")
-    cursor:set("lucicodex", api_id, "anthropic_key", "")
+    -- Create named section (not anonymous)
+    cursor:set("lucicodex", "api", "api")
+    cursor:set("lucicodex", "api", "provider", "gemini")
+    cursor:set("lucicodex", "api", "key", "")
+    cursor:set("lucicodex", "api", "model", "gemini-1.5-flash")
+    cursor:set("lucicodex", "api", "endpoint", "https://generativelanguage.googleapis.com/v1beta")
+    cursor:set("lucicodex", "api", "openai_key", "")
+    cursor:set("lucicodex", "api", "anthropic_key", "")
     cursor:commit("lucicodex")
     cursor:load("lucicodex")
+    api_section_name = "api"
+else
+    api_section_name = api_section_name or "api"
 end
 
--- Check and create settings section
+-- Check and create settings section with explicit name
 local has_settings = false
-cursor:foreach("lucicodex", "settings", function(s) has_settings = true end)
+local settings_section_name = nil
+cursor:foreach("lucicodex", "settings", function(s)
+    has_settings = true
+    settings_section_name = s[".name"]
+end)
 
 if not has_settings then
-    local settings_id = cursor:add("lucicodex", "settings")
-    cursor:set("lucicodex", settings_id, "dry_run", "1")
-    cursor:set("lucicodex", settings_id, "confirm_each", "0")
-    cursor:set("lucicodex", settings_id, "timeout", "30")
-    cursor:set("lucicodex", settings_id, "max_commands", "10")
-    cursor:set("lucicodex", settings_id, "log_file", "/tmp/lucicodex.log")
+    -- Create named section (not anonymous)
+    cursor:set("lucicodex", "settings", "settings")
+    cursor:set("lucicodex", "settings", "dry_run", "1")
+    cursor:set("lucicodex", "settings", "confirm_each", "0")
+    cursor:set("lucicodex", "settings", "timeout", "30")
+    cursor:set("lucicodex", "settings", "max_commands", "10")
+    cursor:set("lucicodex", "settings", "log_file", "/tmp/lucicodex.log")
     cursor:commit("lucicodex")
     cursor:load("lucicodex")
+    settings_section_name = "settings"
+else
+    settings_section_name = settings_section_name or "settings"
 end
 
--- API Configuration Section
-s = m:section(TypedSection, "api", translate("API Configuration"))
-s.anonymous = true
+-- API Configuration Section - Use NamedSection to target specific section
+s = m:section(NamedSection, api_section_name, "api", translate("API Configuration"))
 s.addremove = false
 
 o = s:option(ListValue, "provider", translate("LLM Provider"),
@@ -80,9 +95,8 @@ o = s:option(Value, "endpoint", translate("API Endpoint"),
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
 o.rmempty = true
 
--- Safety Settings Section
-s = m:section(TypedSection, "settings", translate("Safety Settings"))
-s.anonymous = true
+-- Safety Settings Section - Use NamedSection to target specific section
+s = m:section(NamedSection, settings_section_name, "settings", translate("Safety Settings"))
 s.addremove = false
 
 o = s:option(Flag, "dry_run", translate("Dry Run by Default"),
