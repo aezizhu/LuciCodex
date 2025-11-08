@@ -760,14 +760,20 @@ function renderHistory() {
         if (session.id === currentSessionId) {
             li.classList.add('active');
         }
+        li.setAttribute('data-session-id', session.id);
         li.innerHTML = `
             <div class="chat-history-item-content">
-                <span class="chat-history-item-title" onclick="loadSession('${session.id}')" title="${escapeHtml(session.title)}">${escapeHtml(session.title)}</span>
+                <span class="chat-history-item-title" title="${escapeHtml(session.title)}">${escapeHtml(session.title)}</span>
                 <div class="chat-history-item-actions">
                     <button class="btn-delete-history" onclick="deleteSession('${session.id}', event)" title="Delete">×</button>
                 </div>
             </div>
         `;
+        // Add click handler to load session
+        li.querySelector('.chat-history-item-title').addEventListener('click', function(e) {
+            e.stopPropagation();
+            loadSession(session.id);
+        });
         historyList.appendChild(li);
     });
 }
@@ -803,11 +809,11 @@ function loadSession(sessionId) {
     // Update active state
     document.querySelectorAll('.chat-history-item').forEach(function(item) {
         item.classList.remove('active');
+        if (item.getAttribute('data-session-id') === sessionId || 
+            (item.id === 'currentSession' && sessionId === 'current')) {
+            item.classList.add('active');
+        }
     });
-    var clickedItem = document.querySelector('[onclick*="' + sessionId + '"]');
-    if (clickedItem) {
-        clickedItem.closest('.chat-history-item').classList.add('active');
-    }
     
     renderHistory();
 }
