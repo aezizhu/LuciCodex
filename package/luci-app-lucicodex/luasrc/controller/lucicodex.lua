@@ -4,7 +4,7 @@ function index()
     entry({"admin", "system", "lucicodex"}, firstchild(), _("LuciCodex"), 60).dependent = false
     entry({"admin", "system", "lucicodex", "overview"}, template("lucicodex/overview"), _("Overview"), 1)
     entry({"admin", "system", "lucicodex", "config"}, cbi("lucicodex"), _("Configuration"), 2)
-    entry({"admin", "system", "lucicodex", "run"}, template("lucicodex/run"), _("Run"), 3)
+    entry({"admin", "system", "lucicodex", "run"}, template("lucicodex/run"), _("Chat"), 3)
     entry({"admin", "system", "lucicodex", "plan"}, call("action_plan")).leaf = true
     entry({"admin", "system", "lucicodex", "execute"}, call("action_execute")).leaf = true
     entry({"admin", "system", "lucicodex", "metrics"}, call("action_metrics")).leaf = true
