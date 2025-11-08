@@ -1,20 +1,32 @@
 <%+header%>
 
 <style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
 .lucicodex-overview {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 2rem;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    min-height: calc(100vh - 60px);
 }
 
 .hero-banner {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     border-radius: 16px;
     padding: 3rem 2rem;
     color: white;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 20px 60px rgba(59, 130, 246, 0.3);
     text-align: center;
 }
 
@@ -31,71 +43,12 @@
     margin-top: 0.5rem;
 }
 
-.feature-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.feature-card {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid #e2e8f0;
-    transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
-}
-
-.feature-card h3 {
-    font-size: 1.5rem;
-    color: #2d3748;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.feature-icon {
-    font-size: 2rem;
-}
-
-.feature-card ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.feature-card li {
-    padding: 0.75rem 0;
-    color: #4a5568;
-    border-bottom: 1px solid #f7fafc;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-}
-
-.feature-card li:last-child {
-    border-bottom: none;
-}
-
-.feature-card li:before {
-    content: "✓";
-    color: #48bb78;
-    font-weight: bold;
-    margin-top: 2px;
-}
-
 .action-buttons {
     display: flex;
     gap: 1rem;
     margin: 2rem 0;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .btn {
@@ -116,37 +69,100 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     color: white;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5);
 }
 
 .btn-secondary {
-    background: #48bb78;
-    color: white;
-    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .btn-secondary:hover {
+    background: #334155;
+    border-color: #475569;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
-    background: #38a169;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.feature-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    border-color: #475569;
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    color: #e2e8f0;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-icon {
+    font-size: 2rem;
+}
+
+.feature-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-card li {
+    padding: 0.75rem 0;
+    color: #cbd5e1;
+    border-bottom: 1px solid #334155;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.feature-card li:last-child {
+    border-bottom: none;
+}
+
+.feature-card li:before {
+    content: "✓";
+    color: #10b981;
+    font-weight: bold;
+    margin-top: 2px;
 }
 
 .example-card {
-    background: #f7fafc;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 12px;
     padding: 2rem;
     margin-top: 2rem;
 }
 
 .example-card h3 {
-    color: #2d3748;
+    color: #e2e8f0;
     margin-bottom: 1rem;
     font-size: 1.5rem;
 }
@@ -159,38 +175,49 @@
 }
 
 .example-item {
-    background: white;
+    background: #0f172a;
     padding: 1rem 1.5rem;
     border-radius: 8px;
-    border-left: 4px solid #667eea;
+    border-left: 4px solid #3b82f6;
     font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
     font-size: 0.95rem;
-    color: #4a5568;
+    color: #cbd5e1;
     transition: all 0.2s;
     cursor: pointer;
+    border: 1px solid #334155;
 }
 
 .example-item:hover {
-    background: #edf2f7;
+    background: #1e293b;
+    border-color: #475569;
     transform: translateX(4px);
+    border-left-color: #8b5cf6;
 }
 
 .doc-link {
     text-align: center;
     margin-top: 2rem;
     padding: 1.5rem;
-    background: #edf2f7;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 12px;
 }
 
+.doc-link p {
+    color: #cbd5e1;
+    margin: 0;
+}
+
 .doc-link a {
-    color: #667eea;
+    color: #3b82f6;
     font-weight: 600;
     text-decoration: none;
     font-size: 1.1rem;
+    transition: color 0.2s;
 }
 
 .doc-link a:hover {
+    color: #8b5cf6;
     text-decoration: underline;
 }
 </style>
@@ -207,7 +234,7 @@
             ⚙️ Configure API Keys
         </a>
         <a href="<%=url('admin/system/lucicodex/run')%>" class="btn btn-secondary">
-            🚀 Run Commands
+            🚀 Start Chat
         </a>
     </div>
 
