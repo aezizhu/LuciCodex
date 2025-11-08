@@ -1,228 +1,421 @@
 <%+header%>
 
 <style>
-.lucicodex-run {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+* {
+    box-sizing: border-box;
 }
 
-.hero-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 2.5rem 2rem;
-    color: white;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-}
-
-.hero-header h2 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.hero-header p {
-    font-size: 1.05rem;
-    opacity: 0.95;
-}
-
-.card {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    border: 1px solid #e2e8f0;
-}
-
-.input-group {
-    margin-bottom: 1.5rem;
-}
-
-.input-group label {
-    display: block;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 0.75rem;
-    font-size: 1rem;
-}
-
-textarea {
-    width: 100%;
-    padding: 1rem;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-family: inherit;
-    resize: vertical;
-    transition: all 0.3s;
-    min-height: 120px;
-}
-
-textarea:focus {
-    outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-}
-
-.examples {
-    margin-top: 1rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.example-tag {
-    display: inline-block;
-    background: #edf2f7;
-    color: #4a5568;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+body {
     margin: 0;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.example-tag:hover {
-    background: #667eea;
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.mode-selector {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.mode-option {
-    position: relative;
     padding: 0;
-    border: 2px solid #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.lucicodex-chat {
+    display: flex;
+    height: calc(100vh - 60px);
+    max-width: 1600px;
+    margin: 0 auto;
+    background: #1e293b;
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    background: white;
     overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-.mode-option input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.mode-content {
+/* Sidebar */
+.chat-sidebar {
+    width: 280px;
+    background: #0f172a;
+    border-right: 1px solid #334155;
+    display: flex;
+    flex-direction: column;
     padding: 1.5rem;
-    transition: all 0.3s;
+    overflow-y: auto;
 }
 
-.mode-option:hover {
-    border-color: #cbd5e0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+.sidebar-header {
+    margin-bottom: 2rem;
 }
 
-.mode-option input[type="radio"]:checked ~ .mode-content {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-    border-color: #667eea;
+.sidebar-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 0.5rem 0;
 }
 
-.mode-title {
+.sidebar-header p {
+    font-size: 0.875rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.new-chat-btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
     font-weight: 600;
-    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 1rem;
+}
+
+.new-chat-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+}
+
+.sidebar-section {
+    margin-bottom: 2rem;
+}
+
+.sidebar-section h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin: 0 0 0.75rem 0;
+    font-weight: 600;
+}
+
+.sidebar-select {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.sidebar-select:hover {
+    border-color: #475569;
+}
+
+.sidebar-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.chat-history {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.chat-history-item {
+    padding: 0.75rem;
     margin-bottom: 0.5rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+    color: #cbd5e1;
+}
+
+.chat-history-item:hover {
+    background: #334155;
+    border-color: #475569;
+}
+
+/* Main Chat Area */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #1e293b;
+    position: relative;
+}
+
+.chat-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid #334155;
+    background: #0f172a;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: #2d3748;
 }
 
-.mode-desc {
-    font-size: 0.9rem;
-    color: #718096;
-    line-height: 1.5;
+.chat-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-.badge {
-    display: inline-block;
-    padding: 0.3rem 0.8rem;
+.chat-header-badge {
+    padding: 0.375rem 0.75rem;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 20px;
     font-size: 0.75rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.badge-safe {
-    background: #d4edda;
-    color: #155724;
-}
-
-.badge-danger {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.btn-group {
+    color: #94a3b8;
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.btn {
-    padding: 0.875rem 2rem;
-    border: none;
-    border-radius: 10px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    text-decoration: none;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.chat-header-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.chat-message {
+    display: flex;
+    gap: 1rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chat-message.user {
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.125rem;
+    flex-shrink: 0;
+}
+
+.message-avatar.user {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     color: white;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
-.btn-primary:hover:not(:disabled) {
+.message-avatar.ai {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.message-content {
+    flex: 1;
+    max-width: 75%;
+}
+
+.message-bubble {
+    padding: 1rem 1.25rem;
+    border-radius: 12px;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+.message-bubble.user {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-bubble.ai {
+    background: #0f172a;
+    border: 1px solid #334155;
+    color: #e2e8f0;
+    border-bottom-left-radius: 4px;
+}
+
+.message-text {
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+/* Code Blocks */
+.code-block {
+    margin: 1rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #1e293b;
+}
+
+.code-header {
+    background: #0f172a;
+    padding: 0.625rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+.code-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.code-lang {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.code-content {
+    background: #0a0e1a;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #68d391;
+}
+
+.code-content pre {
+    margin: 0;
+    white-space: pre;
+}
+
+/* Command Approval */
+.command-approval {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+}
+
+.command-approval-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #fbbf24;
+    font-size: 0.875rem;
+}
+
+.command-approval-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.btn-approve {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-approve:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-.btn-secondary {
-    background: #e2e8f0;
-    color: #2d3748;
+.btn-reject {
+    padding: 0.5rem 1rem;
+    background: #1e293b;
+    color: #ef4444;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.btn-secondary:hover {
-    background: #cbd5e0;
+.btn-reject:hover {
+    background: #334155;
+    border-color: #475569;
 }
 
-.btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none !important;
+/* Results */
+.result-block {
+    margin-top: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #334155;
+}
+
+.result-header {
+    background: #0f172a;
+    padding: 0.625rem 1rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 600;
+    border-bottom: 1px solid #1e293b;
+}
+
+.result-content {
+    background: #0a0e1a;
+    padding: 1rem 1.25rem;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: #68d391;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.result-success {
+    border-left: 4px solid #10b981;
+}
+
+.result-error {
+    border-left: 4px solid #ef4444;
+}
+
+/* Loading */
+.message-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #94a3b8;
+    font-size: 0.875rem;
 }
 
 .spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,0.3);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #334155;
+    border-top-color: #3b82f6;
     border-radius: 50%;
-    border-top-color: white;
     animation: spin 0.8s linear infinite;
 }
 
@@ -230,400 +423,428 @@ textarea:focus {
     to { transform: rotate(360deg); }
 }
 
-.alert {
-    padding: 1.25rem 1.5rem;
-    border-radius: 10px;
-    margin-bottom: 1.5rem;
+/* Input Area */
+.chat-input-area {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #334155;
+    background: #0f172a;
+}
+
+.chat-input-wrapper {
     display: flex;
-    align-items: center;
     gap: 0.75rem;
+    align-items: flex-end;
 }
 
-.alert-error {
-    background: #fee;
-    border-left: 4px solid #f56565;
-    color: #742a2a;
-}
-
-.alert-success {
-    background: #d4edda;
-    border-left: 4px solid #48bb78;
-    color: #22543d;
-}
-
-.plan-card {
-    background: #f7fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-}
-
-.plan-summary {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #2d3748;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #e2e8f0;
-}
-
-.command-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.command-item {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
+.chat-input {
+    flex: 1;
+    padding: 0.875rem 1rem;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    color: #e2e8f0;
+    font-size: 0.9375rem;
+    font-family: inherit;
+    resize: none;
+    min-height: 44px;
+    max-height: 200px;
+    line-height: 1.5;
     transition: all 0.2s;
 }
 
-.command-item:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    transform: translateX(4px);
+.chat-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.command-code {
-    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-    background: #1a202c;
-    color: #68d391;
-    padding: 1rem 1.25rem;
+.chat-input::placeholder {
+    color: #64748b;
+}
+
+.btn-send {
+    padding: 0.875rem 1.5rem;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    border: none;
     border-radius: 8px;
-    font-size: 0.95rem;
-    overflow-x: auto;
-    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.command-desc {
-    color: #718096;
-    font-size: 0.9rem;
-    line-height: 1.5;
+.btn-send:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
 }
 
-.warnings {
-    background: #fffbf0;
-    border: 2px solid #fbbf24;
-    border-radius: 10px;
-    padding: 1.25rem;
-    margin: 1.5rem 0;
+.btn-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.warnings h4 {
-    color: #92400e;
-    margin-bottom: 0.75rem;
-}
-
-.warnings ul {
-    margin: 0;
-    padding-left: 1.5rem;
-    color: #78350f;
-}
-
-.result-output {
-    background: #1a202c;
-    color: #68d391;
-    padding: 1.5rem;
-    border-radius: 10px;
-    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-    font-size: 0.9rem;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    line-height: 1.6;
-}
-
-.hidden {
-    display: none !important;
-}
-
-.loading-card {
+.input-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #64748b;
     text-align: center;
-    padding: 2rem;
 }
 
-.loading-card .spinner {
-    margin-right: 1rem;
+/* Error */
+.error-message {
+    padding: 1rem;
+    background: #7f1d1d;
+    border: 1px solid #991b1b;
+    border-radius: 8px;
+    color: #fca5a5;
+    margin: 1rem 0;
+    border-left: 4px solid #ef4444;
+}
+
+/* Scrollbar */
+.chat-messages::-webkit-scrollbar,
+.chat-sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.chat-messages::-webkit-scrollbar-track,
+.chat-sidebar::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+.chat-messages::-webkit-scrollbar-thumb,
+.chat-sidebar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+.chat-messages::-webkit-scrollbar-thumb:hover,
+.chat-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
 }
 </style>
 
-<div class="lucicodex-run">
-    <div class="hero-header">
-        <h2>🚀 Run LuciCodex</h2>
-        <p>Enter a natural language request and the AI will generate safe OpenWrt commands</p>
-    </div>
-
-    <div class="card">
-        <div class="input-group">
-            <label for="prompt">📝 Your Request</label>
-            <textarea id="prompt" name="prompt" rows="4" placeholder="Example: Show me the current network configuration"></textarea>
-            
-            <div class="examples">
-                <strong style="font-size: 0.9rem; color: #718096; margin-right: 0.5rem;">Quick examples:</strong>
-                <span class="example-tag" onclick="setExample('Show me the network configuration')">📡 Network</span>
-                <span class="example-tag" onclick="setExample('Check system memory and uptime')">💻 System</span>
-                <span class="example-tag" onclick="setExample('List installed packages')">📦 Packages</span>
-                <span class="example-tag" onclick="setExample('Show firewall rules')">🔥 Firewall</span>
-                <span class="example-tag" onclick="setExample('Restart WiFi')">📶 WiFi</span>
-            </div>
-        </div>
-
-        <div class="input-group">
-            <label>⚙️ Execution Mode</label>
-            <div class="mode-selector">
-                <label class="mode-option">
-                    <input type="radio" name="execution_mode" value="manual" checked onchange="updateExecutionMode()">
-                    <div class="mode-content">
-                        <div class="mode-title">
-                            <span>🛡️ Manual Approve</span>
-                            <span class="badge badge-safe">Recommended</span>
-                        </div>
-                        <div class="mode-desc">Review commands before execution. Safe and recommended for all users.</div>
-                    </div>
-                </label>
-                
-                <label class="mode-option">
-                    <input type="radio" name="execution_mode" value="auto" onchange="updateExecutionMode()">
-                    <div class="mode-content">
-                        <div class="mode-title">
-                            <span>⚡ Auto-Approve</span>
-                            <span class="badge badge-danger">Caution</span>
-                        </div>
-                        <div class="mode-desc">Execute immediately without review. Use with caution - can make irreversible changes.</div>
-                    </div>
-                </label>
-            </div>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="generatePlan()" id="generateBtn">
-                ✨ Generate Plan
-            </button>
-            <button class="btn btn-secondary" onclick="clearResults()">🗑️ Clear</button>
-        </div>
-    </div>
-
-    <div id="loading" class="card hidden">
-        <div class="loading-card">
-            <div class="spinner"></div>
-            <span id="loading-text"><%:Generating plan...%></span>
-        </div>
-    </div>
-
-    <div id="error" class="alert alert-error hidden">
-        <strong>❌ <%:Error:%></strong> <span id="error-message"></span>
-    </div>
-
-    <div id="plan-section" class="card hidden">
-        <h3 style="margin-bottom: 1.5rem; color: #2d3748; font-size: 1.5rem;">📋 Generated Plan</h3>
-        <div class="plan-card">
-            <div class="plan-summary" id="plan-summary"></div>
-            <ul class="command-list" id="plan-commands"></ul>
-            <div id="plan-warnings"></div>
+<div class="lucicodex-chat">
+    <!-- Sidebar -->
+    <div class="chat-sidebar">
+        <div class="sidebar-header">
+            <h2>LuciCodex</h2>
+            <p>AI Router Assistant</p>
         </div>
         
-        <div class="btn-group">
-            <button class="btn btn-primary" onclick="executePlan()" id="execute-button">
-                ✅ Execute Commands
-            </button>
+        <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
+        
+        <div class="sidebar-section">
+            <h3>Execution Mode</h3>
+            <select class="sidebar-select" id="execMode" onchange="updateExecMode()">
+                <option value="manual">Manual Approve</option>
+                <option value="auto">Auto Approve</option>
+            </select>
+        </div>
+        
+        <div class="sidebar-section">
+            <h3>History</h3>
+            <ul class="chat-history" id="chatHistory">
+                <li class="chat-history-item">Current Session</li>
+            </ul>
         </div>
     </div>
-
-    <div id="result-section" class="card hidden">
-        <h3 style="margin-bottom: 1.5rem; color: #2d3748; font-size: 1.5rem;">✅ Execution Result</h3>
-        <div class="result-output" id="result-output"></div>
+    
+    <!-- Main Chat Area -->
+    <div class="chat-main">
+        <div class="chat-header">
+            <div class="chat-header-info">
+                <div class="chat-header-badge">OpenWrt Assistant</div>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message ai">
+                <div class="message-avatar ai">AI</div>
+                <div class="message-content">
+                    <div class="message-bubble ai">
+                        <p class="message-text">Hello! I'm LuciCodex, your AI-powered OpenWrt assistant. I can help you manage your router using natural language. Just tell me what you'd like to do!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-area">
+            <div class="chat-input-wrapper">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Type your request here... (e.g., 'Show me network configuration' or 'Check system status')"
+                    rows="1"
+                    onkeydown="handleKeyDown(event)"
+                    oninput="autoResize(this)"
+                ></textarea>
+                <button class="btn-send" id="sendBtn" onclick="sendMessage()">Send</button>
+            </div>
+            <div class="input-hint">Press Enter to send, Shift+Enter for newline</div>
+        </div>
     </div>
 </div>
 
 <script type="text/javascript">
+var chatHistory = [];
 var currentPlan = null;
+var execMode = 'manual';
 
-function setExample(text) {
-    document.getElementById('prompt').value = text;
-    document.getElementById('prompt').focus();
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
 }
 
-function updateExecutionMode() {
-    // Visual feedback is handled by CSS
+function handleKeyDown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
 }
 
-function generatePlan() {
-    var prompt = document.getElementById('prompt').value.trim();
-    var modeEl = document.querySelector('input[name="execution_mode"]:checked');
-    var mode = modeEl ? modeEl.value : 'manual';
+function updateExecMode() {
+    execMode = document.getElementById('execMode').value;
+}
+
+function newChat() {
+    if (confirm('Start a new chat? Current conversation will be cleared.')) {
+        chatHistory = [];
+        currentPlan = null;
+        document.getElementById('chatMessages').innerHTML = `
+            <div class="chat-message ai">
+                <div class="message-avatar ai">AI</div>
+                <div class="message-content">
+                    <div class="message-bubble ai">
+                        <p class="message-text">Hello! I'm LuciCodex, your AI-powered OpenWrt assistant. I can help you manage your router using natural language. Just tell me what you'd like to do!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('chatInput').value = '';
+    }
+}
+
+function addMessage(role, content, isCode, code, needsApproval) {
+    var messagesDiv = document.getElementById('chatMessages');
+    var messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ' + role;
     
-    if (!prompt) {
-        showError('Please enter a request');
-        return;
+    var avatar = role === 'user' ? 'U' : 'AI';
+    var avatarClass = role === 'user' ? 'user' : 'ai';
+    
+    var contentHtml = '';
+    if (isCode && code) {
+        contentHtml = `
+            <div class="code-block">
+                <div class="code-header">
+                    <div class="code-header-left">
+                        <span class="code-lang">SHELL</span>
+                    </div>
+                </div>
+                <div class="code-content">
+                    <pre>${escapeHtml(code)}</pre>
+                </div>
+            </div>
+        `;
+        if (needsApproval) {
+            contentHtml += `
+                <div class="command-approval">
+                    <div class="command-approval-header">⚠️ Approval Required</div>
+                    <div class="command-approval-actions">
+                        <button class="btn-approve" onclick="approveCommand('${escapeHtml(code)}')">✓ Approve & Execute</button>
+                        <button class="btn-reject" onclick="rejectCommand()">✗ Reject</button>
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        contentHtml = `<p class="message-text">${escapeHtml(content)}</p>`;
     }
     
-    if (mode === 'auto') {
-        if (!confirm('⚠️ AUTO-APPROVE MODE WARNING\n\nYou are about to execute commands WITHOUT reviewing them first.\n\nThe AI will:\n• Generate commands based on your request\n• Execute them IMMEDIATELY on your router\n• Make changes that may be IRREVERSIBLE\n\nThis can potentially:\n• Disrupt your network\n• Change critical settings\n• Affect router stability\n\nAre you absolutely sure you want to proceed with Auto-Approve Mode?\n\nClick CANCEL to switch to Manual Approve Mode (recommended).')) {
+    messageDiv.innerHTML = `
+        <div class="message-avatar ${avatarClass}">${avatar}</div>
+        <div class="message-content">
+            <div class="message-bubble ${role}">
+                ${contentHtml}
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function addLoadingMessage() {
+    var messagesDiv = document.getElementById('chatMessages');
+    var messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message ai';
+    messageDiv.id = 'loadingMessage';
+    messageDiv.innerHTML = `
+        <div class="message-avatar ai">AI</div>
+        <div class="message-content">
+            <div class="message-bubble ai">
+                <div class="message-loading">
+                    <div class="spinner"></div>
+                    <span>Generating plan...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function removeLoadingMessage() {
+    var loading = document.getElementById('loadingMessage');
+    if (loading) loading.remove();
+}
+
+function sendMessage() {
+    var input = document.getElementById('chatInput');
+    var prompt = input.value.trim();
+    
+    if (!prompt) return;
+    
+    // Add user message
+    addMessage('user', prompt, false, null, false);
+    input.value = '';
+    autoResize(input);
+    
+    // Disable input
+    input.disabled = true;
+    document.getElementById('sendBtn').disabled = true;
+    
+    // Show loading
+    addLoadingMessage();
+    
+    // Generate plan
+    generatePlan(prompt);
+}
+
+function generatePlan(prompt) {
+    if (execMode === 'auto') {
+        if (!confirm('⚠️ AUTO-APPROVE MODE\n\nCommands will execute immediately without review.\nThis can make irreversible changes.\n\nContinue?')) {
+            removeLoadingMessage();
+            document.getElementById('chatInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
             return;
         }
     }
-
-    hideAll();
-    showLoading('Generating plan...');
-
+    
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '<%=url("admin/system/lucicodex/plan")%>', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
     xhr.onload = function() {
-        hideLoading();
+        removeLoadingMessage();
+        document.getElementById('chatInput').disabled = false;
+        document.getElementById('sendBtn').disabled = false;
         
         if (xhr.status === 200) {
             try {
                 var response = JSON.parse(xhr.responseText);
                 if (response.ok && response.plan) {
                     currentPlan = response.plan;
-                    
-                    if (mode === 'auto') {
-                        showLoading('Auto-executing commands...');
-                        executeAutoApprove(prompt);
-                    } else {
-                        displayPlan(response.plan);
-                    }
+                    displayPlan(response.plan, prompt);
                 } else {
-                    showError(response.error || 'Failed to generate plan');
+                    addMessage('ai', 'Error: ' + (response.error || 'Failed to generate plan'), false, null, false);
                 }
             } catch (e) {
-                showError('Invalid response from server');
+                addMessage('ai', 'Error: Invalid response from server', false, null, false);
             }
         } else {
             try {
                 var error = JSON.parse(xhr.responseText);
-                showError(error.error || 'Request failed');
+                addMessage('ai', 'Error: ' + (error.error || 'Request failed'), false, null, false);
             } catch (e) {
-                showError('Request failed with status ' + xhr.status);
+                addMessage('ai', 'Error: Request failed with status ' + xhr.status, false, null, false);
             }
         }
     };
     
     xhr.onerror = function() {
-        hideLoading();
-        showError('Network error');
+        removeLoadingMessage();
+        document.getElementById('chatInput').disabled = false;
+        document.getElementById('sendBtn').disabled = false;
+        addMessage('ai', 'Error: Network error - check your connection', false, null, false);
     };
     
     xhr.send(JSON.stringify({ prompt: prompt }));
 }
 
-function displayPlan(plan) {
-    document.getElementById('plan-section').classList.remove('hidden');
+function displayPlan(plan, prompt) {
+    var summary = plan.summary || 'Generated plan';
+    var commands = plan.commands || [];
     
-    var summaryHtml = '<strong>Summary:</strong> ' + escapeHtml(plan.summary || 'Commands ready to execute');
-    summaryHtml = '<div style="padding: 1rem; background: #e8f4f8; border-left: 4px solid #4a90e2; border-radius: 8px; margin-bottom: 1.5rem;"><strong>📋 Manual Approve Mode:</strong> Review the commands below. Click "Execute Commands" to proceed.</div>' + summaryHtml;
-    document.getElementById('plan-summary').innerHTML = summaryHtml;
+    // Show summary
+    addMessage('ai', summary, false, null, false);
     
-    var commandsHtml = '';
-    if (plan.commands && plan.commands.length > 0) {
-        plan.commands.forEach(function(cmd, idx) {
-            var cmdText = cmd.command.join(' ');
-            commandsHtml += '<li class="command-item">';
-            commandsHtml += '<div class="command-code">' + escapeHtml(cmdText) + '</div>';
-            if (cmd.description) {
-                commandsHtml += '<div class="command-desc">' + escapeHtml(cmd.description) + '</div>';
-            }
-            commandsHtml += '</li>';
-        });
-    } else {
-        commandsHtml = '<li><em>No commands generated</em></li>';
-    }
-    document.getElementById('plan-commands').innerHTML = commandsHtml;
+    // Show each command
+    commands.forEach(function(cmd, idx) {
+        var cmdText = Array.isArray(cmd.command) ? cmd.command.join(' ') : cmd.command;
+        var description = cmd.description || '';
+        
+        var needsApproval = execMode === 'manual';
+        addMessage('ai', description || 'Command ' + (idx + 1), true, cmdText, needsApproval);
+    });
     
-    if (plan.warnings && plan.warnings.length > 0) {
-        var warningsHtml = '<div class="warnings"><h4>⚠️ Warnings:</h4><ul>';
-        plan.warnings.forEach(function(warning) {
-            warningsHtml += '<li>' + escapeHtml(warning) + '</li>';
-        });
-        warningsHtml += '</ul></div>';
-        document.getElementById('plan-warnings').innerHTML = warningsHtml;
-    } else {
-        document.getElementById('plan-warnings').innerHTML = '';
+    // If auto mode, execute immediately
+    if (execMode === 'auto') {
+        addLoadingMessage();
+        executeCommands(prompt);
     }
 }
 
-function executeAutoApprove(prompt) {
-    executeCommands(prompt, false);
+function approveCommand(code) {
+    if (currentPlan) {
+        addLoadingMessage();
+        executeCommands(document.getElementById('chatInput').value.trim() || 'Execute approved commands');
+    }
 }
 
-function executePlan() {
-    var prompt = document.getElementById('prompt').value.trim();
-    if (!prompt) {
-        showError('Please enter a request');
-        return;
-    }
-
-    var confirmMsg = '🔍 MANUAL EXECUTION CONFIRMATION\n\n';
-    confirmMsg += 'You are about to execute the commands shown above on your router.\n\n';
-    
-    if (currentPlan && currentPlan.commands) {
-        confirmMsg += 'Commands to execute (' + currentPlan.commands.length + '):\n';
-        for (var i = 0; i < Math.min(currentPlan.commands.length, 5); i++) {
-            confirmMsg += '  ' + (i + 1) + '. ' + currentPlan.commands[i].command.join(' ') + '\n';
-        }
-        if (currentPlan.commands.length > 5) {
-            confirmMsg += '  ... and ' + (currentPlan.commands.length - 5) + ' more\n';
-        }
-    }
-    
-    confirmMsg += '\nAre you sure you want to proceed?';
-    
-    if (!confirm(confirmMsg)) {
-        return;
-    }
-    
-    executeCommands(prompt, true);
+function rejectCommand() {
+    addMessage('ai', 'Command execution cancelled by user.', false, null, false);
 }
 
-function executeCommands(prompt, isManual) {
-    hideAll();
-    showLoading(isManual ? 'Executing commands...' : 'Auto-executing commands...');
-
+function executeCommands(prompt) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '<%=url("admin/system/lucicodex/execute")%>', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     
     xhr.onload = function() {
-        hideLoading();
+        removeLoadingMessage();
         
         if (xhr.status === 200) {
             try {
                 var response = JSON.parse(xhr.responseText);
                 if (response.ok) {
-                    var resultOutput = response.output || JSON.stringify(response.result, null, 2);
-                    var modeLabel = isManual ? '✓ Manual Execution' : '⚡ Auto-Execution';
-                    var resultPrefix = '═══════════════════════════════════════\n';
-                    resultPrefix += modeLabel + ' - Completed Successfully\n';
-                    resultPrefix += '═══════════════════════════════════════\n\n';
-                    displayResult(resultPrefix + resultOutput);
+                    var output = response.output || JSON.stringify(response.result, null, 2);
+                    displayResult(output, true);
                 } else {
-                    showError(response.error || 'Execution failed');
+                    displayResult(response.error || 'Execution failed', false);
                 }
             } catch (e) {
-                showError('Invalid response from server');
+                displayResult('Invalid response from server', false);
             }
         } else {
             try {
                 var error = JSON.parse(xhr.responseText);
-                showError(error.error || 'Request failed');
+                displayResult(error.error || 'Request failed', false);
                 if (error.output) {
-                    displayResult(error.output);
+                    displayResult(error.output, false);
                 }
             } catch (e) {
-                showError('Request failed with status ' + xhr.status);
+                displayResult('Request failed with status ' + xhr.status, false);
             }
         }
     };
     
     xhr.onerror = function() {
-        hideLoading();
-        showError('Network error');
+        removeLoadingMessage();
+        displayResult('Network error', false);
     };
     
     xhr.send(JSON.stringify({ 
@@ -633,35 +854,28 @@ function executeCommands(prompt, isManual) {
     }));
 }
 
-function displayResult(output) {
-    document.getElementById('result-section').classList.remove('hidden');
-    document.getElementById('result-output').textContent = output;
-}
-
-function showError(message) {
-    document.getElementById('error').classList.remove('hidden');
-    document.getElementById('error-message').textContent = message;
-}
-
-function showLoading(text) {
-    document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('loading-text').textContent = text;
-}
-
-function hideLoading() {
-    document.getElementById('loading').classList.add('hidden');
-}
-
-function hideAll() {
-    document.getElementById('error').classList.add('hidden');
-    document.getElementById('plan-section').classList.add('hidden');
-    document.getElementById('result-section').classList.add('hidden');
-    document.getElementById('loading').classList.add('hidden');
-}
-
-function clearResults() {
-    document.getElementById('prompt').value = '';
-    hideAll();
+function displayResult(output, isSuccess) {
+    var messagesDiv = document.getElementById('chatMessages');
+    var resultDiv = document.createElement('div');
+    resultDiv.className = 'chat-message ai';
+    
+    var resultClass = isSuccess ? 'result-success' : 'result-error';
+    var resultTitle = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
+    
+    resultDiv.innerHTML = `
+        <div class="message-avatar ai">AI</div>
+        <div class="message-content">
+            <div class="message-bubble ai">
+                <div class="result-block ${resultClass}">
+                    <div class="result-header">${resultTitle}</div>
+                    <div class="result-content">${escapeHtml(output)}</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    messagesDiv.appendChild(resultDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function escapeHtml(text) {
