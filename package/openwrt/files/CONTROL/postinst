@@ -4,19 +4,19 @@
 [ -f /etc/config/lucicodex ] || {
     touch /etc/config/lucicodex
     uci -q batch <<-EOF
-		set lucicodex.api=api
-		set lucicodex.api.provider='gemini'
-		set lucicodex.api.key=''
-		set lucicodex.api.model='gemini-1.5-flash'
-		set lucicodex.api.endpoint='https://generativelanguage.googleapis.com/v1beta'
-		set lucicodex.api.openai_key=''
-		set lucicodex.api.anthropic_key=''
-		set lucicodex.settings=settings
-		set lucicodex.settings.dry_run='1'
-		set lucicodex.settings.confirm_each='0'
-		set lucicodex.settings.timeout='30'
-		set lucicodex.settings.max_commands='10'
-		set lucicodex.settings.log_file='/tmp/lucicodex.log'
+		add lucicodex api
+		set lucicodex.@api[0].provider='gemini'
+		set lucicodex.@api[0].key=''
+		set lucicodex.@api[0].model='gemini-1.5-flash'
+		set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta'
+		set lucicodex.@api[0].openai_key=''
+		set lucicodex.@api[0].anthropic_key=''
+		add lucicodex settings
+		set lucicodex.@settings[0].dry_run='1'
+		set lucicodex.@settings[0].confirm_each='0'
+		set lucicodex.@settings[0].timeout='30'
+		set lucicodex.@settings[0].max_commands='10'
+		set lucicodex.@settings[0].log_file='/tmp/lucicodex.log'
 		commit lucicodex
 EOF
     echo "LuciCodex: Created default configuration at /etc/config/lucicodex"

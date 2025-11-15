@@ -5,58 +5,52 @@ m = Map("lucicodex", translate("LuciCodex Configuration"),
     translate("Configure LLM providers and API keys for the LuciCodex natural language router assistant."))
 
 -- Ensure config sections exist using UCI cursor
+-- Note: Go backend expects anonymous sections (@api[0], @settings[0])
 local cursor = uci.cursor()
 cursor:load("lucicodex")
 
--- Check and create api section with explicit name
+-- Check and create api section (anonymous)
 local has_api = false
-local api_section_name = nil
 cursor:foreach("lucicodex", "api", function(s)
     has_api = true
-    api_section_name = s[".name"]
 end)
 
 if not has_api then
-    -- Create named section (not anonymous)
-    cursor:set("lucicodex", "api", "api")
-    cursor:set("lucicodex", "api", "provider", "gemini")
-    cursor:set("lucicodex", "api", "key", "")
-    cursor:set("lucicodex", "api", "model", "gemini-1.5-flash")
-    cursor:set("lucicodex", "api", "endpoint", "https://generativelanguage.googleapis.com/v1beta")
-    cursor:set("lucicodex", "api", "openai_key", "")
-    cursor:set("lucicodex", "api", "anthropic_key", "")
-    cursor:commit("lucicodex")
+    -- Create anonymous section using os.execute for reliability
+    -- This matches the pattern used in shell scripts
+    os.execute("uci -q add lucicodex api >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].provider='gemini' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].key='' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].model='gemini-1.5-flash' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].openai_key='' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@api[0].anthropic_key='' >/dev/null 2>&1")
+    os.execute("uci -q commit lucicodex >/dev/null 2>&1")
     cursor:load("lucicodex")
-    api_section_name = "api"
-else
-    api_section_name = api_section_name or "api"
 end
 
--- Check and create settings section with explicit name
+-- Check and create settings section (anonymous)
 local has_settings = false
-local settings_section_name = nil
 cursor:foreach("lucicodex", "settings", function(s)
     has_settings = true
-    settings_section_name = s[".name"]
 end)
 
 if not has_settings then
-    -- Create named section (not anonymous)
-    cursor:set("lucicodex", "settings", "settings")
-    cursor:set("lucicodex", "settings", "dry_run", "1")
-    cursor:set("lucicodex", "settings", "confirm_each", "0")
-    cursor:set("lucicodex", "settings", "timeout", "30")
-    cursor:set("lucicodex", "settings", "max_commands", "10")
-    cursor:set("lucicodex", "settings", "log_file", "/tmp/lucicodex.log")
-    cursor:commit("lucicodex")
+    -- Create anonymous section using os.execute for reliability
+    -- This matches the pattern used in shell scripts
+    os.execute("uci -q add lucicodex settings >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@settings[0].dry_run='1' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@settings[0].confirm_each='0' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@settings[0].timeout='30' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@settings[0].max_commands='10' >/dev/null 2>&1")
+    os.execute("uci -q set lucicodex.@settings[0].log_file='/tmp/lucicodex.log' >/dev/null 2>&1")
+    os.execute("uci -q commit lucicodex >/dev/null 2>&1")
     cursor:load("lucicodex")
-    settings_section_name = "settings"
-else
-    settings_section_name = settings_section_name or "settings"
 end
 
--- API Configuration Section - Use NamedSection to target specific section
-s = m:section(NamedSection, api_section_name, "api", translate("API Configuration"))
+-- API Configuration Section - Use TypedSection for anonymous sections
+s = m:section(TypedSection, "api", translate("API Configuration"))
+s.anonymous = true
 s.addremove = false
 
 o = s:option(ListValue, "provider", translate("LLM Provider"),
@@ -95,8 +89,9 @@ o = s:option(Value, "endpoint", translate("API Endpoint"),
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
 o.rmempty = true
 
--- Safety Settings Section - Use NamedSection to target specific section
-s = m:section(NamedSection, settings_section_name, "settings", translate("Safety Settings"))
+-- Safety Settings Section - Use TypedSection for anonymous sections
+s = m:section(TypedSection, "settings", translate("Safety Settings"))
+s.anonymous = true
 s.addremove = false
 
 o = s:option(Flag, "dry_run", translate("Dry Run by Default"),
