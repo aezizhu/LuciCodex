@@ -16,6 +16,7 @@
 # IDE settings
 .vscode/
 .idea/
+.cursor/
 
 # Internal technical documentation
 WEB_INTERFACE_FIX.md
