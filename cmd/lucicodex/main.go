@@ -128,9 +128,9 @@ func main() {
 	}
 
 	if *interactive {
-		r := repl.New(cfg)
+		r := repl.New(cfg, os.Stdin, os.Stdout)
 		ctx := context.Background()
-		if err := r.Run(ctx, os.Stdin, os.Stdout); err != nil {
+		if err := r.Run(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "REPL error: %v\n", err)
 			os.Exit(1)
 		}

@@ -38,133 +38,141 @@ type PluginMetadata struct {
     Author      string   `json:"author"`
 }
 
+// For testing purposes, allow overriding command execution
+type execFn func(ctx context.Context, path string, args ...string) ([]byte, error)
+
+var executeCommand execFn = defaultExecute
+
+func defaultExecute(ctx context.Context, path string, args ...string) ([]byte, error) {
+	cmd := exec.CommandContext(ctx, path, args...)
+	return cmd.Output()
+}
+
 // Manager manages the plugin system
 type Manager struct {
-    plugins    []Plugin
-    pluginDirs []string
+	plugins    []Plugin
+	pluginDirs []string
 }
 
 func NewManager(pluginDirs []string) *Manager {
-    return &Manager{
-        plugins:    make([]Plugin, 0),
-        pluginDirs: pluginDirs,
-    }
+	return &Manager{
+		plugins:    make([]Plugin, 0),
+		pluginDirs: pluginDirs,
+	}
 }
 
 func (m *Manager) LoadPlugins() error {
-    for _, dir := range m.pluginDirs {
-        if err := m.loadFromDir(dir); err != nil {
-            // Continue loading other directories even if one fails
-            continue
-        }
-    }
-    return nil
+	for _, dir := range m.pluginDirs {
+		if err := m.loadFromDir(dir); err != nil {
+			// Continue loading other directories even if one fails
+			continue
+		}
+	}
+	return nil
 }
 
 func (m *Manager) loadFromDir(dir string) error {
-    entries, err := os.ReadDir(dir)
-    if err != nil {
-        return err
-    }
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
 
-    for _, entry := range entries {
-        if entry.IsDir() {
-            continue
-        }
-        
-        pluginPath := filepath.Join(dir, entry.Name())
-        
-        // Check if it's executable
-        info, err := entry.Info()
-        if err != nil {
-            continue
-        }
-        
-        if info.Mode()&0o111 == 0 {
-            continue
-        }
-        
-        // Try to load metadata
-        plugin, err := m.loadExternalPlugin(pluginPath)
-        if err != nil {
-            continue
-        }
-        
-        m.plugins = append(m.plugins, plugin)
-    }
-    
-    return nil
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		pluginPath := filepath.Join(dir, entry.Name())
+
+		// Check if it's executable
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		if info.Mode()&0o111 == 0 {
+			continue
+		}
+
+		// Try to load metadata
+		plugin, err := m.loadExternalPlugin(pluginPath)
+		if err != nil {
+			continue
+		}
+
+		m.plugins = append(m.plugins, plugin)
+	}
+
+	return nil
 }
 
 func (m *Manager) loadExternalPlugin(path string) (*ExternalPlugin, error) {
-    // Get plugin metadata
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
-    
-    cmd := exec.CommandContext(ctx, path, "--metadata")
-    output, err := cmd.Output()
-    if err != nil {
-        return nil, fmt.Errorf("failed to get metadata: %w", err)
-    }
-    
-    var metadata PluginMetadata
-    if err := json.Unmarshal(output, &metadata); err != nil {
-        return nil, fmt.Errorf("invalid metadata: %w", err)
-    }
-    
-    return &ExternalPlugin{
-        name:        metadata.Name,
-        description: metadata.Description,
-        path:        path,
-        keywords:    metadata.Keywords,
-    }, nil
+	// Get plugin metadata
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	output, err := executeCommand(ctx, path, "--metadata")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get metadata: %w", err)
+	}
+
+	var metadata PluginMetadata
+	if err := json.Unmarshal(output, &metadata); err != nil {
+		return nil, fmt.Errorf("invalid metadata: %w", err)
+	}
+
+	return &ExternalPlugin{
+		name:        metadata.Name,
+		description: metadata.Description,
+		path:        path,
+		keywords:    metadata.Keywords,
+	}, nil
 }
 
 func (m *Manager) FindPlugin(prompt string) Plugin {
-    for _, plugin := range m.plugins {
-        if plugin.CanHandle(prompt) {
-            return plugin
-        }
-    }
-    return nil
+	for _, plugin := range m.plugins {
+		if plugin.CanHandle(prompt) {
+			return plugin
+		}
+	}
+	return nil
 }
 
 func (m *Manager) ListPlugins() []Plugin {
-    return m.plugins
+	return m.plugins
 }
 
 // ExternalPlugin implementation
 func (p *ExternalPlugin) Name() string {
-    return p.name
+	return p.name
 }
 
 func (p *ExternalPlugin) Description() string {
-    return p.description
+	return p.description
 }
 
 func (p *ExternalPlugin) CanHandle(prompt string) bool {
-    promptLower := strings.ToLower(prompt)
-    for _, keyword := range p.keywords {
-        if strings.Contains(promptLower, strings.ToLower(keyword)) {
-            return true
-        }
-    }
-    return false
+	promptLower := strings.ToLower(prompt)
+	for _, keyword := range p.keywords {
+		if strings.Contains(promptLower, strings.ToLower(keyword)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (p *ExternalPlugin) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
-    cmd := exec.CommandContext(ctx, p.path, "--plan", prompt)
-    output, err := cmd.Output()
-    if err != nil {
-        return plan.Plan{}, fmt.Errorf("plugin execution failed: %w", err)
-    }
-    
-    var planResult plan.Plan
-    if err := json.Unmarshal(output, &planResult); err != nil {
-        return plan.Plan{}, fmt.Errorf("invalid plan output: %w", err)
-    }
-    
-    return planResult, nil
+	output, err := executeCommand(ctx, p.path, "--plan", prompt)
+	if err != nil {
+		return plan.Plan{}, fmt.Errorf("plugin execution failed: %w", err)
+	}
+
+	var planResult plan.Plan
+	if err := json.Unmarshal(output, &planResult); err != nil {
+		return plan.Plan{}, fmt.Errorf("invalid plan output: %w", err)
+	}
+
+	return planResult, nil
 }
 
 // Built-in plugins
