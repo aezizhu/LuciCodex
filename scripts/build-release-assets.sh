@@ -117,12 +117,13 @@ EOF
   # CRITICAL: 
   # 1. Inner tarballs MUST use --numeric-owner --owner=0 --group=0
   # 2. Use tar.gz for outer container (more portable than ar - Linux ar adds trailing slashes)
-  # 3. File order MUST be: ./debian-binary ./data.tar.gz ./control.tar.gz
+  # 3. File order MUST be: debian-binary data.tar.gz control.tar.gz (or similar, but debian-binary first)
+  # 4. Do NOT use ./ prefix in tar inputs to avoid path issues
   (cd "$work"; 
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch_filename}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch_filename}.ipk" debian-binary data.tar.gz control.tar.gz
   )
   
   rm -rf "$work"
@@ -155,7 +156,7 @@ EOF
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" debian-binary data.tar.gz control.tar.gz
   )
   
   rm -rf "$work"
