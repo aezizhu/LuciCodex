@@ -23,7 +23,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-const version = "0.4.17"
+const version = "0.4.18"
 
 func acquireLock() (*os.File, string, error) {
 	lockPaths := []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}

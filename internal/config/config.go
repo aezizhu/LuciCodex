@@ -119,6 +119,14 @@ func Load(path string) (Config, error) {
 	if prov, _ := uciGet("lucicodex.@api[0].provider"); prov != "" {
 		cfg.Provider = prov
 	}
+
+	// Read provider-specific keys
+	if key, _ := uciGet("lucicodex.@api[0].openai_key"); key != "" {
+		cfg.OpenAIAPIKey = key
+	}
+	if key, _ := uciGet("lucicodex.@api[0].anthropic_key"); key != "" {
+		cfg.AnthropicAPIKey = key
+	}
 	// Read provider-specific model and endpoint
 	switch cfg.Provider {
 	case "gemini":
