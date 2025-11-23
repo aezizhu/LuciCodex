@@ -112,50 +112,71 @@ func Load(path string) (Config, error) {
 		}
 	}
 
+	// Helper to try main section then anonymous section
+	getUci := func(option string) string {
+		// Try named section 'main' first
+		if val, _ := uciGet("lucicodex.main." + option); val != "" {
+			return val
+		}
+		// Fallback to first anonymous section
+		if val, _ := uciGet("lucicodex.@api[0]." + option); val != "" {
+			return val
+		}
+		return ""
+	}
+
 	// UCI (OpenWrt)
-	if key, _ := uciGet("lucicodex.@api[0].key"); key != "" {
+	if key := getUci("key"); key != "" {
 		cfg.APIKey = key
 	}
-	if prov, _ := uciGet("lucicodex.@api[0].provider"); prov != "" {
+	if prov := getUci("provider"); prov != "" {
 		cfg.Provider = prov
 	}
 
 	// Read provider-specific keys
-	if key, _ := uciGet("lucicodex.@api[0].openai_key"); key != "" {
+	if key := getUci("openai_key"); key != "" {
 		cfg.OpenAIAPIKey = key
 	}
-	if key, _ := uciGet("lucicodex.@api[0].anthropic_key"); key != "" {
+	if key := getUci("anthropic_key"); key != "" {
 		cfg.AnthropicAPIKey = key
 	}
+
 	// Read provider-specific model and endpoint
 	switch cfg.Provider {
 	case "gemini":
-		// If UCI doesn't specify a model, it will retain the defaultConfig value ("gemini-1.5-flash")
-		if m, _ := uciGet("lucicodex.@api[0].model"); m != "" {
+		// If UCI doesn't specify a model, it will retain the defaultConfig value
+		if m := getUci("model"); m != "" {
 			cfg.Model = m
 		}
-		if ep, _ := uciGet("lucicodex.@api[0].endpoint"); ep != "" {
+		if ep := getUci("endpoint"); ep != "" {
 			cfg.Endpoint = ep
 		}
 	case "openai":
-		if m, _ := uciGet("lucicodex.@api[0].openai_model"); m != "" {
+		if m := getUci("openai_model"); m != "" {
 			cfg.Model = m
 		}
-		if ep, _ := uciGet("lucicodex.@api[0].openai_endpoint"); ep != "" {
+		if ep := getUci("openai_endpoint"); ep != "" {
 			cfg.Endpoint = ep
 		}
 	case "anthropic":
-		if m, _ := uciGet("lucicodex.@api[0].anthropic_model"); m != "" {
+		if m := getUci("anthropic_model"); m != "" {
 			cfg.Model = m
 		}
-		if ep, _ := uciGet("lucicodex.@api[0].anthropic_endpoint"); ep != "" {
+		if ep := getUci("anthropic_endpoint"); ep != "" {
 			cfg.Endpoint = ep
 		}
 	case "gemini-cli":
-		if m, _ := uciGet("lucicodex.@api[0].gemini_cli_model"); m != "" {
+		if m := getUci("gemini_cli_model"); m != "" {
 			cfg.Model = m
 		}
 	}
+
+	// DEBUG: Print loaded configuration to stderr for troubleshooting
+	fmt.Fprintf(os.Stderr, "[DEBUG] Config loaded. Provider=%s\n", cfg.Provider)
+	fmt.Fprintf(os.Stderr, "[DEBUG] Gemini Key present: %v (len=%d)\n", cfg.APIKey != "", len(cfg.APIKey))
+	fmt.Fprintf(os.Stderr, "[DEBUG] OpenAI Key present: %v (len=%d)\n", cfg.OpenAIAPIKey != "", len(cfg.OpenAIAPIKey))
+	fmt.Fprintf(os.Stderr, "[DEBUG] Anthropic Key present: %v (len=%d)\n", cfg.AnthropicAPIKey != "", len(cfg.AnthropicAPIKey))
+	fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint)
 	if openaiKey, _ := uciGet("lucicodex.@api[0].openai_key"); openaiKey != "" {
 		cfg.OpenAIAPIKey = openaiKey
 	}

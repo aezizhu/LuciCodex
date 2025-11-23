@@ -986,12 +986,16 @@
             const isError = content.toLowerCase().includes('error:') || content.startsWith('**Error:**');
             const bubbleClass = isError ? 'error' : role;
 
-            const avatar = role === 'user' ? 'U' : 'AI';
+            let avatarHtml = role === 'user' ? 'U' : 'AI';
+            if (role === 'ai') {
+                avatarHtml = getProviderIcon(state.provider);
+            }
+
             const formattedContent = parseMarkdown(content);
             const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
             div.innerHTML = `
-        <div class="message-avatar ${role}">${avatar}</div>
+        <div class="message-avatar ${role}">${avatarHtml}</div>
         <div class="message-content">
             <div class="message-meta">
                 <span>${role === 'user' ? 'You' : 'AI'}</span>
@@ -1028,7 +1032,7 @@
             }
 
             div.innerHTML = `
-        <div class="message-avatar ai">AI</div>
+        <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
                 <div class="code-block">
@@ -1053,7 +1057,7 @@
             const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
 
             div.innerHTML = `
-        <div class="message-avatar ai">AI</div>
+        <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
                 <div class="result-block ${resultClass}">
@@ -1073,7 +1077,7 @@
             div.className = 'chat-message ai';
             div.id = 'typingIndicator';
             div.innerHTML = `
-        <div class="message-avatar ai">AI</div>
+        <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
                 <div class="typing-indicator">
@@ -1138,9 +1142,32 @@
             localStorage.setItem('lucicodex_provider', state.provider);
         }
 
-        function updateModel() {
-            state.model = document.getElementById('modelInput').value;
-            localStorage.setItem('lucicodex_model', state.model);
+        // --- Icons ---
+        const ICONS = {
+            gemini: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`, // Placeholder for Gemini
+            openai: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/></svg>`, // Placeholder for OpenAI
+            anthropic: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 22h20L12 2zm0 4l6.5 13h-13L12 6z"/></svg>`, // Placeholder for Anthropic
+            default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm-1 5h2v6h-2V9zm0 8h2v2h-2v-2z"/></svg>`
+        };
+
+        function getProviderIcon(provider) {
+            // Real logos (SVG paths)
+            if (provider === 'gemini' || provider === 'gemini-cli') {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M11.55 21.65c.25.25.65.25.9 0l8.5-8.5c.25-.25.25-.65 0-.9l-8.5-8.5c-.25-.25-.65-.25-.9 0L3.05 12.25c-.25.25-.25.65 0 .9l8.5 8.5zm.45-1.5l-7.6-7.6 7.6-7.6 7.6 7.6-7.6 7.6z"/></svg>`; // Star/Sparkle
+            }
+            if (provider === 'openai') {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M21.71 10.38a9.1 9.1 0 0 0-3.2-5.54 9.1 9.1 0 0 0-5.55-3.2A9.1 9.1 0 0 0 2.29 13.62a9.1 9.1 0 0 0 3.2 5.54 9.1 9.1 0 0 0 5.55 3.2 9.1 9.1 0 0 0 10.67-11.98zm-1.84 6.78a7.1 7.1 0 0 1-4.22 2.44 7.1 7.1 0 0 1-5.18-.78l.84-1.46a5.4 5.4 0 0 0 3.94.6 5.4 5.4 0 0 0 3.2-1.86l1.42.84zM5.5 17.16a7.1 7.1 0 0 1-1.38-4.86 7.1 7.1 0 0 1 2.44-4.22l1.08 1.3a5.4 5.4 0 0 0-1.86 3.2 5.4 5.4 0 0 0 1.06 3.7l-1.34.88zm1.3-11.66a7.1 7.1 0 0 1 4.86-1.38 7.1 7.1 0 0 1 4.22 2.44l-1.3 1.08a5.4 5.4 0 0 0-3.2-1.86 5.4 5.4 0 0 0-3.7 1.06l-.88-1.34zm11.7 4.86a5.4 5.4 0 0 0-1.06-3.7l1.34-.88a7.1 7.1 0 0 1 1.38 4.86 7.1 7.1 0 0 1-2.44 4.22l-1.08-1.3a5.4 5.4 0 0 0 1.86-3.2zM12 13.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>`; // Swirl
+            }
+            if (provider === 'anthropic') {
+                return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M17.5 19c0 .83-.67 1.5-1.5 1.5H8c-.83 0-1.5-.67-1.5-1.5V5c0-.83.67-1.5 1.5-1.5h8c.83 0 1.5.67 1.5 1.5v14zm-9.5 0h8V5H8v14z"/></svg>`; // Simple rectangle/monolith
+            }
+            return `<span style="font-weight:bold;font-size:0.8rem;">AI</span>`;
+        }
+
+        function updateProvider() {
+            state.provider = document.getElementById('providerSelect').value;
+            localStorage.setItem('lucicodex_provider', state.provider);
+            // Update header icon if we wanted to, but let's keep it simple for now
         }
 
         // --- History Management ---
@@ -1201,9 +1228,17 @@
                     // Manually add to DOM without pushing to state again
                     const div = document.createElement('div');
                     div.className = `chat-message ${msg.role}`;
-                    const avatar = msg.role === 'user' ? 'U' : 'AI';
+
+                    let avatarHtml = msg.role === 'user' ? 'U' : 'AI';
+                    if (msg.role === 'ai') {
+                        // For history, we might not know which provider generated it, 
+                        // but we'll use the current one or a default AI icon if we tracked it
+                        // For now, use current provider's icon for consistency
+                        avatarHtml = getProviderIcon(state.provider);
+                    }
+
                     div.innerHTML = `
-                <div class="message-avatar ${msg.role}">${avatar}</div>
+                <div class="message-avatar ${msg.role}">${avatarHtml}</div>
                 <div class="message-content">
                     <div class="message-bubble ${msg.role}">
                         <div class="message-text">${parseMarkdown(msg.content)}</div>
@@ -1216,7 +1251,7 @@
                     const div = document.createElement('div');
                     div.className = 'chat-message ai';
                     div.innerHTML = `
-                <div class="message-avatar ai">AI</div>
+                <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
                 <div class="message-content">
                     <div class="message-bubble ai">
                         <div class="code-block">
