@@ -171,18 +171,40 @@ func Load(path string) (Config, error) {
 		}
 	}
 
+	// Load Provider
+	if val, _ := uciGet("lucicodex.main.provider"); val != "" {
+		cfg.Provider = val
+	} else if val, _ := uciGet("lucicodex.@api[0].provider"); val != "" {
+		cfg.Provider = val
+	}
+
+	// Load API Key - Prioritize named 'main' section, fallback to anonymous
+	if val, _ := uciGet("lucicodex.main.key"); val != "" {
+		cfg.APIKey = val
+	} else if val, _ := uciGet("lucicodex.@api[0].key"); val != "" {
+		cfg.APIKey = val
+	}
+
+	// Load OpenAI API Key
+	if val, _ := uciGet("lucicodex.main.openai_key"); val != "" {
+		cfg.OpenAIAPIKey = val
+	} else if val, _ := uciGet("lucicodex.@api[0].openai_key"); val != "" {
+		cfg.OpenAIAPIKey = val
+	}
+
+	// Load Anthropic API Key
+	if val, _ := uciGet("lucicodex.main.anthropic_key"); val != "" {
+		cfg.AnthropicAPIKey = val
+	} else if val, _ := uciGet("lucicodex.@api[0].anthropic_key"); val != "" {
+		cfg.AnthropicAPIKey = val
+	}
+
 	// DEBUG: Print loaded configuration to stderr for troubleshooting
 	fmt.Fprintf(os.Stderr, "[DEBUG] Config loaded. Provider=%s\n", cfg.Provider)
 	fmt.Fprintf(os.Stderr, "[DEBUG] Gemini Key present: %v (len=%d)\n", cfg.APIKey != "", len(cfg.APIKey))
 	fmt.Fprintf(os.Stderr, "[DEBUG] OpenAI Key present: %v (len=%d)\n", cfg.OpenAIAPIKey != "", len(cfg.OpenAIAPIKey))
 	fmt.Fprintf(os.Stderr, "[DEBUG] Anthropic Key present: %v (len=%d)\n", cfg.AnthropicAPIKey != "", len(cfg.AnthropicAPIKey))
 	fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint)
-	if openaiKey, _ := uciGet("lucicodex.@api[0].openai_key"); openaiKey != "" {
-		cfg.OpenAIAPIKey = openaiKey
-	}
-	if anthropicKey, _ := uciGet("lucicodex.@api[0].anthropic_key"); anthropicKey != "" {
-		cfg.AnthropicAPIKey = anthropicKey
-	}
 	if dryRun, _ := uciGet("lucicodex.@settings[0].dry_run"); dryRun == "1" {
 		cfg.DryRun = true
 	} else if dryRun == "0" {
