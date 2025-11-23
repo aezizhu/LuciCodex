@@ -4,12 +4,15 @@ local uci = require "luci.model.uci"
 m = Map("lucicodex", translate("LuciCodex Configuration"),
     translate("Configure LLM providers and API keys for the LuciCodex natural language router assistant."))
 
--- Ensure config sections exist using UCI cursor
+-- Ensure config section exists
 local cursor = uci.cursor()
 local conf = "lucicodex"
 
 -- Helper to ensure section exists and is named 'main'
-local function ensure_section(type, name)
+local function ensure_section()
+    local type = "settings"
+    local name = "main"
+    
     -- 1. Check if the specific named section exists
     local exist = cursor:get(conf, name)
     if exist == type then
@@ -32,29 +35,26 @@ local function ensure_section(type, name)
     else
         -- Create new 'main' section if none exists
         cursor:set(conf, name, type)
-        if type == "api" then
-            cursor:set(conf, name, "provider", "gemini")
-            cursor:set(conf, name, "model", "gemini-2.5-flash")
-            cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
-        elseif type == "settings" then
-            cursor:set(conf, name, "dry_run", "1")
-            cursor:set(conf, name, "confirm_each", "0")
-            cursor:set(conf, name, "timeout", "30")
-            cursor:set(conf, name, "max_commands", "10")
-            cursor:set(conf, name, "log_file", "/tmp/lucicodex.log")
-        end
+        cursor:set(conf, name, "provider", "gemini")
+        cursor:set(conf, name, "model", "gemini-2.5-flash")
+        cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
+        cursor:set(conf, name, "dry_run", "1")
+        cursor:set(conf, name, "confirm_each", "0")
+        cursor:set(conf, name, "timeout", "30")
+        cursor:set(conf, name, "max_commands", "10")
+        cursor:set(conf, name, "log_file", "/tmp/lucicodex.log")
         cursor:commit(conf)
     end
 end
 
-ensure_section("api", "main")
-ensure_section("settings", "main")
+ensure_section()
 
--- API Configuration Section - Use NamedSection for singleton config
-s = m:section(NamedSection, "main", "api", translate("API Configuration"))
+-- Unified Configuration Section
+s = m:section(NamedSection, "main", "settings", translate("General Configuration"))
 s.anonymous = false -- Named section 'main'
 s.addremove = false
 
+-- Provider Selection
 o = s:option(ListValue, "provider", translate("LLM Provider"),
     translate("Select which LLM provider to use for generating commands."))
 o:value("gemini", "Google Gemini")
@@ -63,74 +63,61 @@ o:value("anthropic", "Anthropic")
 o:value("gemini-cli", "External Gemini CLI")
 o.default = "gemini"
 
+-- API Keys (Always visible so they don't get deleted when switching providers)
 o = s:option(Value, "key", translate("Gemini API Key"),
     translate("API key for Google Gemini. Get one from https://makersuite.google.com/app/apikey"))
 o.password = true
 o.rmempty = true
-o:depends("provider", "gemini")
 
 o = s:option(Value, "openai_key", translate("OpenAI API Key"),
     translate("API key for OpenAI. Get one from https://platform.openai.com/api-keys"))
 o.password = true
 o.rmempty = true
-o:depends("provider", "openai")
 
 o = s:option(Value, "anthropic_key", translate("Anthropic API Key"),
     translate("API key for Anthropic Claude. Get one from https://console.anthropic.com/"))
 o.password = true
 o.rmempty = true
-o:depends("provider", "anthropic")
 
-o = s:option(Value, "model", translate("Model"),
-    translate("Specific model to use. Leave empty for provider default."))
+-- Models & Endpoints (Optional, can be hidden if not relevant, but safer to keep visible or use depends without rmempty if possible. 
+-- For now, removing depends to be safe and consistent with keys)
+
+o = s:option(Value, "model", translate("Gemini Model"),
+    translate("Specific model to use for Gemini. Default: gemini-2.5-flash"))
 o.placeholder = "gemini-2.5-flash"
 o.rmempty = true
-o:depends("provider", "gemini")
 
-o = s:option(Value, "endpoint", translate("API Endpoint"),
-    translate("Custom API endpoint URL. Leave empty for provider default."))
+o = s:option(Value, "endpoint", translate("Gemini Endpoint"),
+    translate("Custom API endpoint for Gemini."))
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
 o.rmempty = true
-o:depends("provider", "gemini")
 
--- OpenAI-specific fields
-o = s:option(Value, "openai_model", translate("Model"),
-    translate("Specific model to use. Leave empty for provider default."))
+o = s:option(Value, "openai_model", translate("OpenAI Model"),
+    translate("Specific model to use for OpenAI. Default: gpt-4o-mini"))
 o.placeholder = "gpt-4o-mini"
 o.rmempty = true
-o:depends("provider", "openai")
 
-o = s:option(Value, "openai_endpoint", translate("API Endpoint"),
-    translate("Custom API endpoint URL. Leave empty for provider default."))
+o = s:option(Value, "openai_endpoint", translate("OpenAI Endpoint"),
+    translate("Custom API endpoint for OpenAI."))
 o.placeholder = "https://api.openai.com/v1"
 o.rmempty = true
-o:depends("provider", "openai")
 
--- Anthropic-specific fields
-o = s:option(Value, "anthropic_model", translate("Model"),
-    translate("Specific model to use. Leave empty for provider default."))
+o = s:option(Value, "anthropic_model", translate("Anthropic Model"),
+    translate("Specific model to use for Anthropic. Default: claude-sonnet-4-5-20250929"))
 o.placeholder = "claude-sonnet-4-5-20250929"
 o.rmempty = true
-o:depends("provider", "anthropic")
 
-o = s:option(Value, "anthropic_endpoint", translate("API Endpoint"),
-    translate("Custom API endpoint URL. Leave empty for provider default."))
+o = s:option(Value, "anthropic_endpoint", translate("Anthropic Endpoint"),
+    translate("Custom API endpoint for Anthropic."))
 o.placeholder = "https://api.anthropic.com/v1"
 o.rmempty = true
-o:depends("provider", "anthropic")
 
--- Gemini CLI-specific fields
-o = s:option(Value, "gemini_cli_model", translate("Model"),
-    translate("Specific model to use. Leave empty for provider default."))
+o = s:option(Value, "gemini_cli_model", translate("Gemini CLI Model"),
+    translate("Specific model to use for Gemini CLI."))
 o.placeholder = "gemini-3"
 o.rmempty = true
-o:depends("provider", "gemini-cli")
 
--- Safety Settings Section - Use NamedSection for singleton config
-s = m:section(NamedSection, "main", "settings", translate("Safety Settings"))
-s.anonymous = false -- Named section 'main'
-s.addremove = false
-
+-- Safety Settings
 o = s:option(Flag, "dry_run", translate("Dry Run by Default"),
     translate("When enabled, commands are only displayed but not executed by default."))
 o.default = "1"
