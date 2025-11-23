@@ -45,30 +45,56 @@ build_bin() {
 ipk_pack_lucicodex() {
   local arch="$1"; shift
   local binpath="$1"; shift
-  local arch_ipk="$arch"
+  
+  # Determine uname -m substring to match for preinst check
+  local arch_match=""
   case "$arch" in
-    amd64) arch_ipk="x86_64";;
-    arm64) arch_ipk="aarch64_cortex-a53";;
-    arm) arch_ipk="arm_cortex-a7";;
-    mipsle) arch_ipk="mipsel_24kc";;
-    mips) arch_ipk="mips_24kc";;
+    amd64) arch_match="x86_64";;
+    arm64) arch_match="aarch64";;
+    arm) arch_match="arm";;
+    mipsle) arch_match="mips";;
+    mips) arch_match="mips";;
   esac
+
   local work
   work=$(mktemp -d)
   local outdir
   outdir=$(readlink -f "$OUT")
   mkdir -p "$work/control" "$work/data/usr/bin"
   install -m0755 "$binpath" "$work/data/usr/bin/lucicodex"
+  
+  # Generate control file with Architecture: all
   cat > "$work/control/control" <<EOF
 Package: lucicodex
 Version: $VERSION
-Architecture: $arch_ipk
+Architecture: all
 Maintainer: aezizhu
 Section: utils
 Priority: optional
 Depends: libc
 Description: LuciCodex - Natural-language CLI for OpenWrt
 EOF
+
+  # Generate preinst script to verify architecture
+  cat > "$work/control/preinst" <<EOF
+#!/bin/sh
+# Universal IPK pre-install check
+# Verifies that the actual CPU architecture matches the binary
+ARCH_MATCH="$arch_match"
+CURRENT_ARCH=\$(uname -m)
+
+if echo "\$CURRENT_ARCH" | grep -q "\$ARCH_MATCH"; then
+    exit 0
+else
+    echo "Error: CPU architecture mismatch."
+    echo "This package contains a binary for: \$ARCH_MATCH"
+    echo "Your router's CPU architecture is: \$CURRENT_ARCH"
+    echo "Please download the correct package for your router."
+    exit 1
+fi
+EOF
+  chmod 0755 "$work/control/preinst"
+
   # Build standard OpenWrt IPK (tar.gz format)
   # OpenWrt opkg requires the outer container to be a tar.gz, NOT an ar archive
   # It also requires specific file order: ./debian-binary ./data.tar.gz ./control.tar.gz
@@ -76,7 +102,8 @@ EOF
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch_ipk}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+   # Use the original arch name in filename for clarity, even though internal arch is 'all'
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
   )
   
   rm -rf "$work"
