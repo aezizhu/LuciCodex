@@ -1,809 +1,619 @@
 <%+header%>
 
-<style>
-:root {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-tertiary: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --accent-primary: #3b82f6;
-    --accent-secondary: #8b5cf6;
-    --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-    --success: #10b981;
-    --error: #ef4444;
-    --warning: #f59e0b;
-    --border-color: #334155;
-    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    padding: 0;
-    font-family: var(--font-family);
-    background: var(--bg-primary);
-    color: var(--text-primary);
-}
-
-.lucicodex-chat {
-    display: flex;
-    height: calc(100vh - 100px); /* Adjusted for LuCI header/footer */
-    max-width: 1600px;
-    margin: 0 auto;
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-color);
-}
-
-/* Sidebar */
-.chat-sidebar {
-    width: 280px;
-    background: var(--bg-primary);
-    border-right: 1px solid var(--border-color);
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-    overflow-y: auto;
-    transition: transform 0.3s ease;
-}
-
-.sidebar-header {
-    margin-bottom: 2rem;
-}
-
-.sidebar-header h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin: 0 0 0.5rem 0;
-}
-
-.sidebar-header p {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin: 0;
-}
-
-.new-chat-btn {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: var(--accent-gradient);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.new-chat-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.sidebar-section {
-    margin-bottom: 2rem;
-}
-
-.sidebar-section h3 {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
-    margin: 0 0 0.75rem 0;
-    font-weight: 600;
-}
-
-.sidebar-select {
-    width: 100%;
-    padding: 0.625rem 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-primary);
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.sidebar-select:focus {
-    outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.chat-history {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.chat-history-item {
-    padding: 0.75rem;
-    margin-bottom: 0.5rem;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.chat-history-item:hover {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-}
-
-.chat-history-item.active {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-color: var(--border-color);
-}
-
-.chat-history-item-title {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.btn-delete-history {
-    opacity: 0;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    cursor: pointer;
-    padding: 2px;
-    transition: all 0.2s;
-}
-
-.chat-history-item:hover .btn-delete-history {
-    opacity: 1;
-}
-
-.btn-delete-history:hover {
-    color: var(--error);
-}
-
-/* Main Chat Area */
-.chat-main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-secondary);
-    position: relative;
-}
-
-.chat-header {
-    padding: 1rem 2rem;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.chat-header-badge {
-    padding: 0.375rem 0.75rem;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.chat-header-badge::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    background: var(--success);
-    border-radius: 50%;
-    box-shadow: 0 0 8px var(--success);
-}
-
-.chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    scroll-behavior: smooth;
-}
-
-.chat-message {
-    display: flex;
-    gap: 1rem;
-    max-width: 85%;
-    animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.chat-message.user {
-    align-self: flex-end;
-    flex-direction: row-reverse;
-}
-
-.message-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 0.875rem;
-    flex-shrink: 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.message-avatar.user {
-    background: var(--accent-gradient);
-    color: white;
-}
-
-.message-avatar.ai {
-    background: var(--bg-tertiary);
-    color: var(--success);
-    border: 1px solid var(--border-color);
-}
-
-.message-content {
-    flex: 1;
-    min-width: 0; /* Prevents overflow */
-}
-
-.message-bubble {
-    padding: 1rem 1.25rem;
-    border-radius: 12px;
-    line-height: 1.6;
-    font-size: 0.9375rem;
-    position: relative;
-}
-
-.message-bubble.user {
-    background: var(--accent-primary);
-    color: white;
-    border-bottom-right-radius: 4px;
-}
-
-.message-bubble.ai {
-    background: var(--bg-primary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    border-bottom-left-radius: 4px;
-}
-
-/* Markdown Styles */
-.message-text p { margin: 0 0 0.5rem 0; }
-.message-text p:last-child { margin: 0; }
-.message-text strong { font-weight: 600; color: inherit; }
-.message-text code {
-    background: rgba(0,0,0,0.2);
-    padding: 0.2em 0.4em;
-    border-radius: 4px;
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 0.85em;
-}
-
-/* Code Blocks */
-.code-block {
-    margin: 1rem 0;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    background: #0a0e1a;
-}
-
-.code-header {
-    background: var(--bg-tertiary);
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border-color);
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-}
-
-.code-content {
-    padding: 1rem;
-    overflow-x: auto;
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: #e2e8f0;
-}
-
-.code-content pre { margin: 0; }
-
-/* Command Approval */
-.command-approval {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    border-radius: 8px;
-    border-left: 4px solid var(--warning);
-}
-
-.command-approval-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    color: var(--warning);
-    font-size: 0.875rem;
-}
-
-.command-approval-actions {
-    display: flex;
-    gap: 0.75rem;
-}
-
-.btn-approve, .btn-reject {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.btn-approve {
-    background: var(--success);
-    color: white;
-}
-
-.btn-approve:hover {
-    background: #059669;
-    transform: translateY(-1px);
-}
-
-.btn-reject {
-    background: var(--bg-tertiary);
-    color: var(--error);
-    border: 1px solid var(--border-color);
-}
-
-.btn-reject:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: var(--error);
-}
-
-/* Results */
-.result-block {
-    margin-top: 0.5rem;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-}
-
-.result-header {
-    background: var(--bg-tertiary);
-    padding: 0.5rem 1rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.result-content {
-    background: #0a0e1a;
-    padding: 1rem;
-    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-    font-size: 0.875rem;
-    color: #e2e8f0;
-    white-space: pre-wrap;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.result-success .result-header { color: var(--success); }
-.result-error .result-header { color: var(--error); }
-
-/* Typing Indicator */
-.typing-indicator {
-    display: flex;
-    gap: 4px;
-    padding: 4px 8px;
-    align-items: center;
-}
-
-.typing-dot {
-    width: 6px;
-    height: 6px;
-    background: var(--text-secondary);
-    border-radius: 50%;
-    animation: typing 1.4s infinite ease-in-out both;
-}
-
-.typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-@keyframes typing {
-    0%, 80%, 100% { transform: scale(0); }
-    40% { transform: scale(1); }
-}
-
-/* Input Area */
-.chat-input-area {
-    padding: 1.5rem 2rem;
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-primary);
-}
-
-.chat-input-wrapper {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-end;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 0.5rem;
-    transition: border-color 0.2s;
-}
-
-.chat-input-wrapper:focus-within {
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-}
-
-.chat-input {
-    flex: 1;
-    padding: 0.75rem;
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    font-size: 0.9375rem;
-    font-family: inherit;
-    resize: none;
-    min-height: 24px;
-    max-height: 150px;
-    line-height: 1.5;
-}
-
-.chat-input:focus {
-    outline: none;
-}
-
-.btn-send {
-    padding: 0.75rem 1.25rem;
-    background: var(--accent-gradient);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.btn-send:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.btn-send:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-</style>
-
-<div class="lucicodex-chat">
-    <!-- Sidebar -->
-    <div class="chat-sidebar">
-        <div class="sidebar-header">
-            <h2>LuciCodex</h2>
-            <p>AI Router Assistant</p>
-        </div>
-        
-        <button class="new-chat-btn" onclick="startNewChat()">
-            <span>+</span> New Chat
-        </button>
-        
-        <div class="sidebar-section">
-            <h3>Execution Mode</h3>
-            <select class="sidebar-select" id="execMode" onchange="updateExecMode()">
-                <option value="manual">Manual Review (Safe)</option>
-                <option value="auto">Auto Execute (Risky)</option>
-            </select>
-        </div>
-        
-        <div class="sidebar-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <h3>History</h3>
-                <button class="btn-delete-history" onclick="clearAllHistory()" title="Clear All" style="opacity: 1; font-size: 0.75rem;">Clear</button>
+    <style>
+        /* Apple Minimalist Chat Theme */
+        :root {
+            --bg-body: #000000;
+            --bg-sidebar: rgba(28, 28, 30, 0.8);
+            --bg-chat: #000000;
+            --text-primary: #F5F5F7;
+            --text-secondary: #86868b;
+            --accent-blue: #007AFF;
+            --bubble-user: #007AFF;
+            --bubble-ai: #1c1c1e;
+            --border-subtle: rgba(255, 255, 255, 0.1);
+            --glass-blur: blur(20px);
+            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-stack);
+            background: var(--bg-body);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .lucicodex-chat {
+            display: flex;
+            height: calc(100vh - 80px);
+            max-width: 1400px;
+            margin: 0 auto;
+            background: var(--bg-chat);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Sidebar */
+        .chat-sidebar {
+            width: 300px;
+            background: var(--bg-sidebar);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin: 0 0 0.2rem 0;
+            letter-spacing: -0.01em;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0 0 1.5rem 0;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 0.6rem;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--accent-blue);
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 2rem;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+        }
+
+        .sidebar-select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .chat-history {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        .chat-history-item {
+            padding: 0.8rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .chat-history-item.active {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        /* Main Chat */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-chat);
+            position: relative;
+        }
+
+        .chat-header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-header-badge {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-message {
+            display: flex;
+            max-width: 80%;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+        }
+
+        .message-bubble {
+            padding: 0.8rem 1.2rem;
+            border-radius: 18px;
+            font-size: 1rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .message-bubble.user {
+            background: var(--bubble-user);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message-bubble.ai {
+            background: var(--bubble-ai);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            margin: 0.8rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #151517;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .code-header {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .code-content {
+            padding: 1rem;
+            font-family: "SF Mono", "Menlo", monospace;
+            font-size: 0.9rem;
+            color: #F5F5F7;
+            overflow-x: auto;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 1.5rem 2rem;
+            background: rgba(28, 28, 30, 0.4);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 0.8rem;
+            background: #1c1c1e;
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 0.4rem;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0.8rem 1rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            max-height: 120px;
+        }
+
+        .chat-input:focus {
+            outline: none;
+        }
+
+        .btn-send {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+    </style>
+
+    <div class="lucicodex-chat">
+        <!-- Sidebar -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h2>LuciCodex</h2>
+                <p>AI Router Assistant</p>
             </div>
-            <ul class="chat-history" id="chatHistory">
-                <!-- History items will be injected here -->
-            </ul>
-        </div>
-    </div>
-    
-    <!-- Main Chat Area -->
-    <div class="chat-main">
-        <div class="chat-header">
-            <div class="chat-header-badge">
-                <span>OpenWrt Assistant</span>
+
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span>+</span> New Chat
+            </button>
+
+            <div class="sidebar-section">
+                <h3>Execution Mode</h3>
+                <select class="sidebar-select" id="execMode" onchange="updateExecMode()">
+                    <option value="manual">Manual Review (Safe)</option>
+                    <option value="auto">Auto Execute (Risky)</option>
+                </select>
+            </div>
+
+            <div class="sidebar-section">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3>History</h3>
+                    <button class="btn-delete-history" onclick="clearAllHistory()" title="Clear All"
+                        style="opacity: 1; font-size: 0.75rem;">Clear</button>
+                </div>
+                <ul class="chat-history" id="chatHistory">
+                    <!-- History items will be injected here -->
+                </ul>
             </div>
         </div>
-        
-        <div class="chat-messages" id="chatMessages">
-            <!-- Messages will be injected here -->
-        </div>
-        
-        <div class="chat-input-area">
-            <div class="chat-input-wrapper">
-                <textarea 
-                    class="chat-input" 
-                    id="chatInput" 
-                    placeholder="Ask LuciCodex to manage your router..."
-                    rows="1"
-                    onkeydown="handleKeyDown(event)"
-                    oninput="autoResize(this)"
-                ></textarea>
-                <button class="btn-send" id="sendBtn" onclick="handleSendMessage()">Send</button>
+
+        <!-- Main Chat Area -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-header-badge">
+                    <span>OpenWrt Assistant</span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be injected here -->
+            </div>
+
+            <div class="chat-input-area">
+                <div class="chat-input-wrapper">
+                    <textarea class="chat-input" id="chatInput" placeholder="Ask LuciCodex to manage your router..."
+                        rows="1" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+                    <button class="btn-send" id="sendBtn" onclick="handleSendMessage()">Send</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script type="text/javascript">
-// --- State Management ---
-const state = {
-    history: [],
-    currentSessionId: null,
-    currentMessages: [],
-    currentPlan: null,
-    execMode: 'manual',
-    isProcessing: false
-};
-
-// --- Constants ---
-const API_ENDPOINTS = {
-    PLAN: '<%=url("admin/system/lucicodex/plan")%>',
-    EXECUTE: '<%=url("admin/system/lucicodex/execute")%>'
-};
-
-const STORAGE_KEY = 'lucicodex_history_v2';
-
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', () => {
-    loadHistory();
-    if (state.history.length > 0) {
-        loadSession(state.history[0].id);
-    } else {
-        startNewChat(false);
-    }
-    
-    // Restore exec mode preference if saved
-    const savedMode = localStorage.getItem('lucicodex_exec_mode');
-    if (savedMode) {
-        state.execMode = savedMode;
-        document.getElementById('execMode').value = savedMode;
-    }
-});
-
-// --- Core Logic ---
-
-function startNewChat(confirmAction = true) {
-    if (confirmAction && state.currentMessages.length > 1) {
-        if (!confirm('Start a new chat? Current conversation is saved.')) return;
-    }
-    
-    state.currentSessionId = 'session_' + Date.now();
-    state.currentMessages = [];
-    state.currentPlan = null;
-    
-    renderMessages(); // Clears UI
-    addMessage('ai', "Hello! I'm LuciCodex. How can I help you manage your OpenWrt router today?");
-    
-    updateHistoryUI();
-}
-
-function handleSendMessage() {
-    if (state.isProcessing) return;
-    
-    const input = document.getElementById('chatInput');
-    const prompt = input.value.trim();
-    
-    if (!prompt) return;
-    
-    input.value = '';
-    autoResize(input);
-    
-    addMessage('user', prompt);
-    processUserRequest(prompt);
-}
-
-async function processUserRequest(prompt) {
-    setProcessing(true);
-    addTypingIndicator();
-    
-    try {
-        // 1. Generate Plan
-        if (state.execMode === 'auto') {
-             if (!confirm('⚠️ AUTO-EXECUTE WARNING\n\nCommands will run IMMEDIATELY without review.\nAre you sure?')) {
-                removeTypingIndicator();
-                setProcessing(false);
-                return;
-             }
-        }
-
-        const planResponse = await apiCall(API_ENDPOINTS.PLAN, { prompt });
-        
-        removeTypingIndicator();
-        
-        if (!planResponse.ok || !planResponse.plan) {
-            throw new Error(planResponse.error || 'Failed to generate plan');
-        }
-        
-        state.currentPlan = planResponse.plan;
-        
-        // Display Plan Summary
-        if (planResponse.plan.summary) {
-            addMessage('ai', planResponse.plan.summary);
-        }
-        
-        // Display Commands
-        if (planResponse.plan.commands && planResponse.plan.commands.length > 0) {
-            for (const cmd of planResponse.plan.commands) {
-                const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : cmd.command;
-                const desc = cmd.description || 'Execute command';
-                
-                addMessage('ai', desc);
-                addCodeBlock(cmdStr, state.execMode === 'manual');
-            }
-        } else {
-            addMessage('ai', 'No commands needed for this request.');
-        }
-        
-        // Auto Execute if mode is auto
-        if (state.execMode === 'auto' && planResponse.plan.commands.length > 0) {
-            await executeCommands(prompt);
-        }
-        
-    } catch (error) {
-        removeTypingIndicator();
-        addMessage('ai', `**Error:** ${error.message}`);
-    } finally {
-        setProcessing(false);
-        saveCurrentSession();
-    }
-}
-
-async function executeCommands(prompt) {
-    addTypingIndicator();
-    setProcessing(true);
-    
-    try {
-        const response = await apiCall(API_ENDPOINTS.EXECUTE, {
-            prompt: prompt,
-            dry_run: false,
-            timeout: 30
-        });
-        
-        removeTypingIndicator();
-        
-        if (response.ok) {
-            const output = response.output || JSON.stringify(response.result, null, 2);
-            addResultBlock(output, true);
-        } else {
-            addResultBlock(response.error || 'Execution failed', false);
-            if (response.output) {
-                addResultBlock(response.output, false);
-            }
-        }
-    } catch (error) {
-        removeTypingIndicator();
-        addResultBlock(error.message, false);
-    } finally {
-        setProcessing(false);
-        saveCurrentSession();
-    }
-}
-
-function approveCommand(code) {
-    // In this simplified flow, approving one command executes the whole plan for now
-    // Ideally we should track which command is which, but for CLI wrapper, 
-    // we usually re-send the prompt with -approve flag.
-    // We'll use the last user prompt.
-    const lastUserMsg = state.currentMessages.slice().reverse().find(m => m.role === 'user');
-    if (lastUserMsg) {
-        // Remove the approval buttons to prevent double-click
-        const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
-        buttons.forEach(b => b.remove());
-        
-        executeCommands(lastUserMsg.content);
-    }
-}
-
-function rejectCommand() {
-    const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
-    buttons.forEach(b => b.remove());
-    addMessage('ai', 'Command execution cancelled.');
-}
-
-// --- API Helper ---
-function apiCall(url, data) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', url, true);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.timeout = 60000; // 60s timeout
-        
-        xhr.onload = () => {
-            if (xhr.status === 200) {
-                try {
-                    resolve(JSON.parse(xhr.responseText));
-                } catch (e) {
-                    reject(new Error('Invalid JSON response'));
-                }
-            } else {
-                try {
-                    const err = JSON.parse(xhr.responseText);
-                    reject(new Error(err.error || `Request failed (${xhr.status})`));
-                } catch (e) {
-                    reject(new Error(`Request failed (${xhr.status})`));
-                }
-            }
+    <script type="text/javascript">
+        // --- State Management ---
+        const state = {
+            history: [],
+            currentSessionId: null,
+            currentMessages: [],
+            currentPlan: null,
+            execMode: 'manual',
+            isProcessing: false
         };
-        
-        xhr.onerror = () => reject(new Error('Network error'));
-        xhr.ontimeout = () => reject(new Error('Request timed out'));
-        
-        xhr.send(JSON.stringify(data));
-    });
-}
 
-// --- UI Helpers ---
+        // --- Constants ---
+        const API_ENDPOINTS = {
+            PLAN: '<%=url("admin/system/lucicodex/plan")%>',
+            EXECUTE: '<%=url("admin/system/lucicodex/execute")%>'
+        };
 
-function addMessage(role, content) {
-    state.currentMessages.push({ role, type: 'text', content, timestamp: Date.now() });
-    
-    const div = document.createElement('div');
-    div.className = `chat-message ${role}`;
-    
-    const avatar = role === 'user' ? 'U' : 'AI';
-    const formattedContent = parseMarkdown(content);
-    
-    div.innerHTML = `
+        const STORAGE_KEY = 'lucicodex_history_v2';
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadHistory();
+            if (state.history.length > 0) {
+                loadSession(state.history[0].id);
+            } else {
+                startNewChat(false);
+            }
+
+            // Restore exec mode preference if saved
+            const savedMode = localStorage.getItem('lucicodex_exec_mode');
+            if (savedMode) {
+                state.execMode = savedMode;
+                document.getElementById('execMode').value = savedMode;
+            }
+        });
+
+        // --- Core Logic ---
+
+        function startNewChat(confirmAction = true) {
+            if (confirmAction && state.currentMessages.length > 1) {
+                if (!confirm('Start a new chat? Current conversation is saved.')) return;
+            }
+
+            state.currentSessionId = 'session_' + Date.now();
+            state.currentMessages = [];
+            state.currentPlan = null;
+
+            renderMessages(); // Clears UI
+            addMessage('ai', "Hello! I'm LuciCodex. How can I help you manage your OpenWrt router today?");
+
+            updateHistoryUI();
+        }
+
+        function handleSendMessage() {
+            if (state.isProcessing) return;
+
+            const input = document.getElementById('chatInput');
+            const prompt = input.value.trim();
+
+            if (!prompt) return;
+
+            input.value = '';
+            autoResize(input);
+
+            addMessage('user', prompt);
+            processUserRequest(prompt);
+        }
+
+        async function processUserRequest(prompt) {
+            setProcessing(true);
+            addTypingIndicator();
+
+            try {
+                // 1. Generate Plan
+                if (state.execMode === 'auto') {
+                    if (!confirm('⚠️ AUTO-EXECUTE WARNING\n\nCommands will run IMMEDIATELY without review.\nAre you sure?')) {
+                        removeTypingIndicator();
+                        setProcessing(false);
+                        return;
+                    }
+                }
+
+                const planResponse = await apiCall(API_ENDPOINTS.PLAN, { prompt });
+
+                removeTypingIndicator();
+
+                if (!planResponse.ok || !planResponse.plan) {
+                    throw new Error(planResponse.error || 'Failed to generate plan');
+                }
+
+                state.currentPlan = planResponse.plan;
+
+                // Display Plan Summary
+                if (planResponse.plan.summary) {
+                    addMessage('ai', planResponse.plan.summary);
+                }
+
+                // Display Commands
+                if (planResponse.plan.commands && planResponse.plan.commands.length > 0) {
+                    for (const cmd of planResponse.plan.commands) {
+                        const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : cmd.command;
+                        const desc = cmd.description || 'Execute command';
+
+                        addMessage('ai', desc);
+                        addCodeBlock(cmdStr, state.execMode === 'manual');
+                    }
+                } else {
+                    addMessage('ai', 'No commands needed for this request.');
+                }
+
+                // Auto Execute if mode is auto
+                if (state.execMode === 'auto' && planResponse.plan.commands.length > 0) {
+                    await executeCommands(prompt);
+                }
+
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('ai', `**Error:** ${error.message}`);
+            } finally {
+                setProcessing(false);
+                saveCurrentSession();
+            }
+        }
+
+        async function executeCommands(prompt) {
+            addTypingIndicator();
+            setProcessing(true);
+
+            try {
+                const response = await apiCall(API_ENDPOINTS.EXECUTE, {
+                    prompt: prompt,
+                    dry_run: false,
+                    timeout: 30
+                });
+
+                removeTypingIndicator();
+
+                if (response.ok) {
+                    const output = response.output || JSON.stringify(response.result, null, 2);
+                    addResultBlock(output, true);
+                } else {
+                    addResultBlock(response.error || 'Execution failed', false);
+                    if (response.output) {
+                        addResultBlock(response.output, false);
+                    }
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addResultBlock(error.message, false);
+            } finally {
+                setProcessing(false);
+                saveCurrentSession();
+            }
+        }
+
+        function approveCommand(code) {
+            // In this simplified flow, approving one command executes the whole plan for now
+            // Ideally we should track which command is which, but for CLI wrapper, 
+            // we usually re-send the prompt with -approve flag.
+            // We'll use the last user prompt.
+            const lastUserMsg = state.currentMessages.slice().reverse().find(m => m.role === 'user');
+            if (lastUserMsg) {
+                // Remove the approval buttons to prevent double-click
+                const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
+                buttons.forEach(b => b.remove());
+
+                executeCommands(lastUserMsg.content);
+            }
+        }
+
+        function rejectCommand() {
+            const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
+            buttons.forEach(b => b.remove());
+            addMessage('ai', 'Command execution cancelled.');
+        }
+
+        // --- API Helper ---
+        function apiCall(url, data) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.timeout = 60000; // 60s timeout
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        try {
+                            resolve(JSON.parse(xhr.responseText));
+                        } catch (e) {
+                            reject(new Error('Invalid JSON response'));
+                        }
+                    } else {
+                        try {
+                            const err = JSON.parse(xhr.responseText);
+                            reject(new Error(err.error || `Request failed (${xhr.status})`));
+                        } catch (e) {
+                            reject(new Error(`Request failed (${xhr.status})`));
+                        }
+                    }
+                };
+
+                xhr.onerror = () => reject(new Error('Network error'));
+                xhr.ontimeout = () => reject(new Error('Request timed out'));
+
+                xhr.send(JSON.stringify(data));
+            });
+        }
+
+        // --- UI Helpers ---
+
+        function addMessage(role, content) {
+            state.currentMessages.push({ role, type: 'text', content, timestamp: Date.now() });
+
+            const div = document.createElement('div');
+            div.className = `chat-message ${role}`;
+
+            const avatar = role === 'user' ? 'U' : 'AI';
+            const formattedContent = parseMarkdown(content);
+
+            div.innerHTML = `
         <div class="message-avatar ${role}">${avatar}</div>
         <div class="message-content">
             <div class="message-bubble ${role}">
@@ -811,20 +621,20 @@ function addMessage(role, content) {
             </div>
         </div>
     `;
-    
-    document.getElementById('chatMessages').appendChild(div);
-    scrollToBottom();
-}
 
-function addCodeBlock(code, needsApproval) {
-    state.currentMessages.push({ role: 'ai', type: 'code', content: code, needsApproval, timestamp: Date.now() });
-    
-    const div = document.createElement('div');
-    div.className = 'chat-message ai';
-    
-    let approvalHtml = '';
-    if (needsApproval) {
-        approvalHtml = `
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addCodeBlock(code, needsApproval) {
+            state.currentMessages.push({ role: 'ai', type: 'code', content: code, needsApproval, timestamp: Date.now() });
+
+            const div = document.createElement('div');
+            div.className = 'chat-message ai';
+
+            let approvalHtml = '';
+            if (needsApproval) {
+                approvalHtml = `
             <div class="command-approval">
                 <div class="command-approval-header">⚠️ Approval Required</div>
                 <div class="command-approval-actions">
@@ -833,9 +643,9 @@ function addCodeBlock(code, needsApproval) {
                 </div>
             </div>
         `;
-    }
-    
-    div.innerHTML = `
+            }
+
+            div.innerHTML = `
         <div class="message-avatar ai">AI</div>
         <div class="message-content">
             <div class="message-bubble ai">
@@ -847,20 +657,20 @@ function addCodeBlock(code, needsApproval) {
             </div>
         </div>
     `;
-    
-    document.getElementById('chatMessages').appendChild(div);
-    scrollToBottom();
-}
 
-function addResultBlock(output, isSuccess) {
-    state.currentMessages.push({ role: 'ai', type: 'result', content: output, isSuccess, timestamp: Date.now() });
-    
-    const div = document.createElement('div');
-    div.className = 'chat-message ai';
-    const resultClass = isSuccess ? 'result-success' : 'result-error';
-    const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
-    
-    div.innerHTML = `
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addResultBlock(output, isSuccess) {
+            state.currentMessages.push({ role: 'ai', type: 'result', content: output, isSuccess, timestamp: Date.now() });
+
+            const div = document.createElement('div');
+            div.className = 'chat-message ai';
+            const resultClass = isSuccess ? 'result-success' : 'result-error';
+            const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
+
+            div.innerHTML = `
         <div class="message-avatar ai">AI</div>
         <div class="message-content">
             <div class="message-bubble ai">
@@ -871,16 +681,16 @@ function addResultBlock(output, isSuccess) {
             </div>
         </div>
     `;
-    
-    document.getElementById('chatMessages').appendChild(div);
-    scrollToBottom();
-}
 
-function addTypingIndicator() {
-    const div = document.createElement('div');
-    div.className = 'chat-message ai';
-    div.id = 'typingIndicator';
-    div.innerHTML = `
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function addTypingIndicator() {
+            const div = document.createElement('div');
+            div.className = 'chat-message ai';
+            div.id = 'typingIndicator';
+            div.innerHTML = `
         <div class="message-avatar ai">AI</div>
         <div class="message-content">
             <div class="message-bubble ai">
@@ -892,115 +702,115 @@ function addTypingIndicator() {
             </div>
         </div>
     `;
-    document.getElementById('chatMessages').appendChild(div);
-    scrollToBottom();
-}
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+        }
 
-function removeTypingIndicator() {
-    const el = document.getElementById('typingIndicator');
-    if (el) el.remove();
-}
+        function removeTypingIndicator() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
 
-function renderMessages() {
-    const container = document.getElementById('chatMessages');
-    container.innerHTML = '';
-    
-    // Re-render from state
-    // Note: In a full app we might want to optimize this, but for now clearing and re-adding is fine
-    // However, since we push to DOM immediately in addMessage, we only need this when loading history
-}
+        function renderMessages() {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
 
-function scrollToBottom() {
-    const container = document.getElementById('chatMessages');
-    container.scrollTop = container.scrollHeight;
-}
+            // Re-render from state
+            // Note: In a full app we might want to optimize this, but for now clearing and re-adding is fine
+            // However, since we push to DOM immediately in addMessage, we only need this when loading history
+        }
 
-function setProcessing(processing) {
-    state.isProcessing = processing;
-    document.getElementById('chatInput').disabled = processing;
-    document.getElementById('sendBtn').disabled = processing;
-    if (!processing) {
-        document.getElementById('chatInput').focus();
-    }
-}
+        function scrollToBottom() {
+            const container = document.getElementById('chatMessages');
+            container.scrollTop = container.scrollHeight;
+        }
 
-function autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
-}
+        function setProcessing(processing) {
+            state.isProcessing = processing;
+            document.getElementById('chatInput').disabled = processing;
+            document.getElementById('sendBtn').disabled = processing;
+            if (!processing) {
+                document.getElementById('chatInput').focus();
+            }
+        }
 
-function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        handleSendMessage();
-    }
-}
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+        }
 
-function updateExecMode() {
-    state.execMode = document.getElementById('execMode').value;
-    localStorage.setItem('lucicodex_exec_mode', state.execMode);
-}
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+            }
+        }
 
-// --- History Management ---
+        function updateExecMode() {
+            state.execMode = document.getElementById('execMode').value;
+            localStorage.setItem('lucicodex_exec_mode', state.execMode);
+        }
 
-function loadHistory() {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            state.history = JSON.parse(stored);
+        // --- History Management ---
+
+        function loadHistory() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    state.history = JSON.parse(stored);
+                    updateHistoryUI();
+                }
+            } catch (e) {
+                console.error('Failed to load history', e);
+            }
+        }
+
+        function saveCurrentSession() {
+            if (state.currentMessages.length <= 1) return; // Don't save empty chats
+
+            const title = state.currentMessages.find(m => m.role === 'user')?.content || 'New Chat';
+            const shortTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
+
+            const session = {
+                id: state.currentSessionId,
+                title: shortTitle,
+                timestamp: Date.now(),
+                messages: state.currentMessages
+            };
+
+            // Update or add
+            const idx = state.history.findIndex(s => s.id === session.id);
+            if (idx >= 0) {
+                state.history[idx] = session;
+            } else {
+                state.history.unshift(session);
+            }
+
+            // Limit history size
+            if (state.history.length > 20) state.history.pop();
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
             updateHistoryUI();
         }
-    } catch (e) {
-        console.error('Failed to load history', e);
-    }
-}
 
-function saveCurrentSession() {
-    if (state.currentMessages.length <= 1) return; // Don't save empty chats
-    
-    const title = state.currentMessages.find(m => m.role === 'user')?.content || 'New Chat';
-    const shortTitle = title.length > 30 ? title.substring(0, 30) + '...' : title;
-    
-    const session = {
-        id: state.currentSessionId,
-        title: shortTitle,
-        timestamp: Date.now(),
-        messages: state.currentMessages
-    };
-    
-    // Update or add
-    const idx = state.history.findIndex(s => s.id === session.id);
-    if (idx >= 0) {
-        state.history[idx] = session;
-    } else {
-        state.history.unshift(session);
-    }
-    
-    // Limit history size
-    if (state.history.length > 20) state.history.pop();
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
-    updateHistoryUI();
-}
+        function loadSession(sessionId) {
+            const session = state.history.find(s => s.id === sessionId);
+            if (!session) return;
 
-function loadSession(sessionId) {
-    const session = state.history.find(s => s.id === sessionId);
-    if (!session) return;
-    
-    state.currentSessionId = session.id;
-    state.currentMessages = session.messages;
-    
-    // Clear UI
-    document.getElementById('chatMessages').innerHTML = '';
-    
-    // Replay messages
-    session.messages.forEach(msg => {
-        if (msg.type === 'text') {
-            // Manually add to DOM without pushing to state again
-            const div = document.createElement('div');
-            div.className = `chat-message ${msg.role}`;
-            const avatar = msg.role === 'user' ? 'U' : 'AI';
-            div.innerHTML = `
+            state.currentSessionId = session.id;
+            state.currentMessages = session.messages;
+
+            // Clear UI
+            document.getElementById('chatMessages').innerHTML = '';
+
+            // Replay messages
+            session.messages.forEach(msg => {
+                if (msg.type === 'text') {
+                    // Manually add to DOM without pushing to state again
+                    const div = document.createElement('div');
+                    div.className = `chat-message ${msg.role}`;
+                    const avatar = msg.role === 'user' ? 'U' : 'AI';
+                    div.innerHTML = `
                 <div class="message-avatar ${msg.role}">${avatar}</div>
                 <div class="message-content">
                     <div class="message-bubble ${msg.role}">
@@ -1008,12 +818,12 @@ function loadSession(sessionId) {
                     </div>
                 </div>
             `;
-            document.getElementById('chatMessages').appendChild(div);
-        } else if (msg.type === 'code') {
-            // Re-add code block (without approval buttons for history)
-            const div = document.createElement('div');
-            div.className = 'chat-message ai';
-            div.innerHTML = `
+                    document.getElementById('chatMessages').appendChild(div);
+                } else if (msg.type === 'code') {
+                    // Re-add code block (without approval buttons for history)
+                    const div = document.createElement('div');
+                    div.className = 'chat-message ai';
+                    div.innerHTML = `
                 <div class="message-avatar ai">AI</div>
                 <div class="message-content">
                     <div class="message-bubble ai">
@@ -1024,14 +834,14 @@ function loadSession(sessionId) {
                     </div>
                 </div>
             `;
-            document.getElementById('chatMessages').appendChild(div);
-        } else if (msg.type === 'result') {
-            // Re-add result
-            const div = document.createElement('div');
-            div.className = 'chat-message ai';
-            const resultClass = msg.isSuccess ? 'result-success' : 'result-error';
-            const title = msg.isSuccess ? '✓ Execution Result' : '✗ Execution Error';
-            div.innerHTML = `
+                    document.getElementById('chatMessages').appendChild(div);
+                } else if (msg.type === 'result') {
+                    // Re-add result
+                    const div = document.createElement('div');
+                    div.className = 'chat-message ai';
+                    const resultClass = msg.isSuccess ? 'result-success' : 'result-error';
+                    const title = msg.isSuccess ? '✓ Execution Result' : '✗ Execution Error';
+                    div.innerHTML = `
                 <div class="message-avatar ai">AI</div>
                 <div class="message-content">
                     <div class="message-bubble ai">
@@ -1042,79 +852,79 @@ function loadSession(sessionId) {
                     </div>
                 </div>
             `;
-            document.getElementById('chatMessages').appendChild(div);
-        }
-    });
-    
-    scrollToBottom();
-    updateHistoryUI();
-}
+                    document.getElementById('chatMessages').appendChild(div);
+                }
+            });
 
-function updateHistoryUI() {
-    const list = document.getElementById('chatHistory');
-    list.innerHTML = '';
-    
-    state.history.forEach(session => {
-        const li = document.createElement('li');
-        li.className = `chat-history-item ${session.id === state.currentSessionId ? 'active' : ''}`;
-        li.onclick = () => loadSession(session.id);
-        li.innerHTML = `
+            scrollToBottom();
+            updateHistoryUI();
+        }
+
+        function updateHistoryUI() {
+            const list = document.getElementById('chatHistory');
+            list.innerHTML = '';
+
+            state.history.forEach(session => {
+                const li = document.createElement('li');
+                li.className = `chat-history-item ${session.id === state.currentSessionId ? 'active' : ''}`;
+                li.onclick = () => loadSession(session.id);
+                li.innerHTML = `
             <span class="chat-history-item-title">${escapeHtml(session.title)}</span>
             <button class="btn-delete-history" onclick="deleteSession('${session.id}', event)">×</button>
         `;
-        list.appendChild(li);
-    });
-}
+                list.appendChild(li);
+            });
+        }
 
-function deleteSession(sessionId, e) {
-    e.stopPropagation();
-    if (!confirm('Delete this chat?')) return;
-    
-    state.history = state.history.filter(s => s.id !== sessionId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
-    
-    if (sessionId === state.currentSessionId) {
-        startNewChat(false);
-    } else {
-        updateHistoryUI();
-    }
-}
+        function deleteSession(sessionId, e) {
+            e.stopPropagation();
+            if (!confirm('Delete this chat?')) return;
 
-function clearAllHistory() {
-    if (!confirm('Clear all history?')) return;
-    state.history = [];
-    localStorage.removeItem(STORAGE_KEY);
-    startNewChat(false);
-}
+            state.history = state.history.filter(s => s.id !== sessionId);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.history));
 
-// --- Utilities ---
+            if (sessionId === state.currentSessionId) {
+                startNewChat(false);
+            } else {
+                updateHistoryUI();
+            }
+        }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
+        function clearAllHistory() {
+            if (!confirm('Clear all history?')) return;
+            state.history = [];
+            localStorage.removeItem(STORAGE_KEY);
+            startNewChat(false);
+        }
 
-function parseMarkdown(text) {
-    if (!text) return '';
-    let html = escapeHtml(text);
-    
-    // Bold
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // Code
-    html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-    
-    // Newlines to br
-    html = html.replace(/\n/g, '<br>');
-    
-    return html;
-}
+        // --- Utilities ---
 
-</script>
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
-<%+footer%>
+        function parseMarkdown(text) {
+            if (!text) return '';
+            let html = escapeHtml(text);
+
+            // Bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Code
+            html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+
+            // Newlines to br
+            html = html.replace(/\n/g, '<br>');
+
+            return html;
+        }
+
+    </script>
+
+    <%+footer%>

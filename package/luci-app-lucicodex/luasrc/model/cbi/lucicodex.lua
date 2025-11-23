@@ -8,10 +8,29 @@ m = Map("lucicodex", translate("LuciCodex Configuration"),
 local cursor = uci.cursor()
 local conf = "lucicodex"
 
--- Helper to ensure section exists
+-- Helper to ensure section exists and is named 'main'
 local function ensure_section(type, name)
+    -- 1. Check if the specific named section exists
     local exist = cursor:get(conf, name)
-    if not exist then
+    if exist == type then
+        return
+    end
+
+    -- 2. Check for ANY section of this type (anonymous or other name)
+    local found_anon = nil
+    cursor:foreach(conf, type, function(s)
+        if s['.name'] ~= name then
+            found_anon = s['.name']
+            return false -- stop iterating
+        end
+    end)
+
+    if found_anon then
+        -- Rename the first found anonymous section to 'main'
+        cursor:rename(conf, found_anon, name)
+        cursor:commit(conf)
+    else
+        -- Create new 'main' section if none exists
         cursor:set(conf, name, type)
         if type == "api" then
             cursor:set(conf, name, "provider", "gemini")
