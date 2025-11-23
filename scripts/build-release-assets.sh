@@ -46,14 +46,32 @@ ipk_pack_lucicodex() {
   local arch="$1"; shift
   local binpath="$1"; shift
   
-  # Determine uname -m substring to match for preinst check
+  # Determine architecture name for filename to match release.yml expectations
+  # release.yml expects: mips_24kc, arm_cortex-a7, x86_64, aarch64, mipsel_24kc
+  local arch_filename=""
   local arch_match=""
+  
   case "$arch" in
-    amd64) arch_match="x86_64";;
-    arm64) arch_match="aarch64";;
-    arm) arch_match="arm";;
-    mipsle) arch_match="mips";;
-    mips) arch_match="mips";;
+    amd64) 
+      arch_filename="x86_64"
+      arch_match="x86_64"
+      ;;
+    arm64) 
+      arch_filename="aarch64"
+      arch_match="aarch64"
+      ;;
+    arm) 
+      arch_filename="arm_cortex-a7"
+      arch_match="arm"
+      ;;
+    mipsle) 
+      arch_filename="mipsel_24kc"
+      arch_match="mips"
+      ;;
+    mips) 
+      arch_filename="mips_24kc"
+      arch_match="mips"
+      ;;
   esac
 
   local work
@@ -95,15 +113,16 @@ fi
 EOF
   chmod 0755 "$work/control/preinst"
 
-  # Build standard OpenWrt IPK (tar.gz format)
-  # OpenWrt opkg requires the outer container to be a tar.gz, NOT an ar archive
-  # It also requires specific file order: ./debian-binary ./data.tar.gz ./control.tar.gz
+  # Build standard OpenWrt IPK (ar format)
+  # CRITICAL: 
+  # 1. Inner tarballs MUST use --numeric-owner --owner=0 --group=0
+  # 2. Outer container MUST be 'ar' format
+  # 3. debian-binary MUST be the first file in the archive
   (cd "$work"; 
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   # Use the original arch name in filename for clarity, even though internal arch is 'all'
-   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+   ar -r "$outdir/lucicodex_${VERSION}_${arch_filename}.ipk" ./debian-binary ./control.tar.gz ./data.tar.gz >/dev/null
   )
   
   rm -rf "$work"
@@ -131,12 +150,12 @@ Priority: optional
 Depends: luci-base, lucicodex
 Description: LuCI web UI for LuciCodex
 EOF
-  # Build standard OpenWrt IPK (tar.gz format)
+  # Build standard OpenWrt IPK (ar format)
   (cd "$work"; 
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+   ar -r "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" ./debian-binary ./control.tar.gz ./data.tar.gz >/dev/null
   )
   
   rm -rf "$work"
