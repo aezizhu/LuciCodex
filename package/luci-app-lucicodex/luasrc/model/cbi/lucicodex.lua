@@ -34,7 +34,7 @@ local function ensure_section(type, name)
         cursor:set(conf, name, type)
         if type == "api" then
             cursor:set(conf, name, "provider", "gemini")
-            cursor:set(conf, name, "model", "gemini-3")
+            cursor:set(conf, name, "model", "gemini-2.5-flash")
             cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
         elseif type == "settings" then
             cursor:set(conf, name, "dry_run", "1")
@@ -83,7 +83,7 @@ o:depends("provider", "anthropic")
 
 o = s:option(Value, "model", translate("Model"),
     translate("Specific model to use. Leave empty for provider default."))
-o.placeholder = "gemini-3"
+o.placeholder = "gemini-2.5-flash"
 o.rmempty = true
 o:depends("provider", "gemini")
 
@@ -96,7 +96,7 @@ o:depends("provider", "gemini")
 -- OpenAI-specific fields
 o = s:option(Value, "openai_model", translate("Model"),
     translate("Specific model to use. Leave empty for provider default."))
-o.placeholder = "gpt-5.1"
+o.placeholder = "gpt-4o-mini"
 o.rmempty = true
 o:depends("provider", "openai")
 
@@ -109,7 +109,7 @@ o:depends("provider", "openai")
 -- Anthropic-specific fields
 o = s:option(Value, "anthropic_model", translate("Model"),
     translate("Specific model to use. Leave empty for provider default."))
-o.placeholder = "claude-4.5"
+o.placeholder = "claude-sonnet-4-5-20250929"
 o.rmempty = true
 o:depends("provider", "anthropic")
 

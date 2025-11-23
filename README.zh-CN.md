@@ -77,7 +77,7 @@
 2. 路由器有**互联网连接**
 3. 至少 **10MB 可用存储**空间
 4. 从以下服务商之一获取 **API 密钥**：
-   - Google Gemini（推荐新手使用 - 有免费额度，默认 `gemini-3`）
+   - Google Gemini（推荐新手使用 - 有免费额度，默认 `gemini-2.5-flash`）
    - OpenAI（GPT-5.1/GPT-4o）
    - Anthropic（Claude 4.5）
 
@@ -240,7 +240,7 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 **API 设置：**
 - **服务商**：选择你的 AI 服务商
 - **API 密钥**：输入你的密钥（安全存储）
-- **模型**：保持空白使用默认值，或指定（如 `gemini-3`、`gpt-5.1`、`claude-4.5`）
+- **模型**：保持空白使用默认值，或指定（如 `gemini-2.5-flash`、`gpt-4o-mini`、`claude-sonnet-4-5-20250929`）
 - **端点**：除非使用自定义端点，否则保持默认
 
 **安全设置：**
@@ -260,17 +260,17 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 # 配置 Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='你的-GEMINI-密钥'
-uci set lucicodex.@api[0].model='gemini-3'
+uci set lucicodex.@api[0].model='gemini-2.5-flash'
 
 # 配置 OpenAI
 uci set lucicodex.@api[0].provider='openai'
 uci set lucicodex.@api[0].openai_key='你的-OPENAI-密钥'
-uci set lucicodex.@api[0].model='gpt-5.1'
+uci set lucicodex.@api[0].model='gpt-4o-mini'
 
 # 配置 Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='你的-ANTHROPIC-密钥'
-uci set lucicodex.@api[0].model='claude-4.5'
+uci set lucicodex.@api[0].model='claude-sonnet-4-5-20250929'
 
 # 安全设置
 uci set lucicodex.@settings[0].dry_run='1'          # 1=启用, 0=禁用
@@ -517,7 +517,7 @@ lucicodex -config /etc/lucicodex/custom-config.json "你的命令"
 ```bash
 export GEMINI_API_KEY='你的密钥'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-3'
+export LUCICODEX_MODEL='gemini-2.5-flash'
 lucicodex "你的命令"
 ```
 

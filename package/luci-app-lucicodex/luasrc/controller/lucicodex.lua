@@ -7,6 +7,7 @@ function index()
     entry({"admin", "system", "lucicodex", "run"}, template("lucicodex/run"), _("Chat"), 3)
     entry({"admin", "system", "lucicodex", "plan"}, call("action_plan")).leaf = true
     entry({"admin", "system", "lucicodex", "execute"}, call("action_execute")).leaf = true
+    entry({"admin", "system", "lucicodex", "validate"}, call("action_validate")).leaf = true
     entry({"admin", "system", "lucicodex", "metrics"}, call("action_metrics")).leaf = true
 end
 
@@ -117,8 +118,25 @@ function action_plan()
         end
     end
     
+    -- Enhanced error response with details
+    local error_msg = "failed to generate plan"
+    local error_details = {}
+    
+    if errors and errors ~= "" then
+        error_details.backend_error = errors
+    end
+    if output and output ~= "" then
+        error_details.backend_output = output
+    end
+    error_details.exit_code = code
+    error_details.exit_status = status
+    
     http.status(500, "Internal Server Error")
-    http.write_json({ error = "failed to generate plan", output = output, errors = errors, code = code })
+    http.write_json({ 
+        error = error_msg,
+        message = "The LLM backend failed. Check your provider selection, API key, and model name.",
+        details = error_details
+    })
 end
 
 function action_execute()
@@ -236,8 +254,110 @@ function action_execute()
         return
     end
     
+    -- Enhanced error response with details
+    local error_msg = "execution failed"
+    local error_details = {}
+    
+    if errors and errors ~= "" then
+        error_details.backend_error = errors
+    end
+    if output and output ~= "" then
+        error_details.backend_output = output
+    end
+    error_details.exit_code = code
+    error_details.exit_status = status
+    
     http.status(500, "Internal Server Error")
-    http.write_json({ error = "execution failed", output = output, errors = errors, code = code })
+    http.write_json({ 
+        error = error_msg,
+        message = "Command execution failed. Check your configuration and system logs.",
+        details = error_details
+    })
+end
+
+function action_validate()
+    local http = require "luci.http"
+    local json = require "luci.jsonc"
+    local nixio = require "nixio"
+    
+    if http.getenv("REQUEST_METHOD") ~= "POST" then
+        http.status(405, "Method Not Allowed")
+        http.write_json({ error = "POST required" })
+        return
+    end
+    
+    local body = http.content()
+    local data = json.parse(body)
+    
+    if not data or not data.provider then
+        http.status(400, "Bad Request")
+        http.write_json({ error = "missing provider" })
+        return
+    end
+    
+    -- Build CLI command for validation
+    local argv = {"/usr/bin/lucicodex", "-json", "-dry-run"}
+    
+    if data.provider and data.provider ~= "" then
+        table.insert(argv, "-provider=" .. data.provider)
+    end
+    if data.model and data.model ~= "" then
+        table.insert(argv, "-model=" .. data.model)
+    end
+    
+    -- Simple test prompt
+    table.insert(argv, "test")
+    
+    local stdout_r, stdout_w = nixio.pipe()
+    local stderr_r, stderr_w = nixio.pipe()
+    
+    local pid = nixio.fork()
+    if pid == 0 then
+        stdout_r:close()
+        stderr_r:close()
+        nixio.dup(stdout_w, nixio.stdout)
+        nixio.dup(stderr_w, nixio.stderr)
+        stdout_w:close()
+        stderr_w:close()
+        nixio.exec(unpack(argv))
+        nixio.exit(1)
+    end
+    
+    stdout_w:close()
+    stderr_w:close()
+    
+    local output = ""
+    local errors = ""
+    
+    while true do
+        local chunk = stdout_r:read(1024)
+        if not chunk or #chunk == 0 then break end
+        output = output .. chunk
+    end
+    
+    while true do
+        local chunk = stderr_r:read(1024)
+        if not chunk or #chunk == 0 then break end
+        errors = errors .. chunk
+    end
+    
+    stdout_r:close()
+    stderr_r:close()
+    
+    local status, code = nixio.waitpid(pid)
+    
+    if status == "exited" and code == 0 then
+        http.prepare_content("application/json")
+        http.write_json({ valid = true, message = "API key is valid and working!" })
+    else
+        http.status(200)  -- Still 200, but valid=false
+        http.prepare_content("application/json")
+        http.write_json({ 
+            valid = false,
+            error = "Validation failed: " .. (errors ~= "" and errors or "Unknown error"),
+            exit_code = code
+        })
+    end
 end
 
 function action_metrics()

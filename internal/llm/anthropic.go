@@ -47,7 +47,7 @@ func (c *AnthropicClient) GeneratePlan(ctx context.Context, prompt string) (plan
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "claude-4.5"
+		model = "claude-sonnet-4-5-20250929" // Latest stable Claude Sonnet 4.5
 	}
 	body := anthropicReq{Model: model, MaxTokens: 2048}
 	body.Messages = []anthropicMessage{{Role: "user", Content: prompt}}

@@ -698,7 +698,31 @@
 
             } catch (error) {
                 removeTypingIndicator();
-                addMessage('ai', `**Error:** ${error.message}`);
+
+                // Detect specific error code
+                const errorInfo = detectErrorCode(error, error.response);
+
+                // Build detailed error message
+                let errorMsg = `**${errorInfo.title}** (${errorInfo.code})`;
+                errorMsg += `\n\n${errorInfo.message}`;
+
+                // Add solution
+                errorMsg += `\n\n**Solution:**\n${errorInfo.solution}`;
+
+                // Add technical details if available
+                if (error.response && error.response.details) {
+                    const details = error.response.details;
+                    errorMsg += '\n\n**Technical Details:**';
+
+                    if (details.backend_error) {
+                        errorMsg += `\n- Backend: ${details.backend_error.trim()}`;
+                    }
+                    if (details.exit_code) {
+                        errorMsg += `\n- Exit Code: ${details.exit_code}`;
+                    }
+                }
+
+                addMessage('ai', errorMsg);
             } finally {
                 setProcessing(false);
                 saveCurrentSession();
@@ -759,6 +783,95 @@
             addMessage('ai', 'Command execution cancelled.');
         }
 
+        // --- Error Code Detection ---
+        function detectErrorCode(error, response) {
+            const errorText = (error.message + ' ' + (response?.details?.backend_error || '')).toLowerCase();
+
+            // Missing API Keys
+            if (errorText.includes('missing openai_api_key')) {
+                return {
+                    code: 'ERR_MISSING_OPENAI_KEY',
+                    title: 'Missing OpenAI API Key',
+                    message: 'Please configure your OpenAI API key in Settings.',
+                    solution: 'Go to Configuration → OpenAI API Key and enter your key from https://platform.openai.com/api-keys'
+                };
+            }
+            if (errorText.includes('missing anthropic_api_key')) {
+                return {
+                    code: 'ERR_MISSING_ANTHROPIC_KEY',
+                    title: 'Missing Anthropic API Key',
+                    message: 'Please configure your Anthropic API key in Settings.',
+                    solution: 'Go to Configuration → Anthropic API Key and enter your key from https://console.anthropic.com/'
+                };
+            }
+            if (errorText.includes('missing api key') || errorText.includes('missing gemini')) {
+                return {
+                    code: 'ERR_MISSING_GEMINI_KEY',
+                    title: 'Missing Gemini API Key',
+                    message: 'Please configure your Gemini API key in Settings.',
+                    solution: 'Go to Configuration → Gemini API Key and enter your key from https://makersuite.google.com/app/apikey'
+                };
+            }
+
+            // Authentication Errors
+            if (errorText.includes('401') || errorText.includes('unauthorized') || errorText.includes('invalid api key')) {
+                return {
+                    code: 'ERR_AUTH_FAILED',
+                    title: 'Authentication Failed',
+                    message: 'Your API key is invalid or has been revoked.',
+                    solution: 'Check your API key in Configuration and ensure it is correct and active.'
+                };
+            }
+
+            // Rate Limiting
+            if (errorText.includes('429') || errorText.includes('rate limit') || errorText.includes('quota exceeded')) {
+                return {
+                    code: 'ERR_RATE_LIMIT',
+                    title: 'Rate Limit Exceeded',
+                    message: 'You have exceeded the API rate limit or quota.',
+                    solution: 'Wait a few minutes and try again, or upgrade your API plan.'
+                };
+            }
+
+            // Timeout Errors
+            if (errorText.includes('timeout') || errorText.includes('timed out')) {
+                return {
+                    code: 'ERR_TIMEOUT',
+                    title: 'Request Timeout',
+                    message: 'The request took too long to complete.',
+                    solution: 'Check your internet connection and try again with a simpler request.'
+                };
+            }
+
+            // Model Errors
+            if (errorText.includes('model') && (errorText.includes('not found') || errorText.includes('does not exist'))) {
+                return {
+                    code: 'ERR_MODEL_NOT_FOUND',
+                    title: 'Model Not Found',
+                    message: 'The specified model does not exist or is not accessible.',
+                    solution: 'Check the model name in your provider settings or chat sidebar.'
+                };
+            }
+
+            // Network Errors
+            if (errorText.includes('network') || errorText.includes('econnrefused') || errorText.includes('dns')) {
+                return {
+                    code: 'ERR_NETWORK',
+                    title: 'Network Error',
+                    message: 'Unable to connect to the LLM service.',
+                    solution: 'Check your router\'s internet connection and DNS settings.'
+                };
+            }
+
+            // Generic error
+            return {
+                code: 'ERR_UNKNOWN',
+                title: 'Unknown Error',
+                message: error.message,
+                solution: 'Check the error details below for more information.'
+            };
+        }
+
         // --- API Helper ---
         function apiCall(url, data) {
             return new Promise((resolve, reject) => {
@@ -777,7 +890,9 @@
                     } else {
                         try {
                             const err = JSON.parse(xhr.responseText);
-                            reject(new Error(err.error || `Request failed (${xhr.status})`));
+                            const error = new Error(err.error || `Request failed (${xhr.status})`);
+                            error.response = err; // Attach full response for detailed error display
+                            reject(error);
                         } catch (e) {
                             reject(new Error(`Request failed (${xhr.status})`));
                         }

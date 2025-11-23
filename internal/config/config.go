@@ -122,6 +122,7 @@ func Load(path string) (Config, error) {
 	// Read provider-specific model and endpoint
 	switch cfg.Provider {
 	case "gemini":
+		// If UCI doesn't specify a model, it will retain the defaultConfig value ("gemini-1.5-flash")
 		if m, _ := uciGet("lucicodex.@api[0].model"); m != "" {
 			cfg.Model = m
 		}

@@ -77,9 +77,9 @@ Before installing LuciCodex, you need:
 2. **Internet connection** on your router
 3. **At least 10MB free storage** space
 4. **An API key** from one of### Supported Providers
-*   **Google Gemini** (Default): Uses `gemini-3` (Free tier available).
-*   **OpenAI**: Supports `gpt-5.1`, `gpt-4o`, etc.
-*   **Anthropic**: Supports `claude-4.5`, `claude-4.5-haiku`.
+*   **Google Gemini** (Default): Uses `gemini-2.5-flash` (Free tier available).
+*   **OpenAI**: Supports `gpt-4o-mini`, `gpt-4o`, etc.
+*   **Anthropic**: Supports `claude-sonnet-4-5-20250929`, `claude-sonnet-4-5-20250929-haiku`.
 *   **External CLI**: Can wrap any CLI tool (e.g., local LLMs).
 
 ### Installation on OpenWrt
@@ -241,7 +241,7 @@ LuciCodex supports multiple AI providers. Here's how to choose:
 **API Settings:**
 - **Provider**: Choose your AI provider
 - **API Key**: Enter your key (stored securely)
-- **Model**: Leave empty for default, or specify (e.g., `gemini-3`, `gpt-5.1`, `claude-4.5`)
+- **Model**: Leave empty for default, or specify (e.g., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-sonnet-4-5-20250929`)
 - **Endpoint**: Leave default unless using custom endpoint
 
 **Safety Settings:**
@@ -261,17 +261,17 @@ All settings are stored in `/etc/config/lucicodex` using OpenWrt's UCI system:
 # Configure Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='YOUR-GEMINI-KEY'
-uci set lucicodex.@api[0].model='gemini-3'
+uci set lucicodex.@api[0].model='gemini-2.5-flash'
 
 # Configure OpenAI
 uci set lucicodex.@api[0].provider='openai'
 uci set lucicodex.@api[0].openai_key='YOUR-OPENAI-KEY'
-uci set lucicodex.@api[0].model='gpt-5.1'
+uci set lucicodex.@api[0].model='gpt-4o-mini'
 
 # Configure Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='YOUR-ANTHROPIC-KEY'
-uci set lucicodex.@api[0].model='claude-4.5'
+uci set lucicodex.@api[0].model='claude-sonnet-4-5-20250929'
 
 # Safety settings
 uci set lucicodex.@settings[0].dry_run='1'          # 1=enabled, 0=disabled
@@ -544,7 +544,7 @@ Override settings with environment variables:
 ```bash
 export GEMINI_API_KEY='your-key'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-3'
+export LUCICODEX_MODEL='gemini-2.5-flash'
 lucicodex "your command"
 ```
 

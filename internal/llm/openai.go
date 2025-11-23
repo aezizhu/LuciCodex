@@ -49,7 +49,7 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gpt-5.1"
+		model = "gpt-4o-mini" // Latest default GPT-4o mini
 	}
 	body := openaiReq{Model: model}
 	body.Messages = []openaiMessage{{Role: "user", Content: prompt}}
