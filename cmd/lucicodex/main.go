@@ -23,12 +23,12 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-const version = "0.4.1"
+const version = "0.4.2"
 
 func acquireLock() (*os.File, string, error) {
 	lockPaths := []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 	var lastErr error
-	
+
 	for i, lockPath := range lockPaths {
 		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 		if err == nil {
@@ -42,7 +42,7 @@ func acquireLock() (*os.File, string, error) {
 			return nil, "", fmt.Errorf("execution in progress (lock file exists: %s)", lockPath)
 		}
 	}
-	
+
 	return nil, "", fmt.Errorf("failed to acquire lock: %w", lastErr)
 }
 
@@ -86,7 +86,7 @@ func main() {
 	if err != nil {
 		if !*setup {
 			fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
-            fmt.Fprintf(os.Stderr, "Run with -setup to configure LuciCodex\n")
+			fmt.Fprintf(os.Stderr, "Run with -setup to configure LuciCodex\n")
 			os.Exit(1)
 		}
 		cfg = config.Config{}
@@ -113,7 +113,7 @@ func main() {
 	cfg.DryRun = *dryRun
 	cfg.AutoApprove = *approve
 	cfg.AutoRetry = *autoRetry
-	
+
 	if !*confirmEach && cfg.ConfirmEach {
 		*confirmEach = true
 	}
@@ -231,9 +231,9 @@ func main() {
 		os.Exit(1)
 	}
 	defer releaseLock(lockFile)
-	
+
 	fmt.Fprintf(os.Stderr, "Acquired execution lock: %s\n", lockPath)
-	
+
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -273,7 +273,7 @@ func main() {
 					break
 				}
 			}
-			
+
 			if failedResult == nil {
 				break // No more failures
 			}
@@ -287,9 +287,9 @@ func main() {
 
 			// Generate fix plan
 			fixCtx, fixCancel := context.WithTimeout(ctx, 30*time.Second)
-			fixPlan, err := llmProvider.GenerateErrorFix(fixCtx, 
-				executor.FormatCommand(failedResult.Command), 
-				failedResult.Output, 
+			fixPlan, err := llmProvider.GenerateErrorFix(fixCtx,
+				executor.FormatCommand(failedResult.Command),
+				failedResult.Output,
 				retryAttempt)
 			fixCancel()
 
@@ -324,7 +324,7 @@ func main() {
 
 			// Execute fix
 			fixResults := execEngine.RunPlan(ctx, fixPlan)
-			
+
 			// Mark original failure as retried by removing the error if fix succeeded
 			if fixResults.Failed == 0 {
 				if !*jsonOutput {
@@ -332,7 +332,7 @@ func main() {
 				}
 				failedResult.Err = nil
 				results.Failed--
-				
+
 				// Append fix results to overall results
 				for _, fr := range fixResults.Items {
 					results.Items = append(results.Items, fr)

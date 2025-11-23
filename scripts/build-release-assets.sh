@@ -69,8 +69,15 @@ Priority: optional
 Depends: libc
 Description: LuciCodex - Natural-language CLI for OpenWrt
 EOF
-  # Build standard OpenWrt IPK (ar format)
-  (cd "$work"; echo 2.0 > debian-binary; tar -czf control.tar.gz -C control .; tar -czf data.tar.gz -C data .; ar -r "$outdir/lucicodex_${VERSION}_${arch_ipk}.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null)
+  # Build standard OpenWrt IPK (tar.gz format)
+  # OpenWrt opkg requires the outer container to be a tar.gz, NOT an ar archive
+  # It also requires specific file order: ./debian-binary ./data.tar.gz ./control.tar.gz
+  (cd "$work"; 
+   echo 2.0 > debian-binary; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch_ipk}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+  )
   
   rm -rf "$work"
 }
@@ -97,8 +104,13 @@ Priority: optional
 Depends: luci-base, lucicodex
 Description: LuCI web UI for LuciCodex
 EOF
-  # Build standard OpenWrt IPK (ar format)
-  (cd "$work"; echo 2.0 > debian-binary; tar -czf control.tar.gz -C control .; tar -czf data.tar.gz -C data .; ar -r "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null)
+  # Build standard OpenWrt IPK (tar.gz format)
+  (cd "$work"; 
+   echo 2.0 > debian-binary; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
+  )
   
   rm -rf "$work"
 }
