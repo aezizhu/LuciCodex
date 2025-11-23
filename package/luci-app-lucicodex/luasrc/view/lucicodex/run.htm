@@ -511,13 +511,9 @@
             </div>
 
             <div class="sidebar-section">
-                <h3>Provider</h3>
+                <div class="sidebar-label">PROVIDER</div>
                 <select class="sidebar-select" id="providerSelect" onchange="updateProvider()">
-                    <option value="">Default (from config)</option>
-                    <option value="gemini">Google Gemini</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic</option>
-                    <option value="gemini-cli">External Gemini CLI</option>
+                    <option value="">Loading...</option>
                 </select>
             </div>
 
@@ -583,26 +579,25 @@
 
         const STORAGE_KEY = 'lucicodex_history_v2';
 
-        // --- Initialization ---
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- Page Init ---
+        window.addEventListener('DOMContentLoaded', async () => {
             loadHistory();
+            startNewChat(false);
 
-            // Load provider and model from localStorage
-            const savedProvider = localStorage.getItem('lucicodex_provider') || '';
-            const savedModel = localStorage.getItem('lucicodex_model') || '';
-            state.provider = savedProvider;
-            state.model = savedModel;
-            if (document.getElementById('providerSelect')) {
+            // Load provider/model from localStorage
+            const savedProvider = localStorage.getItem('lucicodex_provider');
+            const savedModel = localStorage.getItem('lucicodex_model');
+
+            // Load configured providers from backend
+            await loadConfiguredProviders();
+
+            if (savedProvider) {
+                state.provider = savedProvider;
                 document.getElementById('providerSelect').value = savedProvider;
             }
-            if (document.getElementById('modelInput')) {
+            if (savedModel) {
+                state.model = savedModel;
                 document.getElementById('modelInput').value = savedModel;
-            }
-
-            if (state.history.length > 0) {
-                loadSession(state.history[0].id);
-            } else {
-                startNewChat(false);
             }
 
             // Restore exec mode preference if saved
@@ -612,6 +607,51 @@
                 document.getElementById('execMode').value = savedMode;
             }
         });
+
+        // --- Load Configured Providers ---
+        async function loadConfiguredProviders() {
+            try {
+                const response = await fetch('/cgi-bin/luci/admin/system/lucicodex/providers');
+                const data = await response.json();
+
+                const select = document.getElementById('providerSelect');
+                select.innerHTML = ''; // Clear loading message
+
+                if (data.configured && data.configured.length > 0) {
+                    // Map provider codes to friendly names
+                    const providerNames = {
+                        'gemini': 'Google Gemini',
+                        'openai': 'OpenAI',
+                        'anthropic': 'Anthropic (Claude)'
+                    };
+
+                    data.configured.forEach(provider => {
+                        const option = document.createElement('option');
+                        option.value = provider;
+                        option.textContent = providerNames[provider] || provider;
+                        select.appendChild(option);
+                    });
+
+                    // Set default
+                    if (data.default && data.configured.includes(data.default)) {
+                        select.value = data.default;
+                        state.provider = data.default;
+                    } else {
+                        // Use first configured provider
+                        select.value = data.configured[0];
+                        state.provider = data.configured[0];
+                    }
+                } else {
+                    // No providers configured
+                    select.innerHTML = '<option value="">No API keys configured</option>';
+                    select.disabled = true;
+                }
+            } catch (error) {
+                console.error('Failed to load providers:', error);
+                const select = document.getElementById('providerSelect');
+                select.innerHTML = '<option value="">Error loading providers</option>';
+            }
+        }
 
         // --- Core Logic ---
 

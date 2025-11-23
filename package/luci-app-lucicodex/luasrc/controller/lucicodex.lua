@@ -8,6 +8,7 @@ function index()
     entry({"admin", "system", "lucicodex", "plan"}, call("action_plan")).leaf = true
     entry({"admin", "system", "lucicodex", "execute"}, call("action_execute")).leaf = true
     entry({"admin", "system", "lucicodex", "validate"}, call("action_validate")).leaf = true
+    entry({"admin", "system", "lucicodex", "providers"}, call("action_get_providers")).leaf = true
     entry({"admin", "system", "lucicodex", "metrics"}, call("action_metrics")).leaf = true
 end
 
@@ -358,6 +359,40 @@ function action_validate()
             exit_code = code
         })
     end
+end
+
+function action_get_providers()
+    local http = require "luci.http"
+    local json = require "luci.jsonc"
+    local uci = require "luci.model.uci".cursor()
+    
+    local configured = {}
+    local default_provider = uci:get("lucicodex", "@api[0]", "provider") or "gemini"
+    
+    -- Check Gemini
+    local gemini_key = uci:get("lucicodex", "@api[0]", "key")
+    if gemini_key and gemini_key ~= "" then
+        table.insert(configured, "gemini")
+    end
+    
+    -- Check OpenAI
+    local openai_key = uci:get("lucicodex", "@api[0]", "openai_key")
+    if openai_key and openai_key ~= "" then
+        table.insert(configured, "openai")
+    end
+    
+    -- Check Anthropic
+    local anthropic_key = uci:get("lucicodex", "@api[0]", "anthropic_key")
+    if anthropic_key and anthropic_key ~= "" then
+        table.insert(configured, "anthropic")
+    end
+    
+    http.prepare_content("application/json")
+    http.write_json({
+        configured = configured,
+        default = default_provider,
+        count = #configured
+    })
 end
 
 function action_metrics()
