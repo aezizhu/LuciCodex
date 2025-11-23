@@ -610,15 +610,31 @@
 
         // --- Load Configured Providers ---
         async function loadConfiguredProviders() {
+            const select = document.getElementById('providerSelect');
+
+            // Fallback: Default providers if endpoint fails
+            const allProviders = [
+                { value: 'gemini', label: 'Google Gemini' },
+                { value: 'openai', label: 'OpenAI' },
+                { value: 'anthropic', label: 'Anthropic (Claude)' }
+            ];
+
             try {
                 const response = await fetch('/cgi-bin/luci/admin/system/lucicodex/providers');
-                const data = await response.json();
 
-                const select = document.getElementById('providerSelect');
+                if (!response.ok) {
+                    console.warn('Providers endpoint returned', response.status, '- using all providers');
+                    populateAllProviders(select, allProviders);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Loaded providers:', data);
+
                 select.innerHTML = ''; // Clear loading message
 
                 if (data.configured && data.configured.length > 0) {
-                    // Map provider codes to friendly names
+                    // Use only configured providers
                     const providerNames = {
                         'gemini': 'Google Gemini',
                         'openai': 'OpenAI',
@@ -637,20 +653,32 @@
                         select.value = data.default;
                         state.provider = data.default;
                     } else {
-                        // Use first configured provider
                         select.value = data.configured[0];
                         state.provider = data.configured[0];
                     }
                 } else {
-                    // No providers configured
-                    select.innerHTML = '<option value="">No API keys configured</option>';
-                    select.disabled = true;
+                    // No configured providers - show all as fallback
+                    console.warn('No providers configured - showing all providers');
+                    populateAllProviders(select, allProviders);
                 }
             } catch (error) {
                 console.error('Failed to load providers:', error);
-                const select = document.getElementById('providerSelect');
-                select.innerHTML = '<option value="">Error loading providers</option>';
+                // Fallback: Show all providers
+                populateAllProviders(select, allProviders);
             }
+        }
+
+        function populateAllProviders(select, providers) {
+            select.innerHTML = '';
+            providers.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.value;
+                option.textContent = p.label;
+                select.appendChild(option);
+            });
+            // Set default to gemini
+            select.value = 'gemini';
+            state.provider = 'gemini';
         }
 
         // --- Core Logic ---
