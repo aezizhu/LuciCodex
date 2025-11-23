@@ -48,7 +48,7 @@ ipk_pack_lucicodex() {
   local arch_ipk="$arch"
   case "$arch" in
     amd64) arch_ipk="x86_64";;
-    arm64) arch_ipk="aarch64";;
+    arm64) arch_ipk="aarch64_cortex-a53";;
     arm) arch_ipk="arm_cortex-a7";;
     mipsle) arch_ipk="mipsel_24kc";;
     mips) arch_ipk="mips_24kc";;
