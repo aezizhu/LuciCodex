@@ -77,9 +77,9 @@ Antes de instalar LuciCodex, necesitas:
 2. **Conexión a Internet** en tu router
 3. Al menos **10MB de espacio libre** de almacenamiento
 4. **Una clave API** de uno de estos proveedores:
-   - Google Gemini (recomendado para principiantes - plan gratuito disponible)
-   - OpenAI (GPT-4/GPT-3.5)
-   - Anthropic (Claude)
+   - Google Gemini (recomendado para principiantes - plan gratuito disponible, usa `gemini-3`)
+   - OpenAI (GPT-5.1/GPT-4o)
+   - Anthropic (Claude 4.5)
 
 ### Instalación en OpenWrt
 
@@ -121,7 +121,7 @@ opkg install luci-app-lucicodex
 lucicodex -version
 ```
 
-Deberías ver: `LuciCodex version 0.4.0`
+Deberías ver: `LuciCodex version 0.4.10`
 
 ### Obtener tu Clave API
 
@@ -240,7 +240,7 @@ LuciCodex soporta múltiples proveedores de IA. Así es como elegir:
 **Configuración de API:**
 - **Proveedor**: Elige tu proveedor de IA
 - **Clave API**: Ingresa tu clave (almacenada de forma segura)
-- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-1.5-flash`, `gpt-4`, `claude-3-sonnet`)
+- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-3`, `gpt-5.1`, `claude-4.5`)
 - **Endpoint**: Deja el predeterminado a menos que uses un endpoint personalizado
 
 **Configuración de Seguridad:**
@@ -260,17 +260,17 @@ Todos los ajustes se almacenan en `/etc/config/lucicodex` usando el sistema UCI 
 # Configurar Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='TU-CLAVE-GEMINI'
-uci set lucicodex.@api[0].model='gemini-1.5-flash'
+uci set lucicodex.@api[0].model='gemini-3'
 
 # Configurar OpenAI
 uci set lucicodex.@api[0].provider='openai'
 uci set lucicodex.@api[0].openai_key='TU-CLAVE-OPENAI'
-uci set lucicodex.@api[0].model='gpt-4'
+uci set lucicodex.@api[0].model='gpt-5.1'
 
 # Configurar Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='TU-CLAVE-ANTHROPIC'
-uci set lucicodex.@api[0].model='claude-3-sonnet-20240229'
+uci set lucicodex.@api[0].model='claude-4.5'
 
 # Configuración de seguridad
 uci set lucicodex.@settings[0].dry_run='1'          # 1=habilitado, 0=deshabilitado
@@ -517,7 +517,7 @@ Sobrescribe configuraciones con variables de entorno:
 ```bash
 export GEMINI_API_KEY='tu-clave'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-1.5-flash'
+export LUCICODEX_MODEL='gemini-3'
 lucicodex "tu comando"
 ```
 
