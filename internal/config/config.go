@@ -40,7 +40,7 @@ func defaultConfig() Config {
 	return Config{
 		Author:         "AZ <Aezi.zhu@icloud.com>",
 		Endpoint:       "https://generativelanguage.googleapis.com/v1beta",
-		Model:          "gemini-3",
+		Model:          "",
 		Provider:       "gemini",
 		DryRun:         true,
 		AutoApprove:    false,
@@ -116,14 +116,36 @@ func Load(path string) (Config, error) {
 	if key, _ := uciGet("lucicodex.@api[0].key"); key != "" {
 		cfg.APIKey = key
 	}
-	if m, _ := uciGet("lucicodex.@api[0].model"); m != "" {
-		cfg.Model = m
-	}
-	if ep, _ := uciGet("lucicodex.@api[0].endpoint"); ep != "" {
-		cfg.Endpoint = ep
-	}
 	if prov, _ := uciGet("lucicodex.@api[0].provider"); prov != "" {
 		cfg.Provider = prov
+	}
+	// Read provider-specific model and endpoint
+	switch cfg.Provider {
+	case "gemini":
+		if m, _ := uciGet("lucicodex.@api[0].model"); m != "" {
+			cfg.Model = m
+		}
+		if ep, _ := uciGet("lucicodex.@api[0].endpoint"); ep != "" {
+			cfg.Endpoint = ep
+		}
+	case "openai":
+		if m, _ := uciGet("lucicodex.@api[0].openai_model"); m != "" {
+			cfg.Model = m
+		}
+		if ep, _ := uciGet("lucicodex.@api[0].openai_endpoint"); ep != "" {
+			cfg.Endpoint = ep
+		}
+	case "anthropic":
+		if m, _ := uciGet("lucicodex.@api[0].anthropic_model"); m != "" {
+			cfg.Model = m
+		}
+		if ep, _ := uciGet("lucicodex.@api[0].anthropic_endpoint"); ep != "" {
+			cfg.Endpoint = ep
+		}
+	case "gemini-cli":
+		if m, _ := uciGet("lucicodex.@api[0].gemini_cli_model"); m != "" {
+			cfg.Model = m
+		}
 	}
 	if openaiKey, _ := uciGet("lucicodex.@api[0].openai_key"); openaiKey != "" {
 		cfg.OpenAIAPIKey = openaiKey

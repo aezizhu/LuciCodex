@@ -85,11 +85,46 @@ o = s:option(Value, "model", translate("Model"),
     translate("Specific model to use. Leave empty for provider default."))
 o.placeholder = "gemini-3"
 o.rmempty = true
+o:depends("provider", "gemini")
 
 o = s:option(Value, "endpoint", translate("API Endpoint"),
     translate("Custom API endpoint URL. Leave empty for provider default."))
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
 o.rmempty = true
+o:depends("provider", "gemini")
+
+-- OpenAI-specific fields
+o = s:option(Value, "openai_model", translate("Model"),
+    translate("Specific model to use. Leave empty for provider default."))
+o.placeholder = "gpt-5.1"
+o.rmempty = true
+o:depends("provider", "openai")
+
+o = s:option(Value, "openai_endpoint", translate("API Endpoint"),
+    translate("Custom API endpoint URL. Leave empty for provider default."))
+o.placeholder = "https://api.openai.com/v1"
+o.rmempty = true
+o:depends("provider", "openai")
+
+-- Anthropic-specific fields
+o = s:option(Value, "anthropic_model", translate("Model"),
+    translate("Specific model to use. Leave empty for provider default."))
+o.placeholder = "claude-4.5"
+o.rmempty = true
+o:depends("provider", "anthropic")
+
+o = s:option(Value, "anthropic_endpoint", translate("API Endpoint"),
+    translate("Custom API endpoint URL. Leave empty for provider default."))
+o.placeholder = "https://api.anthropic.com/v1"
+o.rmempty = true
+o:depends("provider", "anthropic")
+
+-- Gemini CLI-specific fields
+o = s:option(Value, "gemini_cli_model", translate("Model"),
+    translate("Specific model to use. Leave empty for provider default."))
+o.placeholder = "gemini-3"
+o.rmempty = true
+o:depends("provider", "gemini-cli")
 
 -- Safety Settings Section - Use NamedSection for singleton config
 s = m:section(NamedSection, "main", "settings", translate("Safety Settings"))

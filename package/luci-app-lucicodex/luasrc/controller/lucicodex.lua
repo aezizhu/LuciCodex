@@ -57,6 +57,15 @@ function action_plan()
     end
     
     local argv = {"/usr/bin/lucicodex", "-json", "-dry-run"}
+    
+    -- Support provider/model overrides
+    if data.provider and data.provider ~= "" then
+        table.insert(argv, "-provider=" .. data.provider)
+    end
+    if data.model and data.model ~= "" then
+        table.insert(argv, "-model=" .. data.model)
+    end
+    
     table.insert(argv, data.prompt)
     
     local stdout_r, stdout_w = nixio.pipe()
@@ -163,6 +172,14 @@ function action_execute()
     
     if data.timeout and tonumber(data.timeout) then
         table.insert(argv, "-timeout=" .. tostring(data.timeout))
+    end
+    
+    -- Support provider/model overrides
+    if data.provider and data.provider ~= "" then
+        table.insert(argv, "-provider=" .. data.provider)
+    end
+    if data.model and data.model ~= "" then
+        table.insert(argv, "-model=" .. data.model)
     end
     
     table.insert(argv, data.prompt)
