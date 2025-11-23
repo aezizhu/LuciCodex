@@ -49,6 +49,7 @@
             font-size: 4.5rem;
             line-height: 1.1;
             background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 1rem;
@@ -65,100 +66,51 @@
         /* Action Buttons */
         .action-buttons {
             display: flex;
-            gap: 1.5rem;
+            gap: 1rem;
             justify-content: center;
-            margin-top: 2.5rem;
+            margin-top: 3rem;
         }
 
         .btn {
-            padding: 0.8rem 1.8rem;
-            border-radius: 980px;
-            /* Pill shape */
-            font-size: 1.05rem;
+            padding: 0.9rem 2.2rem;
+            border-radius: 12px;
+            font-size: 1.1rem;
             font-weight: 500;
             text-decoration: none;
-            transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+            transition: all 0.2s ease;
             cursor: pointer;
             border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 140px;
         }
 
         .btn-primary {
-            background: var(--accent-blue);
-            color: white;
+            background: #007AFF;
+            color: #FFFFFF !important;
+            border: 1px solid #007AFF;
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
         }
 
         .btn-primary:hover {
-            background: var(--accent-blue-hover);
-            transform: scale(1.02);
+            background: #0062cc;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(0, 122, 255, 0.4);
+            text-decoration: none;
         }
 
         .btn-secondary {
             background: rgba(255, 255, 255, 0.1);
-            color: var(--accent-blue);
-            backdrop-filter: var(--glass-blur);
+            color: #F5F5F7 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
         }
 
         .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        /* Bento Grid */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 4rem;
-        }
-
-        .feature-card {
-            background: var(--bg-card);
-            backdrop-filter: var(--glass-blur);
-            -webkit-backdrop-filter: var(--glass-blur);
-            border: 1px solid var(--border-subtle);
-            border-radius: 24px;
-            padding: 2.5rem;
-            transition: transform 0.3s ease, background 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-4px);
-            background: var(--bg-card-hover);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            background: linear-gradient(135deg, #2997ff, #9f55ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .feature-card h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.8rem;
-            color: var(--text-primary);
-        }
-
-        .feature-card ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            flex-grow: 1;
-        }
-
-        .feature-card li {
-            padding: 0.6rem 0;
-            color: var(--text-secondary);
-            font-size: 1.05rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .feature-card li:last-child {
-            border-bottom: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            text-decoration: none;
         }
 
         /* Example Section */
@@ -245,37 +197,7 @@
             </div>
         </div>
 
-        <div class="feature-grid">
-            <div class="feature-card">
-                <div class="feature-icon">􀉫</div> <!-- SF Symbol-like placeholder -->
-                <h3>Privacy First.</h3>
-                <ul>
-                    <li>Dry-run by default</li>
-                    <li>Local execution</li>
-                    <li>Secure API storage</li>
-                </ul>
-            </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">􀆊</div>
-                <h3>Lightning Fast.</h3>
-                <ul>
-                    <li>Instant commands</li>
-                    <li>Zero latency UI</li>
-                    <li>Optimized for OpenWrt</li>
-                </ul>
-            </div>
-
-            <div class="feature-card">
-                <div class="feature-icon">􀌗</div>
-                <h3>Pro Power.</h3>
-                <ul>
-                    <li>Multi-provider support</li>
-                    <li>Complex scripting</li>
-                    <li>Deep system access</li>
-                </ul>
-            </div>
-        </div>
 
         <div class="example-section">
             <h3>Just ask.</h3>
