@@ -16,7 +16,37 @@
             --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
 
+        /* LuCI Navigation Tabs - Improve Visibility */
+        .cbi-tabmenu {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-bottom: 1px solid var(--border-subtle) !important;
+            padding: 0.5rem 1rem !important;
+        }
+
+        .cbi-tabmenu li a {
+            color: var(--text-secondary) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid var(--border-subtle) !important;
+            padding: 0.6rem 1.5rem !important;
+            border-radius: 8px 8px 0 0 !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .cbi-tabmenu li a:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-primary) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .cbi-tabmenu li.cbi-tab a {
+            background: var(--accent-blue) !important;
+            color: #FFFFFF !important;
+            border-color: var(--accent-blue) !important;
+        }
+
         * {
+
             box-sizing: border-box;
         }
 
@@ -104,8 +134,18 @@
             border-radius: 10px;
             color: var(--text-primary);
             font-size: 0.9rem;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
             outline: none;
+        }
+
+        .sidebar-section+.sidebar-section {
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-section:first-of-type {
+            border-top: none;
+            padding-top: 0;
         }
 
         .sidebar-input {
@@ -126,6 +166,14 @@
             opacity: 0.6;
         }
 
+        /* Sidebar Grouping */
+        .sidebar-group {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
         .chat-history {
             list-style: none;
             padding: 0;
@@ -136,23 +184,27 @@
         .chat-history-item {
             padding: 0.8rem;
             border-radius: 10px;
+            margin-bottom: 0.5rem;
             cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            position: relative;
             color: var(--text-secondary);
             font-size: 0.9rem;
-            transition: all 0.2s;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            margin-bottom: 4px;
         }
 
         .chat-history-item:hover {
             background: rgba(255, 255, 255, 0.08);
-            color: var(--text-primary);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(2px);
         }
 
         .chat-history-item.active {
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(0, 122, 255, 0.15);
+            border-color: rgba(0, 122, 255, 0.3);
             color: var(--text-primary);
             font-weight: 500;
         }
@@ -164,6 +216,26 @@
             flex-direction: column;
             background: var(--bg-chat);
             position: relative;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.3rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .chat-message:hover .message-meta {
+            opacity: 1;
         }
 
         .chat-header {
@@ -196,12 +268,12 @@
 
         .chat-message {
             display: flex;
-            max-width: 85%;
-            animation: slideIn 0.3s ease-out;
-            gap: 12px;
+            gap: 0.8rem;
+            margin-bottom: 1.5rem;
+            animation: messageSlideIn 0.3s ease-out;
         }
 
-        @keyframes slideIn {
+        @keyframes messageSlideIn {
             from {
                 opacity: 0;
                 transform: translateY(10px);
@@ -261,6 +333,21 @@
             color: var(--text-primary);
             border: 1px solid var(--border-subtle);
             border-bottom-left-radius: 4px;
+        }
+
+        /* Error Messages */
+        .message-bubble.error {
+            background: rgba(255, 69, 58, 0.15);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+        }
+
+        .message-bubble.error .message-text {
+            color: #FF6B6B;
+        }
+
+        .error-icon {
+            display: inline-block;
+            margin-right: 0.5rem;
         }
 
         /* Code Blocks */
@@ -712,14 +799,24 @@
             const div = document.createElement('div');
             div.className = `chat-message ${role}`;
 
+            // Detect error messages
+            const isError = content.toLowerCase().includes('error:') || content.startsWith('**Error:**');
+            const bubbleClass = isError ? 'error' : role;
+
             const avatar = role === 'user' ? 'U' : 'AI';
             const formattedContent = parseMarkdown(content);
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
             div.innerHTML = `
         <div class="message-avatar ${role}">${avatar}</div>
         <div class="message-content">
-            <div class="message-bubble ${role}">
-                <div class="message-text">${formattedContent}</div>
+            <div class="message-meta">
+                <span>${role === 'user' ? 'You' : 'AI'}</span>
+                <span>•</span>
+                <span>${timestamp}</span>
+            </div>
+            <div class="message-bubble ${bubbleClass}">
+                <div class="message-text">${isError ? '<span class="error-icon">⚠️</span>' : ''}${formattedContent}</div>
             </div>
         </div>
     `;

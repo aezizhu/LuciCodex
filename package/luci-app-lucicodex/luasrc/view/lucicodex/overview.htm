@@ -15,7 +15,37 @@
             --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
 
+        /* LuCI Navigation Tabs - Improve Visibility */
+        .cbi-tabmenu {
+            background: rgba(255, 255, 255, 0.05) !important;
+            border-bottom: 1px solid var(--border-subtle) !important;
+            padding: 0.5rem 1rem !important;
+        }
+
+        .cbi-tabmenu li a {
+            color: var(--text-secondary) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid var(--border-subtle) !important;
+            padding: 0.6rem 1.5rem !important;
+            border-radius: 8px 8px 0 0 !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .cbi-tabmenu li a:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            color: var(--text-primary) !important;
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        .cbi-tabmenu li.cbi-tab a {
+            background: var(--accent-blue) !important;
+            color: #FFFFFF !important;
+            border-color: var(--accent-blue) !important;
+        }
+
         body {
+
             background: var(--bg-body);
             color: var(--text-primary);
             font-family: var(--font-stack);
@@ -46,21 +76,33 @@
         }
 
         .hero-banner h1 {
-            font-size: 4.5rem;
+            font-size: 3.5rem;
             line-height: 1.1;
             background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%);
             background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }
 
         .hero-banner p {
-            font-size: 1.7rem;
+            font-size: 1.4rem;
             color: var(--text-secondary);
             font-weight: 400;
             max-width: 600px;
             margin: 0 auto;
+        }
+
+        .hero-version {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.4rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
         }
 
         /* Action Buttons */
@@ -72,9 +114,9 @@
         }
 
         .btn {
-            padding: 0.9rem 2.2rem;
+            padding: 0.75rem 1.8rem;
             border-radius: 12px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 500;
             text-decoration: none;
             transition: all 0.2s ease;
@@ -83,7 +125,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 140px;
+            gap: 0.5rem;
+            min-width: 130px;
         }
 
         .btn-primary {
@@ -186,13 +229,14 @@
         <div class="hero-banner">
             <h1>LuciCodex.</h1>
             <p>Your router, reimagined.</p>
+            <div class="hero-version">v0.4.14</div>
 
             <div class="action-buttons">
                 <a href="<%=url('admin/system/lucicodex/run')%>" class="btn btn-primary">
-                    Open Chat
+                    <span>💬</span> Open Chat
                 </a>
                 <a href="<%=url('admin/system/lucicodex/config')%>" class="btn btn-secondary">
-                    Settings
+                    <span>⚙️</span> Settings
                 </a>
             </div>
         </div>
