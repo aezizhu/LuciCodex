@@ -76,10 +76,11 @@ Before installing LuciCodex, you need:
 1. **An OpenWrt router** (version 21.02 or later recommended)
 2. **Internet connection** on your router
 3. **At least 10MB free storage** space
-4. **An API key** from one of these providers:
-   - Google Gemini (recommended for beginners - free tier available)
-   - OpenAI (GPT-4/GPT-3.5)
-   - Anthropic (Claude)
+4. **An API key** from one of### Supported Providers
+*   **Google Gemini** (Default): Uses `gemini-3` (Free tier available).
+*   **OpenAI**: Supports `gpt-5.1`, `gpt-4o`, etc.
+*   **Anthropic**: Supports `claude-4.5`, `claude-4.5-haiku`.
+*   **External CLI**: Can wrap any CLI tool (e.g., local LLMs).
 
 ### Installation on OpenWrt
 

@@ -34,7 +34,7 @@ local function ensure_section(type, name)
         cursor:set(conf, name, type)
         if type == "api" then
             cursor:set(conf, name, "provider", "gemini")
-            cursor:set(conf, name, "model", "gemini-1.5-flash")
+            cursor:set(conf, name, "model", "gemini-3")
             cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
         elseif type == "settings" then
             cursor:set(conf, name, "dry_run", "1")
@@ -83,7 +83,7 @@ o:depends("provider", "anthropic")
 
 o = s:option(Value, "model", translate("Model"),
     translate("Specific model to use. Leave empty for provider default."))
-o.placeholder = "gemini-1.5-flash"
+o.placeholder = "gemini-3"
 o.rmempty = true
 
 o = s:option(Value, "endpoint", translate("API Endpoint"),
