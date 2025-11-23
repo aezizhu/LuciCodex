@@ -113,17 +113,16 @@ fi
 EOF
   chmod 0755 "$work/control/preinst"
 
-  # Build standard OpenWrt IPK (ar format)
+  # Build standard OpenWrt IPK (tar.gz format for outer container)
   # CRITICAL: 
   # 1. Inner tarballs MUST use --numeric-owner --owner=0 --group=0
-  # 2. Outer container MUST be 'ar' format
-  # 3. debian-binary MUST be the first file in the archive
-  # 4. Files MUST NOT have ./ prefix - this causes trailing slashes in ar archive
+  # 2. Use tar.gz for outer container (more portable than ar - Linux ar adds trailing slashes)
+  # 3. File order MUST be: ./debian-binary ./data.tar.gz ./control.tar.gz
   (cd "$work"; 
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   ar -r "$outdir/lucicodex_${VERSION}_${arch_filename}.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/lucicodex_${VERSION}_${arch_filename}.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
   )
   
   rm -rf "$work"
@@ -151,12 +150,12 @@ Priority: optional
 Depends: luci-base, lucicodex
 Description: LuCI web UI for LuciCodex
 EOF
-  # Build standard OpenWrt IPK (ar format)
+  # Build standard OpenWrt IPK (tar.gz format for outer container)
   (cd "$work"; 
    echo 2.0 > debian-binary; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf control.tar.gz -C control .; 
    $TAR_CMD --numeric-owner --owner=0 --group=0 -czf data.tar.gz -C data .; 
-   ar -r "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" debian-binary control.tar.gz data.tar.gz >/dev/null
+   $TAR_CMD --numeric-owner --owner=0 --group=0 -czf "$outdir/luci-app-lucicodex_${VERSION}_all.ipk" ./debian-binary ./data.tar.gz ./control.tar.gz
   )
   
   rm -rf "$work"
