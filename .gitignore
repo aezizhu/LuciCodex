@@ -22,3 +22,8 @@
 WEB_INTERFACE_FIX.md
 FIXES_APPLIED.md
 QUICKSTART_FIXED.md
+
+# Documentation - exclude all .md files except README files
+*.md
+!README*.md
+!**/README*.md
