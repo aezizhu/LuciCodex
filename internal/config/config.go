@@ -11,9 +11,9 @@ import (
 
 type Config struct {
 	Author         string   `json:"author"`
-	APIKey         string   `json:"api_key"`         // Gemini API key
-	Endpoint       string   `json:"endpoint"`        // Active endpoint (set based on provider)
-	Model          string   `json:"model"`           // Active model (set based on provider)
+	APIKey         string   `json:"api_key"`  // Gemini API key
+	Endpoint       string   `json:"endpoint"` // Active endpoint (set based on provider)
+	Model          string   `json:"model"`    // Active model (set based on provider)
 	Provider       string   `json:"provider"`
 	DryRun         bool     `json:"dry_run"`
 	AutoApprove    bool     `json:"auto_approve"`
@@ -225,13 +225,14 @@ func Load(path string) (Config, error) {
 	}
 
 	// Set active Model and Endpoint based on provider
-	cfg.applyProviderSettings()
+	cfg.ApplyProviderSettings()
 
 	return cfg, nil
 }
 
-// applyProviderSettings sets the active Model and Endpoint based on the selected provider
-func (cfg *Config) applyProviderSettings() {
+// ApplyProviderSettings sets the active Model and Endpoint based on the selected provider.
+// This should be called after any provider changes (e.g., CLI flag overrides).
+func (cfg *Config) ApplyProviderSettings() {
 	switch cfg.Provider {
 	case "openai":
 		if cfg.OpenAIModel != "" {

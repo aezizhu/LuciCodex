@@ -10,9 +10,9 @@ import (
 func TestDefaultConfig(t *testing.T) {
 	cfg := defaultConfig()
 
-    if cfg.Author != "AZ <Aezi.zhu@icloud.com>" {
-        t.Errorf("expected author 'AZ <Aezi.zhu@icloud.com>', got %q", cfg.Author)
-    }
+	if cfg.Author != "AZ <Aezi.zhu@icloud.com>" {
+		t.Errorf("expected author 'AZ <Aezi.zhu@icloud.com>', got %q", cfg.Author)
+	}
 	if cfg.Provider != "gemini" {
 		t.Errorf("expected provider 'gemini', got %q", cfg.Provider)
 	}
@@ -40,17 +40,17 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestLoadWithEnvVars(t *testing.T) {
-    os.Setenv("GEMINI_API_KEY", "test-key-123")
-    os.Setenv("LUCICODEX_MODEL", "gemini-pro")
-    os.Setenv("LUCICODEX_PROVIDER", "gemini")
-    os.Setenv("LUCICODEX_LOG_FILE", "/tmp/test.log")
-    os.Setenv("LUCICODEX_ELEVATE", "sudo")
+	os.Setenv("GEMINI_API_KEY", "test-key-123")
+	os.Setenv("LUCICODEX_MODEL", "gemini-pro")
+	os.Setenv("LUCICODEX_PROVIDER", "gemini")
+	os.Setenv("LUCICODEX_LOG_FILE", "/tmp/test.log")
+	os.Setenv("LUCICODEX_ELEVATE", "sudo")
 	defer func() {
-        os.Unsetenv("GEMINI_API_KEY")
-        os.Unsetenv("LUCICODEX_MODEL")
-        os.Unsetenv("LUCICODEX_PROVIDER")
-        os.Unsetenv("LUCICODEX_LOG_FILE")
-        os.Unsetenv("LUCICODEX_ELEVATE")
+		os.Unsetenv("GEMINI_API_KEY")
+		os.Unsetenv("LUCICODEX_MODEL")
+		os.Unsetenv("LUCICODEX_PROVIDER")
+		os.Unsetenv("LUCICODEX_LOG_FILE")
+		os.Unsetenv("LUCICODEX_ELEVATE")
 	}()
 
 	cfg, err := Load("")
@@ -76,11 +76,11 @@ func TestLoadWithEnvVars(t *testing.T) {
 }
 
 func TestLoadWithOpenAIEnvVars(t *testing.T) {
-    os.Setenv("OPENAI_API_KEY", "openai-key-123")
-    os.Setenv("LUCICODEX_PROVIDER", "openai")
+	os.Setenv("OPENAI_API_KEY", "openai-key-123")
+	os.Setenv("LUCICODEX_PROVIDER", "openai")
 	defer func() {
-        os.Unsetenv("OPENAI_API_KEY")
-        os.Unsetenv("LUCICODEX_PROVIDER")
+		os.Unsetenv("OPENAI_API_KEY")
+		os.Unsetenv("LUCICODEX_PROVIDER")
 	}()
 
 	cfg, err := Load("")
@@ -97,11 +97,11 @@ func TestLoadWithOpenAIEnvVars(t *testing.T) {
 }
 
 func TestLoadWithAnthropicEnvVars(t *testing.T) {
-    os.Setenv("ANTHROPIC_API_KEY", "anthropic-key-123")
-    os.Setenv("LUCICODEX_PROVIDER", "anthropic")
+	os.Setenv("ANTHROPIC_API_KEY", "anthropic-key-123")
+	os.Setenv("LUCICODEX_PROVIDER", "anthropic")
 	defer func() {
-        os.Unsetenv("ANTHROPIC_API_KEY")
-        os.Unsetenv("LUCICODEX_PROVIDER")
+		os.Unsetenv("ANTHROPIC_API_KEY")
+		os.Unsetenv("LUCICODEX_PROVIDER")
 	}()
 
 	cfg, err := Load("")
@@ -191,11 +191,11 @@ func TestLoadEnvOverridesFile(t *testing.T) {
 		t.Fatalf("failed to write config file: %v", err)
 	}
 
-    os.Setenv("GEMINI_API_KEY", "env-key")
-    os.Setenv("LUCICODEX_MODEL", "env-model")
+	os.Setenv("GEMINI_API_KEY", "env-key")
+	os.Setenv("LUCICODEX_MODEL", "env-model")
 	defer func() {
-        os.Unsetenv("GEMINI_API_KEY")
-        os.Unsetenv("LUCICODEX_MODEL")
+		os.Unsetenv("GEMINI_API_KEY")
+		os.Unsetenv("LUCICODEX_MODEL")
 	}()
 
 	cfg, err := Load(configPath)
@@ -259,13 +259,12 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
-
 func TestLoadTrimsWhitespace(t *testing.T) {
-    os.Setenv("GEMINI_API_KEY", "  test-key-with-spaces  ")
-    os.Setenv("LUCICODEX_MODEL", "\tmodel-with-tabs\t")
+	os.Setenv("GEMINI_API_KEY", "  test-key-with-spaces  ")
+	os.Setenv("LUCICODEX_MODEL", "\tmodel-with-tabs\t")
 	defer func() {
-        os.Unsetenv("GEMINI_API_KEY")
-        os.Unsetenv("LUCICODEX_MODEL")
+		os.Unsetenv("GEMINI_API_KEY")
+		os.Unsetenv("LUCICODEX_MODEL")
 	}()
 
 	cfg, err := Load("")

@@ -8,30 +8,49 @@ uci -q batch <<-EOF >/dev/null
 	commit ucitrack
 EOF
 
-# Create default lucicodex config if it doesn't exist
-if ! uci -q get lucicodex.@api[0] >/dev/null; then
-	uci -q batch <<-EOF
-		add lucicodex api
-		set lucicodex.@api[0].provider='gemini'
-		set lucicodex.@api[0].key=''
-		set lucicodex.@api[0].model='gemini-1.5-flash'
-		set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta'
-		set lucicodex.@api[0].openai_key=''
-		set lucicodex.@api[0].anthropic_key=''
-		commit lucicodex
-	EOF
-fi
+# Create default lucicodex config with named 'main' section if it doesn't exist
+if ! uci -q get lucicodex.main >/dev/null 2>&1; then
+	# Check for legacy anonymous sections and migrate
+	if uci -q get lucicodex.@api[0].key >/dev/null 2>&1; then
+		# Migrate from anonymous api section
+		OLD_KEY=$(uci -q get lucicodex.@api[0].key)
+		OLD_PROVIDER=$(uci -q get lucicodex.@api[0].provider)
+		OLD_MODEL=$(uci -q get lucicodex.@api[0].model)
+		OLD_ENDPOINT=$(uci -q get lucicodex.@api[0].endpoint)
+		OLD_OPENAI=$(uci -q get lucicodex.@api[0].openai_key)
+		OLD_ANTHROPIC=$(uci -q get lucicodex.@api[0].anthropic_key)
+	fi
+	
+	if uci -q get lucicodex.@settings[0].dry_run >/dev/null 2>&1; then
+		# Migrate from anonymous settings section
+		OLD_DRY_RUN=$(uci -q get lucicodex.@settings[0].dry_run)
+		OLD_CONFIRM=$(uci -q get lucicodex.@settings[0].confirm_each)
+		OLD_TIMEOUT=$(uci -q get lucicodex.@settings[0].timeout)
+		OLD_MAX_CMD=$(uci -q get lucicodex.@settings[0].max_commands)
+		OLD_LOG=$(uci -q get lucicodex.@settings[0].log_file)
+	fi
 
-if ! uci -q get lucicodex.@settings[0] >/dev/null; then
+	# Create named 'main' section
 	uci -q batch <<-EOF
-		add lucicodex settings
-		set lucicodex.@settings[0].dry_run='1'
-		set lucicodex.@settings[0].confirm_each='0'
-		set lucicodex.@settings[0].timeout='30'
-		set lucicodex.@settings[0].max_commands='10'
-		set lucicodex.@settings[0].log_file='/tmp/lucicodex.log'
+		set lucicodex.main='settings'
+		set lucicodex.main.provider='${OLD_PROVIDER:-gemini}'
+		set lucicodex.main.key='${OLD_KEY:-}'
+		set lucicodex.main.model='${OLD_MODEL:-gemini-2.5-flash}'
+		set lucicodex.main.endpoint='${OLD_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta}'
+		set lucicodex.main.openai_key='${OLD_OPENAI:-}'
+		set lucicodex.main.anthropic_key='${OLD_ANTHROPIC:-}'
+		set lucicodex.main.dry_run='${OLD_DRY_RUN:-1}'
+		set lucicodex.main.confirm_each='${OLD_CONFIRM:-0}'
+		set lucicodex.main.timeout='${OLD_TIMEOUT:-30}'
+		set lucicodex.main.max_commands='${OLD_MAX_CMD:-10}'
+		set lucicodex.main.log_file='${OLD_LOG:-/tmp/lucicodex.log}'
 		commit lucicodex
 	EOF
+	
+	# Clean up old anonymous sections
+	uci -q delete lucicodex.@api[0] 2>/dev/null
+	uci -q delete lucicodex.@settings[0] 2>/dev/null
+	uci -q commit lucicodex 2>/dev/null
 fi
 
 # Set proper permissions on config file

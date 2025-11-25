@@ -242,8 +242,9 @@ func (r *REPL) handleSet(setting string, output io.Writer) error {
         fmt.Fprintf(output, "Set auto-approve to %t\n", r.cfg.AutoApprove)
     case "provider":
         r.cfg.Provider = value
+        r.cfg.ApplyProviderSettings() // Apply provider-specific defaults
         r.provider = llm.NewProvider(r.cfg)
-        fmt.Fprintf(output, "Set provider to %s\n", r.cfg.Provider)
+        fmt.Fprintf(output, "Set provider to %s (model: %s, endpoint: %s)\n", r.cfg.Provider, r.cfg.Model, r.cfg.Endpoint)
     case "model":
         r.cfg.Model = value
         r.provider = llm.NewProvider(r.cfg)

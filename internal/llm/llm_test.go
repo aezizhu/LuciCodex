@@ -30,7 +30,7 @@ func TestNewGeminiClient(t *testing.T) {
 	if client.httpClient == nil {
 		t.Error("expected non-nil http client")
 	}
-	
+
 	var _ plan.Plan
 }
 
