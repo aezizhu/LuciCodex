@@ -19,6 +19,10 @@ if ! uci -q get lucicodex.main >/dev/null 2>&1; then
 		OLD_ENDPOINT=$(uci -q get lucicodex.@api[0].endpoint)
 		OLD_OPENAI=$(uci -q get lucicodex.@api[0].openai_key)
 		OLD_ANTHROPIC=$(uci -q get lucicodex.@api[0].anthropic_key)
+		OLD_OPENAI_MODEL=$(uci -q get lucicodex.@api[0].openai_model)
+		OLD_OPENAI_ENDPOINT=$(uci -q get lucicodex.@api[0].openai_endpoint)
+		OLD_ANTHROPIC_MODEL=$(uci -q get lucicodex.@api[0].anthropic_model)
+		OLD_ANTHROPIC_ENDPOINT=$(uci -q get lucicodex.@api[0].anthropic_endpoint)
 	fi
 	
 	if uci -q get lucicodex.@settings[0].dry_run >/dev/null 2>&1; then
@@ -38,7 +42,11 @@ if ! uci -q get lucicodex.main >/dev/null 2>&1; then
 		set lucicodex.main.model='${OLD_MODEL:-gemini-2.5-flash}'
 		set lucicodex.main.endpoint='${OLD_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta}'
 		set lucicodex.main.openai_key='${OLD_OPENAI:-}'
+		set lucicodex.main.openai_model='${OLD_OPENAI_MODEL:-}'
+		set lucicodex.main.openai_endpoint='${OLD_OPENAI_ENDPOINT:-}'
 		set lucicodex.main.anthropic_key='${OLD_ANTHROPIC:-}'
+		set lucicodex.main.anthropic_model='${OLD_ANTHROPIC_MODEL:-}'
+		set lucicodex.main.anthropic_endpoint='${OLD_ANTHROPIC_ENDPOINT:-}'
 		set lucicodex.main.dry_run='${OLD_DRY_RUN:-1}'
 		set lucicodex.main.confirm_each='${OLD_CONFIRM:-0}'
 		set lucicodex.main.timeout='${OLD_TIMEOUT:-30}'

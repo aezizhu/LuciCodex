@@ -488,6 +488,188 @@
             background: rgba(255, 255, 255, 0.2);
             border-radius: 3px;
         }
+
+        /* Result Blocks */
+        .result-block {
+            margin: 0.5rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .result-success {
+            background: rgba(52, 199, 89, 0.1);
+            border-color: rgba(52, 199, 89, 0.3);
+        }
+
+        .result-error {
+            background: rgba(255, 69, 58, 0.1);
+            border-color: rgba(255, 69, 58, 0.3);
+        }
+
+        .result-header {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .result-success .result-header {
+            color: #34C759;
+        }
+
+        .result-error .result-header {
+            color: #FF6B6B;
+        }
+
+        .result-content {
+            padding: 1rem;
+            font-family: "SF Mono", "Menlo", monospace;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Command Approval */
+        .command-approval {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(255, 179, 64, 0.1);
+            border: 1px solid rgba(255, 179, 64, 0.3);
+            border-radius: 12px;
+        }
+
+        .command-approval-header {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #FFB340;
+            margin-bottom: 0.8rem;
+        }
+
+        .command-approval-actions {
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-approve {
+            padding: 0.6rem 1.2rem;
+            background: #34C759;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-approve:hover {
+            background: #2FB350;
+            transform: translateY(-1px);
+        }
+
+        .btn-reject {
+            padding: 0.6rem 1.2rem;
+            background: rgba(255, 69, 58, 0.2);
+            color: #FF6B6B;
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-reject:hover {
+            background: rgba(255, 69, 58, 0.3);
+        }
+
+        /* Sidebar Label */
+        .sidebar-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+
+        /* History Delete Button */
+        .btn-delete-history {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-delete-history:hover {
+            background: rgba(255, 69, 58, 0.2);
+            color: #FF6B6B;
+        }
+
+        .chat-history-item .btn-delete-history {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+        }
+
+        .chat-history-item:hover .btn-delete-history {
+            opacity: 1;
+        }
+
+        /* Chat Input Placeholder */
+        .chat-input::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        /* SVG Icons in Avatars */
+        .message-avatar svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .lucicodex-chat {
+                flex-direction: column;
+                height: auto;
+                min-height: 100vh;
+                border-radius: 0;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-subtle);
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .chat-main {
+                min-height: 60vh;
+            }
+
+            .chat-input-wrapper {
+                max-width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
     </style>
 
     <div class="lucicodex-chat">

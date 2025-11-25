@@ -223,13 +223,50 @@
                 transform: translateY(0);
             }
         }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .lucicodex-overview {
+                padding: 2rem 1rem;
+            }
+
+            .hero-banner h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero-banner p {
+                font-size: 1.1rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.8rem;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .example-section h3 {
+                font-size: 1.5rem;
+            }
+
+            .example-grid {
+                flex-direction: column;
+            }
+
+            .example-item {
+                width: 100%;
+                text-align: center;
+            }
+        }
     </style>
 
     <div class="lucicodex-overview">
         <div class="hero-banner">
             <h1>LuciCodex.</h1>
             <p>Your router, reimagined.</p>
-            <span class="version-badge">v0.4.26</span>
+            <span class="hero-version">v0.4.27</span>
 
             <div class="action-buttons">
                 <a href="<%=url('admin/system/lucicodex/run')%>" class="btn btn-primary">
