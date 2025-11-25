@@ -68,7 +68,6 @@ o = s:option(ListValue, "provider", translate("LLM Provider"),
 o:value("gemini", label("Google Gemini", has_gemini))
 o:value("openai", label("OpenAI", has_openai))
 o:value("anthropic", label("Anthropic", has_anthropic))
-o:value("gemini-cli", "External Gemini CLI")
 o.default = "gemini"
 
 -- API Keys (Always visible so they don't get deleted when switching providers)
@@ -144,11 +143,6 @@ o.rmempty = true
 o = s:option(Value, "anthropic_endpoint", translate("Anthropic Endpoint"),
     translate("Custom API endpoint for Anthropic."))
 o.placeholder = "https://api.anthropic.com/v1"
-o.rmempty = true
-
-o = s:option(Value, "gemini_cli_model", translate("Gemini CLI Model"),
-    translate("Specific model to use for Gemini CLI."))
-o.placeholder = "gemini-3"
 o.rmempty = true
 
 -- Safety Settings

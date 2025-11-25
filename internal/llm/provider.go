@@ -20,8 +20,6 @@ func NewProvider(cfg config.Config) Provider {
         return NewOpenAIClient(cfg)
     case "anthropic":
         return NewAnthropicClient(cfg)
-    case "gemini-cli":
-        return NewExternalGeminiClient(cfg)
     default:
         return NewGeminiClient(cfg)
     }

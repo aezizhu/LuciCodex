@@ -58,7 +58,7 @@ func main() {
 	var (
 		configPath  = flag.String("config", "", "path to JSON config file")
 		model       = flag.String("model", "", "model name")
-		provider    = flag.String("provider", "", "provider name (gemini, openai, anthropic, gemini-cli)")
+	provider    = flag.String("provider", "", "provider name (gemini, openai, anthropic)")
 		dryRun      = flag.Bool("dry-run", true, "only print plan, do not execute")
 		approve     = flag.Bool("approve", false, "auto-approve plan without confirmation")
 		confirmEach = flag.Bool("confirm-each", false, "confirm each command before execution")

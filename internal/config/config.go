@@ -31,7 +31,6 @@ type Config struct {
 	// Optional external providers/API keys
 	OpenAIAPIKey            string `json:"openai_api_key"`
 	AnthropicAPIKey         string `json:"anthropic_api_key"`
-	ExternalGeminiPath      string `json:"external_gemini_path"`
 	GoogleOAuthClientID     string `json:"google_oauth_client_id"`
 	GoogleOAuthClientSecret string `json:"google_oauth_client_secret"`
 }
@@ -81,7 +80,6 @@ func defaultConfig() Config {
 		ElevateCommand:     "",
 		OpenAIAPIKey:       "",
 		AnthropicAPIKey:    "",
-		ExternalGeminiPath: "/usr/bin/gemini",
 	}
 }
 
@@ -158,18 +156,14 @@ func Load(path string) (Config, error) {
 		if ep := getUci("openai_endpoint"); ep != "" {
 			cfg.Endpoint = ep
 		}
-	case "anthropic":
-		if m := getUci("anthropic_model"); m != "" {
-			cfg.Model = m
-		}
-		if ep := getUci("anthropic_endpoint"); ep != "" {
-			cfg.Endpoint = ep
-		}
-	case "gemini-cli":
-		if m := getUci("gemini_cli_model"); m != "" {
-			cfg.Model = m
-		}
+case "anthropic":
+	if m := getUci("anthropic_model"); m != "" {
+		cfg.Model = m
 	}
+	if ep := getUci("anthropic_endpoint"); ep != "" {
+		cfg.Endpoint = ep
+	}
+}
 
 	// Load Provider
 	if val, _ := uciGet("lucicodex.main.provider"); val != "" {
@@ -252,9 +246,6 @@ fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint
 	}
 	if v := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); v != "" {
 		cfg.AnthropicAPIKey = v
-	}
-	if v := strings.TrimSpace(os.Getenv("LUCICODEX_EXTERNAL_GEMINI")); v != "" {
-		cfg.ExternalGeminiPath = v
 	}
 	if v := strings.TrimSpace(os.Getenv("LUCICODEX_CONFIRM_EACH")); v != "" {
 		cfg.ConfirmEach = v == "1" || strings.ToLower(v) == "true"
