@@ -1,299 +1,516 @@
 <%+header%>
+<%
+local uci = require "luci.model.uci".cursor()
 
-    <style>
-        /* Apple Minimalist Theme */
-        :root {
-            --bg-body: #000000;
-            --bg-card: rgba(28, 28, 30, 0.65);
-            --bg-card-hover: rgba(44, 44, 46, 0.8);
-            --text-primary: #F5F5F7;
-            --text-secondary: #86868b;
-            --accent-blue: #2997ff;
-            --accent-blue-hover: #0071e3;
-            --border-subtle: rgba(255, 255, 255, 0.1);
-            --glass-blur: blur(20px);
-            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        }
+-- Check configuration status
+local function get_config(option)
+    local val = uci:get("lucicodex", "main", option)
+    if not val or val == "" then
+        val = uci:get("lucicodex", "@settings[0]", option)
+    end
+    return val or ""
+end
 
-        /* LuCI Navigation Tabs - Improve Visibility */
-        .cbi-tabmenu {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border-bottom: 1px solid var(--border-subtle) !important;
-            padding: 0.5rem 1rem !important;
-        }
+local provider = get_config("provider") or "gemini"
+local gemini_key = get_config("key")
+local openai_key = get_config("openai_key")
+local anthropic_key = get_config("anthropic_key")
 
-        .cbi-tabmenu li a {
-            color: var(--text-secondary) !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid var(--border-subtle) !important;
-            padding: 0.6rem 1.5rem !important;
-            border-radius: 8px 8px 0 0 !important;
-            font-weight: 500 !important;
-            transition: all 0.2s ease !important;
-        }
+local is_configured = false
+local active_provider_name = "Not configured"
 
-        .cbi-tabmenu li a:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: var(--text-primary) !important;
-            border-color: rgba(255, 255, 255, 0.2) !important;
-        }
+if provider == "gemini" and gemini_key and gemini_key ~= "" then
+    is_configured = true
+    active_provider_name = "Google Gemini"
+elseif provider == "openai" and openai_key and openai_key ~= "" then
+    is_configured = true
+    active_provider_name = "OpenAI"
+elseif provider == "anthropic" and anthropic_key and anthropic_key ~= "" then
+    is_configured = true
+    active_provider_name = "Anthropic Claude"
+end
+%>
 
-        .cbi-tabmenu li.cbi-tab a {
-            background: var(--accent-blue) !important;
-            color: #FFFFFF !important;
-            border-color: var(--accent-blue) !important;
-        }
+<style>
+    :root {
+        --bg-body: #000000;
+        --bg-card: rgba(28, 28, 30, 0.8);
+        --bg-card-hover: rgba(44, 44, 46, 0.9);
+        --text-primary: #F5F5F7;
+        --text-secondary: #86868b;
+        --accent-blue: #007AFF;
+        --accent-green: #34C759;
+        --accent-orange: #FF9500;
+        --accent-red: #FF3B30;
+        --border-subtle: rgba(255, 255, 255, 0.1);
+        --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
 
-        body {
+    /* LuCI Tab Override */
+    .cbi-tabmenu {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-bottom: 1px solid var(--border-subtle) !important;
+        padding: 0.5rem 1rem !important;
+    }
+    .cbi-tabmenu li a {
+        color: var(--text-secondary) !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid var(--border-subtle) !important;
+        padding: 0.6rem 1.5rem !important;
+        border-radius: 8px 8px 0 0 !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }
+    .cbi-tabmenu li a:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+        color: var(--text-primary) !important;
+    }
+    .cbi-tabmenu li.cbi-tab a {
+        background: var(--accent-blue) !important;
+        color: #FFFFFF !important;
+        border-color: var(--accent-blue) !important;
+    }
 
-            background: var(--bg-body);
-            color: var(--text-primary);
-            font-family: var(--font-stack);
-            -webkit-font-smoothing: antialiased;
-        }
+    body {
+        background: var(--bg-body);
+        color: var(--text-primary);
+        font-family: var(--font-stack);
+        -webkit-font-smoothing: antialiased;
+    }
 
-        .lucicodex-overview {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 4rem 2rem;
-            min-height: calc(100vh - 60px);
-        }
+    .overview-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
 
-        /* Typography */
-        h1,
-        h2,
-        h3 {
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin: 0;
-        }
+    /* Hero */
+    .hero {
+        text-align: center;
+        padding: 3rem 0;
+        animation: fadeIn 0.6s ease-out;
+    }
 
-        /* Hero Section */
-        .hero-banner {
-            text-align: center;
-            margin-bottom: 5rem;
-            animation: fadeIn 0.8s ease-out;
-        }
+    .hero h1 {
+        font-size: 2.8rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #FFFFFF 0%, #A1A1AA 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 0.5rem 0;
+    }
 
-        .hero-banner h1 {
-            font-size: 3.5rem;
-            line-height: 1.1;
-            background: linear-gradient(180deg, #FFFFFF 0%, #A1A1AA 100%);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.5rem;
-        }
+    .hero-tagline {
+        font-size: 1.2rem;
+        color: var(--text-secondary);
+        margin: 0 0 1rem 0;
+    }
 
-        .hero-banner p {
-            font-size: 1.4rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-            max-width: 600px;
-            margin: 0 auto;
-        }
+    .hero-version {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
 
-        .hero-version {
-            display: inline-block;
-            margin-top: 1rem;
-            padding: 0.4rem 1rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            letter-spacing: 0.05em;
-        }
+    /* Status Banner */
+    .status-banner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem 1.5rem;
+        border-radius: 16px;
+        margin: 2rem 0;
+        animation: fadeIn 0.6s ease-out 0.1s both;
+    }
 
-        /* Action Buttons */
-        .action-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 3rem;
-        }
+    .status-banner.configured {
+        background: rgba(52, 199, 89, 0.1);
+        border: 1px solid rgba(52, 199, 89, 0.3);
+    }
 
-        .btn {
-            padding: 0.75rem 1.8rem;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: 1px solid transparent;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            min-width: 130px;
-        }
+    .status-banner.not-configured {
+        background: rgba(255, 149, 0, 0.1);
+        border: 1px solid rgba(255, 149, 0, 0.3);
+    }
 
-        .btn-primary {
-            background: #007AFF;
-            color: #FFFFFF !important;
-            border: 1px solid #007AFF;
-            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-        }
+    .status-icon {
+        font-size: 1.5rem;
+    }
 
-        .btn-primary:hover {
-            background: #0062cc;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(0, 122, 255, 0.4);
-            text-decoration: none;
-        }
+    .status-text {
+        flex: 1;
+    }
 
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #F5F5F7 !important;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-        }
+    .status-text strong {
+        display: block;
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+    }
 
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.3);
-            text-decoration: none;
-        }
+    .status-text span {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
 
-        /* Example Section */
-        .example-section {
-            text-align: center;
-            margin-top: 5rem;
-        }
+    .status-action {
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
 
-        .example-section h3 {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            color: var(--text-primary);
-        }
+    .status-action:hover {
+        background: rgba(255, 255, 255, 0.2);
+        text-decoration: none;
+    }
 
-        .example-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-        }
+    /* Main Actions */
+    .main-actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 2rem 0;
+        animation: fadeIn 0.6s ease-out 0.2s both;
+    }
 
-        .example-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-subtle);
-            padding: 0.8rem 1.5rem;
-            border-radius: 12px;
-            color: var(--text-secondary);
-            font-family: "SF Mono", "Menlo", monospace;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            cursor: default;
-        }
+    .action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
 
-        .example-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-primary);
-            border-color: var(--accent-blue);
-        }
+    .action-card:hover {
+        background: var(--bg-card-hover);
+        transform: translateY(-4px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        text-decoration: none;
+    }
 
-        /* Footer */
-        .doc-link {
-            text-align: center;
-            margin-top: 6rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
+    .action-card.primary {
+        background: linear-gradient(135deg, rgba(0, 122, 255, 0.2) 0%, rgba(0, 122, 255, 0.1) 100%);
+        border-color: rgba(0, 122, 255, 0.3);
+    }
 
-        .doc-link a {
-            color: var(--accent-blue);
-            text-decoration: none;
-        }
+    .action-card.primary:hover {
+        border-color: rgba(0, 122, 255, 0.5);
+    }
 
-        .doc-link a:hover {
-            text-decoration: underline;
-        }
+    .action-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+    .action-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    .action-desc {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        text-align: center;
+    }
 
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-            .lucicodex-overview {
-                padding: 2rem 1rem;
-            }
+    /* How It Works */
+    .section {
+        margin: 3rem 0;
+        animation: fadeIn 0.6s ease-out 0.3s both;
+    }
 
-            .hero-banner h1 {
-                font-size: 2.2rem;
-            }
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
 
-            .hero-banner p {
-                font-size: 1.1rem;
-            }
+    .steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+    }
 
-            .action-buttons {
-                flex-direction: column;
-                gap: 0.8rem;
-            }
+    .step {
+        text-align: center;
+        padding: 1.5rem;
+    }
 
-            .btn {
-                width: 100%;
-            }
+    .step-number {
+        width: 40px;
+        height: 40px;
+        background: var(--accent-blue);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin: 0 auto 1rem;
+    }
 
-            .example-section h3 {
-                font-size: 1.5rem;
-            }
+    .step-title {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
 
-            .example-grid {
-                flex-direction: column;
-            }
+    .step-desc {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
 
-            .example-item {
-                width: 100%;
-                text-align: center;
-            }
-        }
-    </style>
+    /* Try These */
+    .try-section {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 3rem 0;
+        animation: fadeIn 0.6s ease-out 0.4s both;
+    }
 
-    <div class="lucicodex-overview">
-        <div class="hero-banner">
-            <h1>LuciCodex.</h1>
-            <p>Your router, reimagined.</p>
-            <span class="hero-version">v0.4.27</span>
+    .try-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
 
-            <div class="action-buttons">
-                <a href="<%=url('admin/system/lucicodex/run')%>" class="btn btn-primary">
-                    <span>💬</span> Open Chat
-                </a>
-                <a href="<%=url('admin/system/lucicodex/config')%>" class="btn btn-secondary">
-                    <span>⚙️</span> Settings
-                </a>
-            </div>
+    .try-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+
+    .try-item {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        padding: 0.8rem 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-subtle);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .try-item:hover {
+        background: rgba(0, 122, 255, 0.1);
+        border-color: rgba(0, 122, 255, 0.3);
+    }
+
+    .try-item-icon {
+        font-size: 1.2rem;
+    }
+
+    .try-item-text {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .try-item:hover .try-item-text {
+        color: var(--text-primary);
+    }
+
+    /* Safety Notice */
+    .safety-notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.2rem 1.5rem;
+        background: rgba(255, 149, 0, 0.08);
+        border: 1px solid rgba(255, 149, 0, 0.2);
+        border-radius: 12px;
+        margin: 2rem 0;
+        animation: fadeIn 0.6s ease-out 0.5s both;
+    }
+
+    .safety-icon {
+        font-size: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .safety-text h4 {
+        margin: 0 0 0.3rem 0;
+        font-size: 0.95rem;
+        color: #FFB340;
+    }
+
+    .safety-text p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        padding: 2rem 0;
+        border-top: 1px solid var(--border-subtle);
+        margin-top: 3rem;
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+
+    .footer a {
+        color: var(--accent-blue);
+        text-decoration: none;
+    }
+
+    .footer a:hover {
+        text-decoration: underline;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+        .overview-container { padding: 1rem; }
+        .hero h1 { font-size: 2rem; }
+        .main-actions { grid-template-columns: 1fr; }
+        .steps { grid-template-columns: 1fr; gap: 1rem; }
+        .try-grid { grid-template-columns: 1fr; }
+        .status-banner { flex-direction: column; text-align: center; }
+    }
+</style>
+
+<div class="overview-container">
+    <!-- Hero -->
+    <div class="hero">
+        <h1>LuciCodex</h1>
+        <p class="hero-tagline">Control your OpenWrt router with natural language</p>
+        <span class="hero-version">v0.4.28</span>
+    </div>
+
+    <!-- Status Banner -->
+    <% if is_configured then %>
+    <div class="status-banner configured">
+        <span class="status-icon">✅</span>
+        <div class="status-text">
+            <strong>Ready to use</strong>
+            <span>Connected to <%=active_provider_name%></span>
         </div>
-
-
-
-        <div class="example-section">
-            <h3>Just ask.</h3>
-            <div class="example-grid">
-                <div class="example-item">"List all connected devices"</div>
-                <div class="example-item">"Check internet speed"</div>
-                <div class="example-item">"Update all packages"</div>
-                <div class="example-item">"Setup guest WiFi"</div>
-            </div>
+        <a href="<%=url('admin/system/lucicodex/run')%>" class="status-action">Start Chatting →</a>
+    </div>
+    <% else %>
+    <div class="status-banner not-configured">
+        <span class="status-icon">⚠️</span>
+        <div class="status-text">
+            <strong>Setup Required</strong>
+            <span>Add your AI provider API key to get started</span>
         </div>
+        <a href="<%=url('admin/system/lucicodex/config')%>" class="status-action">Configure Now →</a>
+    </div>
+    <% end %>
 
-        <div class="doc-link">
-            <p>Designed by LuciCodex in California. <a href="https://github.com/aezizhu/LuciCodex" target="_blank">View
-                    Source</a></p>
+    <!-- Main Actions -->
+    <div class="main-actions">
+        <a href="<%=url('admin/system/lucicodex/run')%>" class="action-card primary">
+            <span class="action-icon">💬</span>
+            <span class="action-title">Open Chat</span>
+            <span class="action-desc">Ask questions and run commands using natural language</span>
+        </a>
+        <a href="<%=url('admin/system/lucicodex/config')%>" class="action-card">
+            <span class="action-icon">⚙️</span>
+            <span class="action-title">Settings</span>
+            <span class="action-desc">Configure AI providers, safety options, and preferences</span>
+        </a>
+    </div>
+
+    <!-- How It Works -->
+    <div class="section">
+        <h2 class="section-title">How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-title">Ask in Plain English</div>
+                <div class="step-desc">Type what you want to do, like "show me connected devices" or "restart WiFi"</div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-title">Review the Plan</div>
+                <div class="step-desc">LuciCodex shows you exactly which commands will run before executing</div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-title">Approve & Execute</div>
+                <div class="step-desc">Click to run the commands, or modify them if needed</div>
+            </div>
         </div>
     </div>
 
-    <%+footer%>
+    <!-- Try These -->
+    <div class="try-section">
+        <div class="try-title">
+            <span>💡</span> Try asking these
+        </div>
+        <div class="try-grid">
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">📡</span>
+                <span class="try-item-text">"Show WiFi status and connected clients"</span>
+            </div>
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">🔄</span>
+                <span class="try-item-text">"Restart the network service"</span>
+            </div>
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">📦</span>
+                <span class="try-item-text">"List installed packages"</span>
+            </div>
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">📊</span>
+                <span class="try-item-text">"Show system memory and storage"</span>
+            </div>
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">🔥</span>
+                <span class="try-item-text">"Display firewall rules"</span>
+            </div>
+            <div class="try-item" onclick="window.location.href='<%=url('admin/system/lucicodex/run')%>'">
+                <span class="try-item-icon">📝</span>
+                <span class="try-item-text">"Show recent system logs"</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Safety Notice -->
+    <div class="safety-notice">
+        <span class="safety-icon">🛡️</span>
+        <div class="safety-text">
+            <h4>Safe by Default</h4>
+            <p>LuciCodex runs in <strong>Manual Review mode</strong> by default. You'll always see the commands before they run. Dangerous operations like deleting files or formatting disks are blocked automatically.</p>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Made with ❤️ for the OpenWrt community · <a href="https://github.com/aezizhu/LuciCodex" target="_blank">GitHub</a> · <a href="https://github.com/aezizhu/LuciCodex/issues" target="_blank">Report Issue</a></p>
+    </div>
+</div>
+
+<%+footer%>

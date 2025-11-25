@@ -2,7 +2,7 @@ local m, s, o
 local uci = require "luci.model.uci"
 
 m = Map("lucicodex", translate("LuciCodex Configuration"),
-    translate("Configure LLM providers and API keys for the LuciCodex natural language router assistant."))
+    translate("Configure your AI-powered router assistant. Set up API keys and safety preferences below."))
 
 -- Ensure config section exists
 local cursor = uci.cursor()
@@ -13,27 +13,23 @@ local function ensure_section()
     local type = "settings"
     local name = "main"
     
-    -- 1. Check if the specific named section exists
     local exist = cursor:get(conf, name)
     if exist == type then
         return
     end
 
-    -- 2. Check for ANY section of this type (anonymous or other name)
     local found_anon = nil
     cursor:foreach(conf, type, function(s)
         if s['.name'] ~= name then
             found_anon = s['.name']
-            return false -- stop iterating
+            return false
         end
     end)
 
     if found_anon then
-        -- Rename the first found anonymous section to 'main'
         cursor:rename(conf, found_anon, name)
         cursor:commit(conf)
     else
-        -- Create new 'main' section if none exists
         cursor:set(conf, name, type)
         cursor:set(conf, name, "provider", "gemini")
         cursor:set(conf, name, "model", "gemini-2.5-flash")
@@ -49,122 +45,156 @@ end
 
 ensure_section()
 
--- Unified Configuration Section
-s = m:section(NamedSection, "main", "settings", translate("General Configuration"))
-s.anonymous = false -- Named section 'main'
-s.addremove = false
+-- Check for configured API keys
+local has_gemini = (cursor:get(conf, "main", "key") or "") ~= ""
+local has_openai = (cursor:get(conf, "main", "openai_key") or "") ~= ""
+local has_anthropic = (cursor:get(conf, "main", "anthropic_key") or "") ~= ""
 
--- Provider Selection
-local has_gemini = (cursor:get(conf, "main", "key") or cursor:get(conf, "@api[0]", "key")) and true or false
-local has_openai = (cursor:get(conf, "main", "openai_key") or cursor:get(conf, "@api[0]", "openai_key")) and true or false
-local has_anthropic = (cursor:get(conf, "main", "anthropic_key") or cursor:get(conf, "@api[0]", "anthropic_key")) and true or false
-
+-- Status labels with checkmarks
 local function label(name, has)
-    return has and (name .. " ✔️") or (name .. " ✖️")
+    return has and (name .. " ✓") or (name .. " ✗")
 end
 
-o = s:option(ListValue, "provider", translate("LLM Provider"),
-    translate("Select which LLM provider to use for generating commands. ✔️ means API key present; ✖️ means missing."))
+--[[
+================================================================================
+SECTION 1: Provider Selection
+================================================================================
+--]]
+s = m:section(NamedSection, "main", "settings", translate("🤖 AI Provider"))
+s.anonymous = false
+s.addremove = false
+s.description = translate("Choose which AI service powers LuciCodex. A ✓ indicates an API key is configured.")
+
+o = s:option(ListValue, "provider", translate("Active Provider"))
 o:value("gemini", label("Google Gemini", has_gemini))
-o:value("openai", label("OpenAI", has_openai))
-o:value("anthropic", label("Anthropic", has_anthropic))
+o:value("openai", label("OpenAI (GPT-4)", has_openai))
+o:value("anthropic", label("Anthropic (Claude)", has_anthropic))
 o.default = "gemini"
+o.description = translate("Select your preferred AI provider. Make sure to configure the corresponding API key below.")
 
--- API Keys (Always visible so they don't get deleted when switching providers)
--- Use custom write to preserve existing keys when field is empty
-o = s:option(Value, "key", translate("Gemini API Key"),
-    translate("API key for Google Gemini. Get one from https://makersuite.google.com/app/apikey (leave empty to keep existing key)"))
-o.password = true
-o.rmempty = true  -- Optional field
-o.write = function(self, section, value)
-    if value and value ~= "" then
-        Value.write(self, section, value)
-    end
-    -- If empty, don't write (keeps existing value)
-end
+--[[
+================================================================================
+SECTION 2: API Keys
+================================================================================
+--]]
+s = m:section(NamedSection, "main", "settings", translate("🔑 API Keys"))
+s.anonymous = false
+s.addremove = false
+s.description = translate("Enter your API keys below. Keys are stored securely and never transmitted except to the provider. Leave a field empty to keep its existing value.")
 
-o = s:option(Value, "openai_key", translate("OpenAI API Key"),
-    translate("API key for OpenAI. Get one from https://platform.openai.com/api-keys (leave empty to keep existing key)"))
+-- Gemini
+o = s:option(Value, "key", translate("Gemini API Key"))
 o.password = true
-o.rmempty = true  -- Optional field
-o.write = function(self, section, value)
-    if value and value ~= "" then
-        Value.write(self, section, value)
-    end
-end
-
-o = s:option(Value, "anthropic_key", translate("Anthropic API Key"),
-    translate("API key for Anthropic Claude. Get one from https://console.anthropic.com/ (leave empty to keep existing key)"))
-o.password = true
-o.rmempty = true  -- Optional field
+o.rmempty = true
+o.description = translate("Free tier available • Get key: makersuite.google.com/app/apikey")
 o.write = function(self, section, value)
     if value and value ~= "" then
         Value.write(self, section, value)
     end
 end
 
--- Models & Endpoints (Optional, can be hidden if not relevant, but safer to keep visible or use depends without rmempty if possible. 
--- For now, removing depends to be safe and consistent with keys)
-
-o = s:option(Value, "model", translate("Gemini Model"),
-    translate("Specific model to use for Gemini. Default: gemini-2.5-flash"))
-o.placeholder = "gemini-2.5-flash"
+-- OpenAI
+o = s:option(Value, "openai_key", translate("OpenAI API Key"))
+o.password = true
 o.rmempty = true
+o.description = translate("Paid API • Get key: platform.openai.com/api-keys")
+o.write = function(self, section, value)
+    if value and value ~= "" then
+        Value.write(self, section, value)
+    end
+end
 
-o = s:option(Value, "endpoint", translate("Gemini Endpoint"),
-    translate("Custom API endpoint for Gemini."))
-o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
+-- Anthropic
+o = s:option(Value, "anthropic_key", translate("Anthropic API Key"))
+o.password = true
 o.rmempty = true
+o.description = translate("Paid API • Get key: console.anthropic.com")
+o.write = function(self, section, value)
+    if value and value ~= "" then
+        Value.write(self, section, value)
+    end
+end
 
-o = s:option(Value, "openai_model", translate("OpenAI Model"),
-    translate("Specific model to use for OpenAI. Default: gpt-4o-mini"))
-o.placeholder = "gpt-4o-mini"
-o.rmempty = true
+--[[
+================================================================================
+SECTION 3: Safety Settings
+================================================================================
+--]]
+s = m:section(NamedSection, "main", "settings", translate("🛡️ Safety Settings"))
+s.anonymous = false
+s.addremove = false
+s.description = translate("Control how LuciCodex executes commands on your router. We recommend keeping Dry Run enabled until you're comfortable with the tool.")
 
-o = s:option(Value, "openai_endpoint", translate("OpenAI Endpoint"),
-    translate("Custom API endpoint for OpenAI."))
-o.placeholder = "https://api.openai.com/v1"
-o.rmempty = true
-
-o = s:option(Value, "anthropic_model", translate("Anthropic Model"),
-    translate("Specific model to use for Anthropic. Default: claude-sonnet-4-5-20250929"))
-o.placeholder = "claude-sonnet-4-5-20250929"
-o.rmempty = true
-
-o = s:option(Value, "anthropic_endpoint", translate("Anthropic Endpoint"),
-    translate("Custom API endpoint for Anthropic."))
-o.placeholder = "https://api.anthropic.com/v1"
-o.rmempty = true
-
--- Safety Settings
-o = s:option(Flag, "dry_run", translate("Dry Run by Default"),
-    translate("When enabled, commands are only displayed but not executed by default."))
+o = s:option(Flag, "dry_run", translate("Dry Run Mode"))
 o.default = "1"
 o.rmempty = false
+o.description = translate("RECOMMENDED: When enabled, commands are displayed but not executed automatically. You must manually approve each command.")
 
-o = s:option(Flag, "confirm_each", translate("Confirm Each Command"),
-    translate("When enabled, ask for confirmation before executing each command."))
+o = s:option(Flag, "confirm_each", translate("Confirm Each Command"))
 o.default = "0"
 o.rmempty = false
+o.description = translate("Ask for confirmation before executing each individual command in a plan.")
 
-o = s:option(Value, "timeout", translate("Command Timeout (seconds)"),
-    translate("Maximum time to wait for each command to complete."))
+o = s:option(Value, "timeout", translate("Command Timeout"))
 o.datatype = "uinteger"
 o.placeholder = "30"
 o.default = "30"
 o.rmempty = true
+o.description = translate("Seconds to wait for each command to complete before timing out. Default: 30")
 
-o = s:option(Value, "max_commands", translate("Maximum Commands"),
-    translate("Maximum number of commands to generate in a single plan."))
+o = s:option(Value, "max_commands", translate("Maximum Commands"))
 o.datatype = "uinteger"
 o.placeholder = "10"
 o.default = "10"
 o.rmempty = true
+o.description = translate("Maximum number of commands the AI can generate in a single plan. Default: 10")
 
-o = s:option(Value, "log_file", translate("Log File"),
-    translate("Path to log file for command execution history."))
+--[[
+================================================================================
+SECTION 4: Advanced Settings (collapsed by default conceptually)
+================================================================================
+--]]
+s = m:section(NamedSection, "main", "settings", translate("⚙️ Advanced Settings"))
+s.anonymous = false
+s.addremove = false
+s.description = translate("Custom model and endpoint settings. Leave empty to use defaults. Only change these if you know what you're doing.")
+
+-- Gemini Advanced
+o = s:option(Value, "model", translate("Gemini Model"))
+o.placeholder = "gemini-2.5-flash"
+o.rmempty = true
+o.description = translate("Default: gemini-2.5-flash")
+
+o = s:option(Value, "endpoint", translate("Gemini API Endpoint"))
+o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
+o.rmempty = true
+
+-- OpenAI Advanced
+o = s:option(Value, "openai_model", translate("OpenAI Model"))
+o.placeholder = "gpt-4o-mini"
+o.rmempty = true
+o.description = translate("Default: gpt-4o-mini • Other options: gpt-4o, gpt-4-turbo")
+
+o = s:option(Value, "openai_endpoint", translate("OpenAI API Endpoint"))
+o.placeholder = "https://api.openai.com/v1"
+o.rmempty = true
+o.description = translate("Change for Azure OpenAI or compatible providers")
+
+-- Anthropic Advanced
+o = s:option(Value, "anthropic_model", translate("Anthropic Model"))
+o.placeholder = "claude-sonnet-4-5-20250929"
+o.rmempty = true
+o.description = translate("Default: claude-sonnet-4-5-20250929 • Other options: claude-3-opus, claude-3-haiku")
+
+o = s:option(Value, "anthropic_endpoint", translate("Anthropic API Endpoint"))
+o.placeholder = "https://api.anthropic.com/v1"
+o.rmempty = true
+
+-- Logging
+o = s:option(Value, "log_file", translate("Log File Path"))
 o.placeholder = "/tmp/lucicodex.log"
 o.default = "/tmp/lucicodex.log"
 o.rmempty = true
+o.description = translate("Path to store execution logs. Default: /tmp/lucicodex.log")
 
 return m

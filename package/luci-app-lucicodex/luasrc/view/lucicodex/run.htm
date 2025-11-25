@@ -641,6 +641,183 @@
             height: 18px;
         }
 
+        /* Empty State / Welcome Screen */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 3rem;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.8;
+        }
+
+        .empty-state h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+            background: linear-gradient(135deg, #fff 0%, #86868b 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin: 0 0 2.5rem 0;
+            max-width: 400px;
+        }
+
+        .suggested-prompts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            max-width: 600px;
+        }
+
+        .suggested-prompt {
+            padding: 0.75rem 1.25rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggested-prompt:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        /* Status Badge in Header */
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-badge.ready {
+            background: rgba(52, 199, 89, 0.15);
+            color: #34C759;
+        }
+
+        .status-badge.processing {
+            background: rgba(255, 179, 64, 0.15);
+            color: #FFB340;
+        }
+
+        .status-badge.error {
+            background: rgba(255, 69, 58, 0.15);
+            color: #FF6B6B;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .status-badge.processing .status-dot {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Provider Indicator in Selector */
+        .provider-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .provider-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .provider-status-dot.configured {
+            background: #34C759;
+        }
+
+        .provider-status-dot.unconfigured {
+            background: #FF6B6B;
+        }
+
+        /* Execution Mode Visual */
+        .exec-mode-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .exec-mode-indicator.safe {
+            color: #34C759;
+        }
+
+        .exec-mode-indicator.risky {
+            color: #FF6B6B;
+        }
+
+        /* Quick Tips */
+        .quick-tips {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0, 122, 255, 0.1);
+            border: 1px solid rgba(0, 122, 255, 0.2);
+            border-radius: 12px;
+            max-width: 500px;
+        }
+
+        .quick-tips h4 {
+            font-size: 0.8rem;
+            color: var(--accent-blue);
+            margin: 0 0 0.5rem 0;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .quick-tips ul {
+            margin: 0;
+            padding-left: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .quick-tips li {
+            margin-bottom: 0.3rem;
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             .lucicodex-chat {
@@ -669,6 +846,27 @@
             .action-buttons {
                 flex-direction: column;
             }
+
+            .empty-state {
+                padding: 2rem 1rem;
+            }
+
+            .empty-state h2 {
+                font-size: 1.4rem;
+            }
+
+            .suggested-prompts {
+                flex-direction: column;
+            }
+
+            .suggested-prompt {
+                width: 100%;
+                text-align: center;
+            }
+
+            .quick-tips {
+                display: none;
+            }
         }
     </style>
 
@@ -690,6 +888,9 @@
                     <option value="manual">Manual Review (Safe)</option>
                     <option value="auto">Auto Execute (Risky)</option>
                 </select>
+                <div class="exec-mode-indicator safe" id="execModeIndicator">
+                    🛡️ Commands will be reviewed before execution
+                </div>
             </div>
 
             <div class="sidebar-section">
@@ -724,10 +925,49 @@
                 <div class="chat-header-badge">
                     <span>OpenWrt Assistant</span>
                 </div>
+                <div class="status-badge ready" id="statusBadge">
+                    <span class="status-dot"></span>
+                    <span id="statusText">Ready</span>
+                </div>
             </div>
 
             <div class="chat-messages" id="chatMessages">
-                <!-- Messages will be injected here -->
+                <!-- Empty State (shown when no messages) -->
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-state-icon">🤖</div>
+                    <h2>Welcome to LuciCodex</h2>
+                    <p>Your AI-powered router assistant. Ask me anything about managing your OpenWrt device.</p>
+                    
+                    <div class="suggested-prompts">
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Show my connected devices')">
+                            📱 Show connected devices
+                        </button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('What is my current internet speed?')">
+                            🚀 Check internet speed
+                        </button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Update all installed packages')">
+                            📦 Update packages
+                        </button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Create a guest WiFi network')">
+                            📶 Setup guest WiFi
+                        </button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Show system resource usage')">
+                            📊 System resources
+                        </button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('List all firewall rules')">
+                            🔥 Firewall rules
+                        </button>
+                    </div>
+                    
+                    <div class="quick-tips">
+                        <h4>💡 Quick Tips</h4>
+                        <ul>
+                            <li>Be specific: "Block device with MAC xx:xx:xx" works better than "block a device"</li>
+                            <li>Use Manual mode (default) to review commands before execution</li>
+                            <li>Press <strong>Enter</strong> to send, <strong>Shift+Enter</strong> for new line</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <div class="chat-input-area">
@@ -788,6 +1028,8 @@
                 state.execMode = savedMode;
                 document.getElementById('execMode').value = savedMode;
             }
+            // Update the indicator to match saved mode
+            updateExecMode();
         });
 
         // --- Load Configured Providers ---
@@ -875,9 +1117,37 @@
             state.currentPlan = null;
 
             renderMessages(); // Clears UI
-            addMessage('ai', "Hello! I'm LuciCodex. How can I help you manage your OpenWrt router today?");
+            showEmptyState(); // Show welcome screen
 
             updateHistoryUI();
+        }
+
+        function showEmptyState() {
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = 'flex';
+            }
+        }
+
+        function hideEmptyState() {
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) {
+                emptyState.style.display = 'none';
+            }
+        }
+
+        function useSuggestedPrompt(prompt) {
+            hideEmptyState();
+            document.getElementById('chatInput').value = prompt;
+            handleSendMessage();
+        }
+
+        function updateStatus(status, text) {
+            const badge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+            
+            badge.className = 'status-badge ' + status;
+            statusText.textContent = text;
         }
 
         function handleSendMessage() {
@@ -1159,6 +1429,9 @@
         // --- UI Helpers ---
 
         function addMessage(role, content) {
+            // Hide empty state when first message is added
+            hideEmptyState();
+            
             state.currentMessages.push({ role, type: 'text', content, timestamp: Date.now() });
 
             const div = document.createElement('div');
@@ -1297,7 +1570,11 @@
             state.isProcessing = processing;
             document.getElementById('chatInput').disabled = processing;
             document.getElementById('sendBtn').disabled = processing;
-            if (!processing) {
+            
+            if (processing) {
+                updateStatus('processing', 'Processing...');
+            } else {
+                updateStatus('ready', 'Ready');
                 document.getElementById('chatInput').focus();
             }
         }
@@ -1317,6 +1594,15 @@
         function updateExecMode() {
             state.execMode = document.getElementById('execMode').value;
             localStorage.setItem('lucicodex_exec_mode', state.execMode);
+            
+            const indicator = document.getElementById('execModeIndicator');
+            if (state.execMode === 'auto') {
+                indicator.className = 'exec-mode-indicator risky';
+                indicator.innerHTML = '⚠️ Commands will execute immediately';
+            } else {
+                indicator.className = 'exec-mode-indicator safe';
+                indicator.innerHTML = '🛡️ Commands will be reviewed before execution';
+            }
         }
 
         // --- Icons ---
