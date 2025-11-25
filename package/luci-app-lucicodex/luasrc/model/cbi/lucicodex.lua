@@ -55,29 +55,63 @@ s.anonymous = false -- Named section 'main'
 s.addremove = false
 
 -- Provider Selection
+local has_gemini = (cursor:get(conf, "main", "key") or cursor:get(conf, "@api[0]", "key")) and true or false
+local has_openai = (cursor:get(conf, "main", "openai_key") or cursor:get(conf, "@api[0]", "openai_key")) and true or false
+local has_anthropic = (cursor:get(conf, "main", "anthropic_key") or cursor:get(conf, "@api[0]", "anthropic_key")) and true or false
+
+local function label(name, has)
+    return has and (name .. " ✔️") or (name .. " ✖️")
+end
+
 o = s:option(ListValue, "provider", translate("LLM Provider"),
-    translate("Select which LLM provider to use for generating commands."))
-o:value("gemini", "Google Gemini")
-o:value("openai", "OpenAI")
-o:value("anthropic", "Anthropic")
+    translate("Select which LLM provider to use for generating commands. ✔️ means API key present; ✖️ means missing."))
+o:value("gemini", label("Google Gemini", has_gemini))
+o:value("openai", label("OpenAI", has_openai))
+o:value("anthropic", label("Anthropic", has_anthropic))
 o:value("gemini-cli", "External Gemini CLI")
 o.default = "gemini"
 
 -- API Keys (Always visible so they don't get deleted when switching providers)
+-- Use rmempty=false and custom write to preserve existing keys when field is empty
 o = s:option(Value, "key", translate("Gemini API Key"),
-    translate("API key for Google Gemini. Get one from https://makersuite.google.com/app/apikey"))
+    translate("API key for Google Gemini. Get one from https://makersuite.google.com/app/apikey (leave empty to keep existing key)"))
 o.password = true
-o.rmempty = true
+o.rmempty = false
+o.write = function(self, section, value)
+    if value and value ~= "" then
+        Value.write(self, section, value)
+    end
+    -- If empty, don't write (keeps existing value)
+end
+o.remove = function(self, section)
+    -- Don't remove on empty - preserve existing key
+end
 
 o = s:option(Value, "openai_key", translate("OpenAI API Key"),
-    translate("API key for OpenAI. Get one from https://platform.openai.com/api-keys"))
+    translate("API key for OpenAI. Get one from https://platform.openai.com/api-keys (leave empty to keep existing key)"))
 o.password = true
-o.rmempty = true
+o.rmempty = false
+o.write = function(self, section, value)
+    if value and value ~= "" then
+        Value.write(self, section, value)
+    end
+end
+o.remove = function(self, section)
+    -- Don't remove on empty - preserve existing key
+end
 
 o = s:option(Value, "anthropic_key", translate("Anthropic API Key"),
-    translate("API key for Anthropic Claude. Get one from https://console.anthropic.com/"))
+    translate("API key for Anthropic Claude. Get one from https://console.anthropic.com/ (leave empty to keep existing key)"))
 o.password = true
-o.rmempty = true
+o.rmempty = false
+o.write = function(self, section, value)
+    if value and value ~= "" then
+        Value.write(self, section, value)
+    end
+end
+o.remove = function(self, section)
+    -- Don't remove on empty - preserve existing key
+end
 
 -- Models & Endpoints (Optional, can be hidden if not relevant, but safer to keep visible or use depends without rmempty if possible. 
 -- For now, removing depends to be safe and consistent with keys)

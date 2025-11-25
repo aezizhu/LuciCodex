@@ -367,22 +367,35 @@ function action_get_providers()
     local uci = require "luci.model.uci".cursor()
     
     local configured = {}
-    local default_provider = uci:get("lucicodex", "@api[0]", "provider") or "gemini"
+    
+    -- Helper to get from named 'main' section first, fallback to anonymous
+    local function get_config(option)
+        local val = uci:get("lucicodex", "main", option)
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@settings[0]", option)
+        end
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@api[0]", option)
+        end
+        return val
+    end
+    
+    local default_provider = get_config("provider") or "gemini"
     
     -- Check Gemini
-    local gemini_key = uci:get("lucicodex", "@api[0]", "key")
+    local gemini_key = get_config("key")
     if gemini_key and gemini_key ~= "" then
         table.insert(configured, "gemini")
     end
     
     -- Check OpenAI
-    local openai_key = uci:get("lucicodex", "@api[0]", "openai_key")
+    local openai_key = get_config("openai_key")
     if openai_key and openai_key ~= "" then
         table.insert(configured, "openai")
     end
     
     -- Check Anthropic
-    local anthropic_key = uci:get("lucicodex", "@api[0]", "anthropic_key")
+    local anthropic_key = get_config("anthropic_key")
     if anthropic_key and anthropic_key ~= "" then
         table.insert(configured, "anthropic")
     end

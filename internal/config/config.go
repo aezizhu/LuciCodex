@@ -199,12 +199,12 @@ func Load(path string) (Config, error) {
 		cfg.AnthropicAPIKey = val
 	}
 
-	// DEBUG: Print loaded configuration to stderr for troubleshooting
-	fmt.Fprintf(os.Stderr, "[DEBUG] Config loaded. Provider=%s\n", cfg.Provider)
-	fmt.Fprintf(os.Stderr, "[DEBUG] Gemini Key present: %v (len=%d)\n", cfg.APIKey != "", len(cfg.APIKey))
-	fmt.Fprintf(os.Stderr, "[DEBUG] OpenAI Key present: %v (len=%d)\n", cfg.OpenAIAPIKey != "", len(cfg.OpenAIAPIKey))
-	fmt.Fprintf(os.Stderr, "[DEBUG] Anthropic Key present: %v (len=%d)\n", cfg.AnthropicAPIKey != "", len(cfg.AnthropicAPIKey))
-	fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint)
+// DEBUG: Print loaded configuration to stderr for troubleshooting (can be silenced later)
+fmt.Fprintf(os.Stderr, "[DEBUG] Config loaded. Provider=%s\n", cfg.Provider)
+fmt.Fprintf(os.Stderr, "[DEBUG] Gemini Key present: %v (len=%d)\n", cfg.APIKey != "", len(cfg.APIKey))
+fmt.Fprintf(os.Stderr, "[DEBUG] OpenAI Key present: %v (len=%d)\n", cfg.OpenAIAPIKey != "", len(cfg.OpenAIAPIKey))
+fmt.Fprintf(os.Stderr, "[DEBUG] Anthropic Key present: %v (len=%d)\n", cfg.AnthropicAPIKey != "", len(cfg.AnthropicAPIKey))
+fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint)
 	if dryRun, _ := uciGet("lucicodex.@settings[0].dry_run"); dryRun == "1" {
 		cfg.DryRun = true
 	} else if dryRun == "0" {
