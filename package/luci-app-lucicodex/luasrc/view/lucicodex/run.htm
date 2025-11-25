@@ -1162,7 +1162,11 @@
         function updateProvider() {
             state.provider = document.getElementById('providerSelect').value;
             localStorage.setItem('lucicodex_provider', state.provider);
-            // Update header icon if we wanted to, but let's keep it simple for now
+        }
+
+        function updateModel() {
+            state.model = document.getElementById('modelInput').value.trim();
+            localStorage.setItem('lucicodex_model', state.model);
         }
 
         // --- History Management ---

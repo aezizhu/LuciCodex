@@ -234,9 +234,14 @@ func (c *Collector) Stop() {
 func (c *Collector) GetSummary() Summary {
     m := c.GetMetrics()
     
+    successRate := float64(0)
+    if m.TotalRequests > 0 {
+        successRate = float64(m.SuccessfulRuns) / float64(m.TotalRequests) * 100
+    }
+    
     return Summary{
         TotalRequests:   m.TotalRequests,
-        SuccessRate:     float64(m.SuccessfulRuns) / float64(m.TotalRequests) * 100,
+        SuccessRate:     successRate,
         AverageDuration: m.AverageDuration,
         TopProvider:     getTopKey(m.ProviderUsage),
         TopCommand:      getTopKey(m.CommandPatterns),

@@ -33,7 +33,7 @@ func (w *Wizard) Run() error {
     cfg := config.Config{
         Author:         "AZ <Aezi.zhu@icloud.com>",
         Endpoint:       "https://generativelanguage.googleapis.com/v1beta",
-        Model:          "gemini-1.5-flash",
+        Model:          "gemini-2.5-flash",
         Provider:       "gemini",
         DryRun:         true,
         AutoApprove:    false,
@@ -97,13 +97,13 @@ func (w *Wizard) setupProvider(cfg *config.Config) error {
     switch choice {
     case 1:
         cfg.Provider = "gemini"
-        cfg.Model = w.readString("Model (default: gemini-1.5-flash)", "gemini-1.5-flash")
+        cfg.Model = w.readString("Model (default: gemini-2.5-flash)", "gemini-2.5-flash")
     case 2:
         cfg.Provider = "openai"
         cfg.Model = w.readString("Model (default: gpt-4o-mini)", "gpt-4o-mini")
     case 3:
         cfg.Provider = "anthropic"
-        cfg.Model = w.readString("Model (default: claude-3-5-sonnet-20240620)", "claude-3-5-sonnet-20240620")
+        cfg.Model = w.readString("Model (default: claude-sonnet-4-5-20250929)", "claude-sonnet-4-5-20250929")
     }
     
     fmt.Fprintf(w.writer, "✓ Provider configured: %s\n\n", cfg.Provider)
