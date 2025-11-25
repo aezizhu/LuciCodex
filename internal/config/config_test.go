@@ -16,8 +16,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Provider != "gemini" {
 		t.Errorf("expected provider 'gemini', got %q", cfg.Provider)
 	}
-	if cfg.Model != "gemini-1.5-flash" {
-		t.Errorf("expected model 'gemini-1.5-flash', got %q", cfg.Model)
+	if cfg.Model != "gemini-2.5-flash" {
+		t.Errorf("expected model 'gemini-2.5-flash', got %q", cfg.Model)
 	}
 	if !cfg.DryRun {
 		t.Error("expected DryRun to be true by default")

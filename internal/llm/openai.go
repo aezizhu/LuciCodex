@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -45,17 +46,25 @@ type openaiResp struct {
 func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
 	var zero plan.Plan
 	if c.cfg.OpenAIAPIKey == "" {
-		return zero, errors.New("missing OPENAI_API_KEY")
+		return zero, errors.New("missing OpenAI API key - configure it in LuCI or set OPENAI_API_KEY environment variable")
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gpt-4o-mini" // Latest default GPT-4o mini
+		model = "gpt-4o-mini"
 	}
+	// Use configured endpoint or default
+	endpoint := c.cfg.Endpoint
+	if endpoint == "" {
+		endpoint = "https://api.openai.com/v1"
+	}
+	// Ensure endpoint ends properly for chat completions
+	url := strings.TrimSuffix(endpoint, "/") + "/chat/completions"
+
 	body := openaiReq{Model: model}
 	body.Messages = []openaiMessage{{Role: "user", Content: prompt}}
 	body.ResponseFormat = map[string]string{"type": "json_object"}
 	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.openai.com/v1/chat/completions", bytes.NewReader(b))
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.cfg.OpenAIAPIKey)
 	resp, err := c.httpClient.Do(req)

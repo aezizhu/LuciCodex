@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -43,16 +44,24 @@ type anthropicResp struct {
 func (c *AnthropicClient) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
 	var zero plan.Plan
 	if c.cfg.AnthropicAPIKey == "" {
-		return zero, errors.New("missing ANTHROPIC_API_KEY")
+		return zero, errors.New("missing Anthropic API key - configure it in LuCI or set ANTHROPIC_API_KEY environment variable")
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "claude-sonnet-4-5-20250929" // Latest stable Claude Sonnet 4.5
+		model = "claude-sonnet-4-5-20250929"
 	}
+	// Use configured endpoint or default
+	endpoint := c.cfg.Endpoint
+	if endpoint == "" {
+		endpoint = "https://api.anthropic.com/v1"
+	}
+	// Ensure endpoint ends properly for messages
+	url := strings.TrimSuffix(endpoint, "/") + "/messages"
+
 	body := anthropicReq{Model: model, MaxTokens: 2048}
 	body.Messages = []anthropicMessage{{Role: "user", Content: prompt}}
 	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.anthropic.com/v1/messages", bytes.NewReader(b))
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", c.cfg.AnthropicAPIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")

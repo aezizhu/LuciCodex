@@ -152,16 +152,19 @@ o = s:option(Value, "timeout", translate("Command Timeout (seconds)"),
 o.datatype = "uinteger"
 o.placeholder = "30"
 o.default = "30"
+o.rmempty = true
 
 o = s:option(Value, "max_commands", translate("Maximum Commands"),
     translate("Maximum number of commands to generate in a single plan."))
 o.datatype = "uinteger"
 o.placeholder = "10"
 o.default = "10"
+o.rmempty = true
 
 o = s:option(Value, "log_file", translate("Log File"),
     translate("Path to log file for command execution history."))
 o.placeholder = "/tmp/lucicodex.log"
 o.default = "/tmp/lucicodex.log"
+o.rmempty = true
 
 return m

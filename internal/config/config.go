@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,9 +11,9 @@ import (
 
 type Config struct {
 	Author         string   `json:"author"`
-	APIKey         string   `json:"api_key"`
-	Endpoint       string   `json:"endpoint"`
-	Model          string   `json:"model"`
+	APIKey         string   `json:"api_key"`         // Gemini API key
+	Endpoint       string   `json:"endpoint"`        // Active endpoint (set based on provider)
+	Model          string   `json:"model"`           // Active model (set based on provider)
 	Provider       string   `json:"provider"`
 	DryRun         bool     `json:"dry_run"`
 	AutoApprove    bool     `json:"auto_approve"`
@@ -28,25 +27,33 @@ type Config struct {
 	// Retry configuration
 	MaxRetries int  `json:"max_retries"`
 	AutoRetry  bool `json:"auto_retry"`
-	// Optional external providers/API keys
-	OpenAIAPIKey            string `json:"openai_api_key"`
-	AnthropicAPIKey         string `json:"anthropic_api_key"`
-	GoogleOAuthClientID     string `json:"google_oauth_client_id"`
-	GoogleOAuthClientSecret string `json:"google_oauth_client_secret"`
+	// Provider-specific API keys
+	OpenAIAPIKey    string `json:"openai_api_key"`
+	AnthropicAPIKey string `json:"anthropic_api_key"`
+	// Provider-specific endpoints (stored separately for switching)
+	OpenAIEndpoint    string `json:"openai_endpoint"`
+	AnthropicEndpoint string `json:"anthropic_endpoint"`
+	// Provider-specific models (stored separately for switching)
+	OpenAIModel    string `json:"openai_model"`
+	AnthropicModel string `json:"anthropic_model"`
 }
 
 func defaultConfig() Config {
 	return Config{
-		Author:         "AZ <Aezi.zhu@icloud.com>",
-		Endpoint:       "https://generativelanguage.googleapis.com/v1beta",
-		Model:          "",
-		Provider:       "gemini",
-		DryRun:         true,
-		AutoApprove:    false,
-		TimeoutSeconds: 30,
-		MaxCommands:    10,
-		MaxRetries:     2,
-		AutoRetry:      true,
+		Author:            "AZ <Aezi.zhu@icloud.com>",
+		Endpoint:          "https://generativelanguage.googleapis.com/v1beta",
+		Model:             "gemini-2.5-flash",
+		Provider:          "gemini",
+		DryRun:            true,
+		AutoApprove:       false,
+		TimeoutSeconds:    30,
+		MaxCommands:       10,
+		MaxRetries:        2,
+		AutoRetry:         true,
+		OpenAIEndpoint:    "https://api.openai.com/v1",
+		OpenAIModel:       "gpt-4o-mini",
+		AnthropicEndpoint: "https://api.anthropic.com/v1",
+		AnthropicModel:    "claude-sonnet-4-5-20250929",
 		Allowlist: []string{
 			`^uci(\s|$)`,
 			`^ubus(\s|$)`,
@@ -75,11 +82,9 @@ func defaultConfig() Config {
 			`^dd(\s|$)`,
 			`^:(){:|:&};:`,
 		},
-		ConfirmEach:        false,
-		LogFile:            "/tmp/lucicodex.log",
-		ElevateCommand:     "",
-		OpenAIAPIKey:       "",
-		AnthropicAPIKey:    "",
+		ConfirmEach:    false,
+		LogFile:        "/tmp/lucicodex.log",
+		ElevateCommand: "",
 	}
 }
 
@@ -103,35 +108,33 @@ func Load(path string) (Config, error) {
 	if path != "" && fileExists(path) {
 		b, err := os.ReadFile(path)
 		if err != nil {
-			return cfg, fmt.Errorf("read config: %w", err)
+			return cfg, err
 		}
 		if err := json.Unmarshal(b, &cfg); err != nil {
-			return cfg, fmt.Errorf("parse config: %w", err)
+			return cfg, err
 		}
 	}
 
 	// Helper to try main section then anonymous section
 	getUci := func(option string) string {
-		// Try named section 'main' first
 		if val, _ := uciGet("lucicodex.main." + option); val != "" {
 			return val
 		}
-		// Fallback to first anonymous section
 		if val, _ := uciGet("lucicodex.@api[0]." + option); val != "" {
 			return val
 		}
 		return ""
 	}
 
-	// UCI (OpenWrt)
-	if key := getUci("key"); key != "" {
-		cfg.APIKey = key
-	}
+	// Load provider first (needed to determine which settings to use)
 	if prov := getUci("provider"); prov != "" {
 		cfg.Provider = prov
 	}
 
-	// Read provider-specific keys
+	// Load all API keys from UCI
+	if key := getUci("key"); key != "" {
+		cfg.APIKey = key
+	}
 	if key := getUci("openai_key"); key != "" {
 		cfg.OpenAIAPIKey = key
 	}
@@ -139,113 +142,75 @@ func Load(path string) (Config, error) {
 		cfg.AnthropicAPIKey = key
 	}
 
-	// Read provider-specific model and endpoint
-	switch cfg.Provider {
-	case "gemini":
-		// If UCI doesn't specify a model, it will retain the defaultConfig value
-		if m := getUci("model"); m != "" {
-			cfg.Model = m
-		}
-		if ep := getUci("endpoint"); ep != "" {
-			cfg.Endpoint = ep
-		}
-	case "openai":
-		if m := getUci("openai_model"); m != "" {
-			cfg.Model = m
-		}
-		if ep := getUci("openai_endpoint"); ep != "" {
-			cfg.Endpoint = ep
-		}
-case "anthropic":
-	if m := getUci("anthropic_model"); m != "" {
+	// Load all provider-specific models and endpoints from UCI
+	if m := getUci("model"); m != "" {
 		cfg.Model = m
 	}
-	if ep := getUci("anthropic_endpoint"); ep != "" {
+	if ep := getUci("endpoint"); ep != "" {
 		cfg.Endpoint = ep
 	}
-}
-
-	// Load Provider
-	if val, _ := uciGet("lucicodex.main.provider"); val != "" {
-		cfg.Provider = val
-	} else if val, _ := uciGet("lucicodex.@api[0].provider"); val != "" {
-		cfg.Provider = val
+	if m := getUci("openai_model"); m != "" {
+		cfg.OpenAIModel = m
+	}
+	if ep := getUci("openai_endpoint"); ep != "" {
+		cfg.OpenAIEndpoint = ep
+	}
+	if m := getUci("anthropic_model"); m != "" {
+		cfg.AnthropicModel = m
+	}
+	if ep := getUci("anthropic_endpoint"); ep != "" {
+		cfg.AnthropicEndpoint = ep
 	}
 
-	// Load API Key - Prioritize named 'main' section, fallback to anonymous
-	if val, _ := uciGet("lucicodex.main.key"); val != "" {
-		cfg.APIKey = val
-	} else if val, _ := uciGet("lucicodex.@api[0].key"); val != "" {
-		cfg.APIKey = val
-	}
-
-	// Load OpenAI API Key
-	if val, _ := uciGet("lucicodex.main.openai_key"); val != "" {
-		cfg.OpenAIAPIKey = val
-	} else if val, _ := uciGet("lucicodex.@api[0].openai_key"); val != "" {
-		cfg.OpenAIAPIKey = val
-	}
-
-	// Load Anthropic API Key
-	if val, _ := uciGet("lucicodex.main.anthropic_key"); val != "" {
-		cfg.AnthropicAPIKey = val
-	} else if val, _ := uciGet("lucicodex.@api[0].anthropic_key"); val != "" {
-		cfg.AnthropicAPIKey = val
-	}
-
-// DEBUG: Print loaded configuration to stderr for troubleshooting (can be silenced later)
-fmt.Fprintf(os.Stderr, "[DEBUG] Config loaded. Provider=%s\n", cfg.Provider)
-fmt.Fprintf(os.Stderr, "[DEBUG] Gemini Key present: %v (len=%d)\n", cfg.APIKey != "", len(cfg.APIKey))
-fmt.Fprintf(os.Stderr, "[DEBUG] OpenAI Key present: %v (len=%d)\n", cfg.OpenAIAPIKey != "", len(cfg.OpenAIAPIKey))
-fmt.Fprintf(os.Stderr, "[DEBUG] Anthropic Key present: %v (len=%d)\n", cfg.AnthropicAPIKey != "", len(cfg.AnthropicAPIKey))
-fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint)
-	if dryRun, _ := uciGet("lucicodex.@settings[0].dry_run"); dryRun == "1" {
+	// Load settings from UCI
+	if dryRun := getUci("dry_run"); dryRun == "1" {
 		cfg.DryRun = true
 	} else if dryRun == "0" {
 		cfg.DryRun = false
 	}
-	if confirmEach, _ := uciGet("lucicodex.@settings[0].confirm_each"); confirmEach == "1" {
+	if confirmEach := getUci("confirm_each"); confirmEach == "1" {
 		cfg.ConfirmEach = true
 	} else if confirmEach == "0" {
 		cfg.ConfirmEach = false
 	}
-	if timeout, _ := uciGet("lucicodex.@settings[0].timeout"); timeout != "" {
+	if timeout := getUci("timeout"); timeout != "" {
 		if t, err := strconv.Atoi(timeout); err == nil && t > 0 {
 			cfg.TimeoutSeconds = t
 		}
 	}
-	if maxCmds, _ := uciGet("lucicodex.@settings[0].max_commands"); maxCmds != "" {
+	if maxCmds := getUci("max_commands"); maxCmds != "" {
 		if m, err := strconv.Atoi(maxCmds); err == nil && m > 0 {
 			cfg.MaxCommands = m
 		}
 	}
-	if logFile, _ := uciGet("lucicodex.@settings[0].log_file"); logFile != "" {
+	if logFile := getUci("log_file"); logFile != "" {
 		cfg.LogFile = logFile
 	}
 
-	if v := strings.TrimSpace(os.Getenv("GEMINI_API_KEY")); v != "" {
-		cfg.APIKey = v
-	}
-	if v := strings.TrimSpace(os.Getenv("GEMINI_ENDPOINT")); v != "" {
-		cfg.Endpoint = v
-	}
-	if v := strings.TrimSpace(os.Getenv("LUCICODEX_MODEL")); v != "" {
-		cfg.Model = v
-	}
-	if v := strings.TrimSpace(os.Getenv("LUCICODEX_LOG_FILE")); v != "" {
-		cfg.LogFile = v
-	}
-	if v := strings.TrimSpace(os.Getenv("LUCICODEX_ELEVATE")); v != "" {
-		cfg.ElevateCommand = v
-	}
+	// Environment variables override everything
 	if v := strings.TrimSpace(os.Getenv("LUCICODEX_PROVIDER")); v != "" {
 		cfg.Provider = v
+	}
+	if v := strings.TrimSpace(os.Getenv("GEMINI_API_KEY")); v != "" {
+		cfg.APIKey = v
 	}
 	if v := strings.TrimSpace(os.Getenv("OPENAI_API_KEY")); v != "" {
 		cfg.OpenAIAPIKey = v
 	}
 	if v := strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")); v != "" {
 		cfg.AnthropicAPIKey = v
+	}
+	if v := strings.TrimSpace(os.Getenv("LUCICODEX_MODEL")); v != "" {
+		cfg.Model = v
+	}
+	if v := strings.TrimSpace(os.Getenv("GEMINI_ENDPOINT")); v != "" {
+		cfg.Endpoint = v
+	}
+	if v := strings.TrimSpace(os.Getenv("LUCICODEX_LOG_FILE")); v != "" {
+		cfg.LogFile = v
+	}
+	if v := strings.TrimSpace(os.Getenv("LUCICODEX_ELEVATE")); v != "" {
+		cfg.ElevateCommand = v
 	}
 	if v := strings.TrimSpace(os.Getenv("LUCICODEX_CONFIRM_EACH")); v != "" {
 		cfg.ConfirmEach = v == "1" || strings.ToLower(v) == "true"
@@ -259,7 +224,45 @@ fmt.Fprintf(os.Stderr, "[DEBUG] Model=%s Endpoint=%s\n", cfg.Model, cfg.Endpoint
 		}
 	}
 
+	// Set active Model and Endpoint based on provider
+	cfg.applyProviderSettings()
+
 	return cfg, nil
+}
+
+// applyProviderSettings sets the active Model and Endpoint based on the selected provider
+func (cfg *Config) applyProviderSettings() {
+	switch cfg.Provider {
+	case "openai":
+		if cfg.OpenAIModel != "" {
+			cfg.Model = cfg.OpenAIModel
+		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-flash" {
+			cfg.Model = "gpt-4o-mini"
+		}
+		if cfg.OpenAIEndpoint != "" {
+			cfg.Endpoint = cfg.OpenAIEndpoint
+		} else {
+			cfg.Endpoint = "https://api.openai.com/v1"
+		}
+	case "anthropic":
+		if cfg.AnthropicModel != "" {
+			cfg.Model = cfg.AnthropicModel
+		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-flash" {
+			cfg.Model = "claude-sonnet-4-5-20250929"
+		}
+		if cfg.AnthropicEndpoint != "" {
+			cfg.Endpoint = cfg.AnthropicEndpoint
+		} else {
+			cfg.Endpoint = "https://api.anthropic.com/v1"
+		}
+	default: // gemini
+		if cfg.Model == "" {
+			cfg.Model = "gemini-2.5-flash"
+		}
+		if cfg.Endpoint == "" {
+			cfg.Endpoint = "https://generativelanguage.googleapis.com/v1beta"
+		}
+	}
 }
 
 func fileExists(p string) bool {

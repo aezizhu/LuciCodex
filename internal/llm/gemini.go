@@ -55,7 +55,7 @@ type generateContentResponse struct {
 func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
 	var zero plan.Plan
 	if c.cfg.APIKey == "" {
-		return zero, errors.New("missing API key")
+		return zero, errors.New("missing Gemini API key - configure it in LuCI or set GEMINI_API_KEY environment variable")
 	}
 	model := c.cfg.Model
 	if model == "" {

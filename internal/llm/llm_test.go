@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -107,8 +108,8 @@ func TestGeminiClient_GeneratePlan_MissingAPIKey(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for missing API key")
 	}
-	if err.Error() != "missing API key" {
-		t.Errorf("expected 'missing API key' error, got %q", err.Error())
+	if !strings.Contains(err.Error(), "missing Gemini API key") {
+		t.Errorf("expected 'missing Gemini API key' error, got %q", err.Error())
 	}
 }
 
@@ -266,8 +267,8 @@ func TestGeminiClient_GeneratePlan_DefaultModel(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !contains(r.URL.String(), "gemini-1.5-flash") {
-			t.Error("expected default model 'gemini-1.5-flash' in URL")
+		if !contains(r.URL.String(), "gemini-2.5-flash") {
+			t.Error("expected default model 'gemini-2.5-flash' in URL")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(mockResponse)
