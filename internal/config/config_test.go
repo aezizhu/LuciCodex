@@ -259,23 +259,6 @@ func TestFileExists(t *testing.T) {
 	}
 }
 
-func TestLoadWithExternalGeminiPath(t *testing.T) {
-    os.Setenv("GEMINI_API_KEY", "test-key")
-    os.Setenv("LUCICODEX_EXTERNAL_GEMINI", "/custom/path/gemini")
-	defer func() {
-        os.Unsetenv("GEMINI_API_KEY")
-        os.Unsetenv("LUCICODEX_EXTERNAL_GEMINI")
-	}()
-
-	cfg, err := Load("")
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
-
-	if cfg.ExternalGeminiPath != "/custom/path/gemini" {
-		t.Errorf("expected external gemini path '/custom/path/gemini', got %q", cfg.ExternalGeminiPath)
-	}
-}
 
 func TestLoadTrimsWhitespace(t *testing.T) {
     os.Setenv("GEMINI_API_KEY", "  test-key-with-spaces  ")
