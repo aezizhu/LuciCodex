@@ -86,11 +86,10 @@ func (w *Wizard) Run() error {
 func (w *Wizard) setupProvider(cfg *config.Config) error {
     fmt.Fprintf(w.writer, "Step 1: Choose AI Provider\n")
     fmt.Fprintf(w.writer, "1. Gemini (Google, API key required)\n")
-    fmt.Fprintf(w.writer, "2. Gemini CLI (External binary, OAuth login)\n")
-    fmt.Fprintf(w.writer, "3. OpenAI (API key required)\n")
-    fmt.Fprintf(w.writer, "4. Anthropic (API key required)\n")
+    fmt.Fprintf(w.writer, "2. OpenAI (API key required)\n")
+    fmt.Fprintf(w.writer, "3. Anthropic (API key required)\n")
     
-    choice, err := w.readChoice("Enter choice [1-4]", 1, 4)
+    choice, err := w.readChoice("Enter choice [1-3]", 1, 3)
     if err != nil {
         return err
     }
@@ -100,12 +99,9 @@ func (w *Wizard) setupProvider(cfg *config.Config) error {
         cfg.Provider = "gemini"
         cfg.Model = w.readString("Model (default: gemini-1.5-flash)", "gemini-1.5-flash")
     case 2:
-        cfg.Provider = "gemini-cli"
-        cfg.ExternalGeminiPath = w.readString("Path to gemini CLI (default: /usr/bin/gemini)", "/usr/bin/gemini")
-    case 3:
         cfg.Provider = "openai"
         cfg.Model = w.readString("Model (default: gpt-4o-mini)", "gpt-4o-mini")
-    case 4:
+    case 3:
         cfg.Provider = "anthropic"
         cfg.Model = w.readString("Model (default: claude-3-5-sonnet-20240620)", "claude-3-5-sonnet-20240620")
     }
@@ -121,10 +117,6 @@ func (w *Wizard) setupCredentials(cfg *config.Config) error {
     case "gemini":
         fmt.Fprintf(w.writer, "Get your API key from: https://aistudio.google.com/app/apikey\n")
         cfg.APIKey = w.readString("Gemini API key", "")
-    case "gemini-cli":
-        fmt.Fprintf(w.writer, "Install Gemini CLI: npm install -g @google/gemini-cli\n")
-        fmt.Fprintf(w.writer, "Then run 'gemini' and follow OAuth login flow.\n")
-        fmt.Fprintf(w.writer, "No API key needed for this mode.\n")
     case "openai":
         fmt.Fprintf(w.writer, "Get your API key from: https://platform.openai.com/api-keys\n")
         cfg.OpenAIAPIKey = w.readString("OpenAI API key", "")
