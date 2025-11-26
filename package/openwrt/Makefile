@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lucicodex
-PKG_VERSION:=0.1.0
+PKG_VERSION:=0.4.29
 PKG_RELEASE:=1
 
 PKG_MAINTAINER:=AZ <Aezi.zhu@icloud.com>

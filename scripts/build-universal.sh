@@ -4,7 +4,7 @@ set -e
 # Universal Build Script for LuciCodex
 # This builds for ALL OpenWrt architectures
 
-VERSION="0.3.0"
+VERSION="0.4.29"
 BUILD_DIR="build"
 DIST_DIR="dist"
 
