@@ -84,7 +84,7 @@ Before installing LuciCodex, you need:
 |----------|--------|-------|
 | **Google Gemini** (Default) | `gemini-2.5-flash` | Free tier available |
 | **OpenAI** | `gpt-4o-mini`, `gpt-4o`, etc. | Pay per use |
-| **Anthropic** | `claude-sonnet-4-5-20250929`, etc. | Pay per use |
+| **Anthropic** | `claude-haiku-4-5-20251001`, etc. | Pay per use |
 
 ### Installation on OpenWrt
 
@@ -244,7 +244,7 @@ LuciCodex supports multiple AI providers. Here's how to choose:
 **API Settings:**
 - **Provider**: Choose your AI provider
 - **API Key**: Enter your key (stored securely)
-- **Model**: Leave empty for default, or specify (e.g., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-sonnet-4-5-20250929`)
+- **Model**: Leave empty for default, or specify (e.g., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-haiku-4-5-20251001`)
 - **Endpoint**: Leave default unless using custom endpoint
 
 **Safety Settings:**
@@ -274,7 +274,7 @@ uci set lucicodex.@api[0].model='gpt-4o-mini'
 # Configure Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='YOUR-ANTHROPIC-KEY'
-uci set lucicodex.@api[0].model='claude-sonnet-4-5-20250929'
+uci set lucicodex.@api[0].model='claude-haiku-4-5-20251001'
 
 # Safety settings
 uci set lucicodex.@settings[0].dry_run='1'          # 1=enabled, 0=disabled

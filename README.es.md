@@ -239,7 +239,7 @@ LuciCodex soporta múltiples proveedores de IA. Así es como elegir:
 **Configuración de API:**
 - **Proveedor**: Elige tu proveedor de IA
 - **Clave API**: Ingresa tu clave (almacenada de forma segura)
-- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-sonnet-4-5-20250929`)
+- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-haiku-4-5-20251001`)
 - **Endpoint**: Deja el predeterminado a menos que uses un endpoint personalizado
 
 **Configuración de Seguridad:**
@@ -269,7 +269,7 @@ uci set lucicodex.@api[0].model='gpt-4o-mini'
 # Configurar Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='TU-CLAVE-ANTHROPIC'
-uci set lucicodex.@api[0].model='claude-sonnet-4-5-20250929'
+uci set lucicodex.@api[0].model='claude-haiku-4-5-20251001'
 
 # Configuración de seguridad
 uci set lucicodex.@settings[0].dry_run='1'          # 1=habilitado, 0=deshabilitado

@@ -7,7 +7,7 @@
 		add lucicodex api
 		set lucicodex.@api[0].provider='gemini'
 		set lucicodex.@api[0].key=''
-		set lucicodex.@api[0].model='gemini-1.5-flash'
+		set lucicodex.@api[0].model='gemini-2.5-flash'
 		set lucicodex.@api[0].endpoint='https://generativelanguage.googleapis.com/v1beta'
 		set lucicodex.@api[0].openai_key=''
 		set lucicodex.@api[0].anthropic_key=''

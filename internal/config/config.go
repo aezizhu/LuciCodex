@@ -53,7 +53,7 @@ func defaultConfig() Config {
 		OpenAIEndpoint:    "https://api.openai.com/v1",
 		OpenAIModel:       "gpt-4o-mini",
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
-		AnthropicModel:    "claude-sonnet-4-5-20250929",
+		AnthropicModel:    "claude-haiku-4-5-20251001",
 		Allowlist: []string{
 			`^uci(\s|$)`,
 			`^ubus(\s|$)`,
@@ -249,7 +249,7 @@ func (cfg *Config) ApplyProviderSettings() {
 		if cfg.AnthropicModel != "" {
 			cfg.Model = cfg.AnthropicModel
 		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-flash" {
-			cfg.Model = "claude-sonnet-4-5-20250929"
+			cfg.Model = "claude-haiku-4-5-20251001"
 		}
 		if cfg.AnthropicEndpoint != "" {
 			cfg.Endpoint = cfg.AnthropicEndpoint

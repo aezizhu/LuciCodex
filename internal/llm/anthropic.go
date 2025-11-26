@@ -48,7 +48,7 @@ func (c *AnthropicClient) GeneratePlan(ctx context.Context, prompt string) (plan
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "claude-sonnet-4-5-20250929"
+		model = "claude-haiku-4-5-20251001"
 	}
 	// Use configured endpoint or default
 	endpoint := c.cfg.Endpoint

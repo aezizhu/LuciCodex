@@ -16,7 +16,7 @@ import (
 func TestNewGeminiClient(t *testing.T) {
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: "https://test.example.com",
 	}
 
@@ -71,7 +71,7 @@ func TestGeminiClient_GeneratePlan_Success(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -97,7 +97,7 @@ func TestGeminiClient_GeneratePlan_Success(t *testing.T) {
 func TestGeminiClient_GeneratePlan_MissingAPIKey(t *testing.T) {
 	cfg := config.Config{
 		APIKey:   "",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: "https://test.example.com",
 	}
 
@@ -122,7 +122,7 @@ func TestGeminiClient_GeneratePlan_HTTPError(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "invalid-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -150,7 +150,7 @@ func TestGeminiClient_GeneratePlan_EmptyResponse(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -191,7 +191,7 @@ func TestGeminiClient_GeneratePlan_InvalidJSON(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -229,7 +229,7 @@ func TestGeminiClient_GeneratePlan_WrappedJSON(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -299,7 +299,7 @@ func TestGeminiClient_GeneratePlan_ContextCancellation(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-1.5-flash",
+		Model:    "gemini-2.5-flash",
 		Endpoint: server.URL,
 	}
 

@@ -239,7 +239,7 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 **API 设置：**
 - **服务商**：选择你的 AI 服务商
 - **API 密钥**：输入你的密钥（安全存储）
-- **模型**：保持空白使用默认值，或指定（如 `gemini-2.5-flash`、`gpt-4o-mini`、`claude-sonnet-4-5-20250929`）
+- **模型**：保持空白使用默认值，或指定（如 `gemini-2.5-flash`、`gpt-4o-mini`、`claude-haiku-4-5-20251001`）
 - **端点**：除非使用自定义端点，否则保持默认
 
 **安全设置：**
@@ -269,7 +269,7 @@ uci set lucicodex.@api[0].model='gpt-4o-mini'
 # 配置 Anthropic
 uci set lucicodex.@api[0].provider='anthropic'
 uci set lucicodex.@api[0].anthropic_key='你的-ANTHROPIC-密钥'
-uci set lucicodex.@api[0].model='claude-sonnet-4-5-20250929'
+uci set lucicodex.@api[0].model='claude-haiku-4-5-20251001'
 
 # 安全设置
 uci set lucicodex.@settings[0].dry_run='1'          # 1=启用, 0=禁用

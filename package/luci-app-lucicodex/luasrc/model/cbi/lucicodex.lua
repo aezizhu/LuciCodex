@@ -182,9 +182,9 @@ o.description = translate("Change for Azure OpenAI or compatible providers")
 
 -- Anthropic Advanced
 o = s:option(Value, "anthropic_model", translate("Anthropic Model"))
-o.placeholder = "claude-sonnet-4-5-20250929"
+o.placeholder = "claude-haiku-4-5-20251001"
 o.rmempty = true
-o.description = translate("Default: claude-sonnet-4-5-20250929 • Other options: claude-3-opus, claude-3-haiku")
+o.description = translate("Default: claude-haiku-4-5-20251001 • Other options: claude-sonnet-4-20250514")
 
 o = s:option(Value, "anthropic_endpoint", translate("Anthropic API Endpoint"))
 o.placeholder = "https://api.anthropic.com/v1"
