@@ -72,6 +72,19 @@ o:value("anthropic", label("Anthropic (Claude)", has_anthropic))
 o.default = "gemini"
 o.description = translate("Select your preferred AI provider. Make sure to configure the corresponding API key below.")
 
+-- When provider changes, clear the generic model/endpoint fields to avoid conflicts
+o.write = function(self, section, value)
+    local old_provider = cursor:get(conf, section, "provider") or "gemini"
+    ListValue.write(self, section, value)
+    
+    -- If provider changed, clear the generic model and endpoint to use provider defaults
+    if old_provider ~= value then
+        cursor:delete(conf, section, "model")
+        cursor:delete(conf, section, "endpoint")
+        cursor:commit(conf)
+    end
+end
+
 --[[
 ================================================================================
 SECTION 2: API Keys

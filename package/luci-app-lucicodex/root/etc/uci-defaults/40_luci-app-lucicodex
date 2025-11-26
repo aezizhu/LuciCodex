@@ -61,7 +61,7 @@ if ! uci -q get lucicodex.main >/dev/null 2>&1; then
 	uci -q commit lucicodex 2>/dev/null
 fi
 
-# Set proper permissions on config file
-chmod 600 /etc/config/lucicodex 2>/dev/null || true
+# Set proper permissions on config file (readable by uhttpd/luci)
+chmod 644 /etc/config/lucicodex 2>/dev/null || true
 
 exit 0

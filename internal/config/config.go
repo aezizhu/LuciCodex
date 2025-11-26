@@ -115,11 +115,17 @@ func Load(path string) (Config, error) {
 		}
 	}
 
-	// Helper to try main section then anonymous section
+	// Helper to try main section, then settings section, then api section
 	getUci := func(option string) string {
+		// Try named 'main' section first
 		if val, _ := uciGet("lucicodex.main." + option); val != "" {
 			return val
 		}
+		// Try anonymous settings section
+		if val, _ := uciGet("lucicodex.@settings[0]." + option); val != "" {
+			return val
+		}
+		// Try anonymous api section (legacy)
 		if val, _ := uciGet("lucicodex.@api[0]." + option); val != "" {
 			return val
 		}
