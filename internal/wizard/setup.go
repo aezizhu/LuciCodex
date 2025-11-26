@@ -100,7 +100,7 @@ func (w *Wizard) setupProvider(cfg *config.Config) error {
 		cfg.Model = w.readString("Model (default: gemini-2.5-flash)", "gemini-2.5-flash")
 	case 2:
 		cfg.Provider = "openai"
-		cfg.Model = w.readString("Model (default: gpt-4o-mini)", "gpt-4o-mini")
+		cfg.Model = w.readString("Model (default: gpt-5-mini)", "gpt-5-mini")
 	case 3:
 		cfg.Provider = "anthropic"
 		cfg.Model = w.readString("Model (default: claude-haiku-4-5-20251001)", "claude-haiku-4-5-20251001")

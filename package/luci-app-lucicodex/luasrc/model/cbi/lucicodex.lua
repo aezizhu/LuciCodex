@@ -67,7 +67,7 @@ s.description = translate("Choose which AI service powers LuciCodex. A ✓ indic
 
 o = s:option(ListValue, "provider", translate("Active Provider"))
 o:value("gemini", label("Google Gemini", has_gemini))
-o:value("openai", label("OpenAI (GPT-4)", has_openai))
+o:value("openai", label("OpenAI (GPT-5)", has_openai))
 o:value("anthropic", label("Anthropic (Claude)", has_anthropic))
 o.default = "gemini"
 o.description = translate("Select your preferred AI provider. Make sure to configure the corresponding API key below.")
@@ -171,9 +171,9 @@ o.rmempty = true
 
 -- OpenAI Advanced
 o = s:option(Value, "openai_model", translate("OpenAI Model"))
-o.placeholder = "gpt-4o-mini"
+o.placeholder = "gpt-5-mini"
 o.rmempty = true
-o.description = translate("Default: gpt-4o-mini • Other options: gpt-4o, gpt-4-turbo")
+o.description = translate("Default: gpt-5-mini • Other options: gpt-5, gpt-5-nano")
 
 o = s:option(Value, "openai_endpoint", translate("OpenAI API Endpoint"))
 o.placeholder = "https://api.openai.com/v1"

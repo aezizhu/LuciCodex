@@ -369,7 +369,7 @@ func TestExtractJSON(t *testing.T) {
 func TestNewOpenAIClient(t *testing.T) {
 	cfg := config.Config{
 		OpenAIAPIKey: "test-key",
-		Model:        "gpt-4",
+		Model:        "gpt-5-mini",
 	}
 
 	client := NewOpenAIClient(cfg)

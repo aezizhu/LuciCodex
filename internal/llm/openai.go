@@ -50,7 +50,7 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gpt-4o-mini"
+		model = "gpt-5-mini"
 	}
 	// Use configured endpoint or default
 	endpoint := c.cfg.Endpoint

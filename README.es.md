@@ -78,7 +78,7 @@ Antes de instalar LuciCodex, necesitas:
 3. Al menos **10MB de espacio libre** de almacenamiento
 4. **Una clave API** de uno de estos proveedores:
    - Google Gemini (recomendado para principiantes - plan gratuito disponible, usa `gemini-2.5-flash`)
-   - OpenAI (GPT-5.1/GPT-4o)
+   - OpenAI (GPT-5/GPT-5-mini)
    - Anthropic (Claude 4.5)
 
 ### Instalación en OpenWrt
@@ -239,7 +239,7 @@ LuciCodex soporta múltiples proveedores de IA. Así es como elegir:
 **Configuración de API:**
 - **Proveedor**: Elige tu proveedor de IA
 - **Clave API**: Ingresa tu clave (almacenada de forma segura)
-- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-2.5-flash`, `gpt-4o-mini`, `claude-haiku-4-5-20251001`)
+- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-2.5-flash`, `gpt-5-mini`, `claude-haiku-4-5-20251001`)
 - **Endpoint**: Deja el predeterminado a menos que uses un endpoint personalizado
 
 **Configuración de Seguridad:**
@@ -264,7 +264,7 @@ uci set lucicodex.@api[0].model='gemini-2.5-flash'
 # Configurar OpenAI
 uci set lucicodex.@api[0].provider='openai'
 uci set lucicodex.@api[0].openai_key='TU-CLAVE-OPENAI'
-uci set lucicodex.@api[0].model='gpt-4o-mini'
+uci set lucicodex.@api[0].model='gpt-5-mini'
 
 # Configurar Anthropic
 uci set lucicodex.@api[0].provider='anthropic'

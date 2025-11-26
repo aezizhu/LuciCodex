@@ -51,7 +51,7 @@ func defaultConfig() Config {
 		MaxRetries:        2,
 		AutoRetry:         true,
 		OpenAIEndpoint:    "https://api.openai.com/v1",
-		OpenAIModel:       "gpt-4o-mini",
+		OpenAIModel:       "gpt-5-mini",
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
 		AnthropicModel:    "claude-haiku-4-5-20251001",
 		Allowlist: []string{
@@ -238,7 +238,7 @@ func (cfg *Config) ApplyProviderSettings() {
 		if cfg.OpenAIModel != "" {
 			cfg.Model = cfg.OpenAIModel
 		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-flash" {
-			cfg.Model = "gpt-4o-mini"
+			cfg.Model = "gpt-5-mini"
 		}
 		if cfg.OpenAIEndpoint != "" {
 			cfg.Endpoint = cfg.OpenAIEndpoint
