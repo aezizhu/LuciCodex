@@ -1017,9 +1017,31 @@
                 state.provider = savedProvider;
                 document.getElementById('providerSelect').value = savedProvider;
             }
+            
+            // Update model placeholder based on provider
+            const modelInput = document.getElementById('modelInput');
+            const defaultModels = {
+                'gemini': 'gemini-2.5-flash',
+                'openai': 'gpt-5-mini',
+                'anthropic': 'claude-haiku-4-5-20251001'
+            };
+            modelInput.placeholder = defaultModels[state.provider] || 'Leave empty for provider default';
+            
+            // Only restore saved model if it matches the current provider's format
             if (savedModel) {
-                state.model = savedModel;
-                document.getElementById('modelInput').value = savedModel;
+                const isModelMatchingProvider = 
+                    (state.provider === 'gemini' && savedModel.includes('gemini')) ||
+                    (state.provider === 'openai' && (savedModel.includes('gpt') || savedModel.includes('o1') || savedModel.includes('o3'))) ||
+                    (state.provider === 'anthropic' && savedModel.includes('claude'));
+                
+                if (isModelMatchingProvider) {
+                    state.model = savedModel;
+                    modelInput.value = savedModel;
+                } else {
+                    // Clear mismatched model
+                    localStorage.removeItem('lucicodex_model');
+                    state.model = '';
+                }
             }
 
             // Restore exec mode preference if saved
@@ -1630,6 +1652,20 @@
         function updateProvider() {
             state.provider = document.getElementById('providerSelect').value;
             localStorage.setItem('lucicodex_provider', state.provider);
+            
+            // Clear model when provider changes to avoid using wrong model
+            state.model = '';
+            document.getElementById('modelInput').value = '';
+            localStorage.removeItem('lucicodex_model');
+            
+            // Update placeholder to show default model for selected provider
+            const modelInput = document.getElementById('modelInput');
+            const defaultModels = {
+                'gemini': 'gemini-2.5-flash',
+                'openai': 'gpt-5-mini',
+                'anthropic': 'claude-haiku-4-5-20251001'
+            };
+            modelInput.placeholder = defaultModels[state.provider] || 'Leave empty for provider default';
         }
 
         function updateModel() {
