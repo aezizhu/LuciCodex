@@ -228,7 +228,6 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 | **Gemini** | 新手、家庭用户 | 有免费额度 | 快 | GEMINI_API_KEY 或 lucicodex.@api[0].key |
 | **OpenAI** | 高级用户、复杂任务 | 按使用付费 | 非常快 | OPENAI_API_KEY 或 lucicodex.@api[0].openai_key |
 | **Anthropic** | 注重隐私的用户 | 按使用付费 | 快 | ANTHROPIC_API_KEY 或 lucicodex.@api[0].anthropic_key |
-| **Gemini CLI** | 离线/本地使用 | 免费（本地） | 不定 | 外部 gemini 可执行文件路径 |
 
 **注意：** 每个服务商需要自己专用的 API 密钥。你只需配置正在使用的服务商的密钥。
 

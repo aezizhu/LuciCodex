@@ -228,7 +228,6 @@ LuciCodex soporta múltiples proveedores de IA. Así es como elegir:
 | **Gemini** | Principiantes, usuarios domésticos | Plan gratuito disponible | Rápido | GEMINI_API_KEY o lucicodex.@api[0].key |
 | **OpenAI** | Usuarios avanzados, tareas complejas | Pago por uso | Muy rápido | OPENAI_API_KEY o lucicodex.@api[0].openai_key |
 | **Anthropic** | Usuarios conscientes de la privacidad | Pago por uso | Rápido | ANTHROPIC_API_KEY o lucicodex.@api[0].anthropic_key |
-| **Gemini CLI** | Uso offline/local | Gratis (local) | Varía | Ruta del binario gemini externo |
 
 **Nota:** Cada proveedor requiere su propia clave API específica. Solo necesitas configurar la clave del proveedor que estés usando.
 

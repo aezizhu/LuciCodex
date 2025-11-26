@@ -76,11 +76,15 @@ Before installing LuciCodex, you need:
 1. **An OpenWrt router** (version 21.02 or later recommended)
 2. **Internet connection** on your router
 3. **At least 10MB free storage** space
-4. **An API key** from one of### Supported Providers
-*   **Google Gemini** (Default): Uses `gemini-2.5-flash` (Free tier available).
-*   **OpenAI**: Supports `gpt-4o-mini`, `gpt-4o`, etc.
-*   **Anthropic**: Supports `claude-sonnet-4-5-20250929`, `claude-sonnet-4-5-20250929-haiku`.
-*   **External CLI**: Can wrap any CLI tool (e.g., local LLMs).
+4. **An API key** from one of the supported providers:
+
+### Supported Providers
+
+| Provider | Models | Notes |
+|----------|--------|-------|
+| **Google Gemini** (Default) | `gemini-2.5-flash` | Free tier available |
+| **OpenAI** | `gpt-4o-mini`, `gpt-4o`, etc. | Pay per use |
+| **Anthropic** | `claude-sonnet-4-5-20250929`, etc. | Pay per use |
 
 ### Installation on OpenWrt
 
@@ -229,7 +233,6 @@ LuciCodex supports multiple AI providers. Here's how to choose:
 | **Gemini** | Beginners, home users | Free tier available | Fast | GEMINI_API_KEY or lucicodex.@api[0].key |
 | **OpenAI** | Advanced users, complex tasks | Pay per use | Very fast | OPENAI_API_KEY or lucicodex.@api[0].openai_key |
 | **Anthropic** | Privacy-conscious users | Pay per use | Fast | ANTHROPIC_API_KEY or lucicodex.@api[0].anthropic_key |
-| **Gemini CLI** | Offline/local use | Free (local) | Varies | External gemini binary path |
 
 **Note:** Each provider requires its own specific API key. You only need to configure the key for the provider you're using.
 
