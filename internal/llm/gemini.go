@@ -21,7 +21,7 @@ type GeminiClient struct {
 
 func NewGeminiClient(cfg config.Config) *GeminiClient {
 	return &GeminiClient{
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: newHTTPClient(cfg, 30*time.Second),
 		cfg:        cfg,
 	}
 }
@@ -59,7 +59,7 @@ func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gemini-2.5-flash"
+		model = "gemini-1.5-flash"
 	}
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.cfg.Endpoint, model, c.cfg.APIKey)
 

@@ -13,6 +13,11 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/plan"
 )
 
+func stripAnsi(s string) string {
+	// Simple regex to strip ANSI codes
+	return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(s, "\033[0m", ""), "\033[31m", ""), "\033[32m", ""), "\033[33m", ""), "\033[34m", ""), "\033[1m", "")
+}
+
 func TestPrintPlan(t *testing.T) {
 	var buf bytes.Buffer
 
@@ -32,7 +37,7 @@ func TestPrintPlan(t *testing.T) {
 	}
 
 	PrintPlan(&buf, p)
-	output := buf.String()
+	output := stripAnsi(buf.String())
 
 	if !strings.Contains(output, "Summary: Test plan summary") {
 		t.Errorf("expected to see summary in output")
@@ -49,10 +54,10 @@ func TestPrintPlan(t *testing.T) {
 	if !strings.Contains(output, "Warnings:") {
 		t.Errorf("expected to see warnings header")
 	}
-	if !strings.Contains(output, "- Warning 1") {
+	if !strings.Contains(output, "⚠ Warning 1") {
 		t.Errorf("expected to see first warning")
 	}
-	if !strings.Contains(output, "- Warning 2") {
+	if !strings.Contains(output, "⚠ Warning 2") {
 		t.Errorf("expected to see second warning")
 	}
 }
@@ -68,7 +73,7 @@ func TestPrintPlan_NoWarnings(t *testing.T) {
 	}
 
 	PrintPlan(&buf, p)
-	output := buf.String()
+	output := stripAnsi(buf.String())
 
 	if strings.Contains(output, "Warnings:") {
 		t.Errorf("should not show warnings section when there are no warnings")
@@ -102,7 +107,8 @@ func TestConfirm_Yes(t *testing.T) {
 		if result != tc.expected {
 			t.Errorf("for input '%s', expected %v but got %v", tc.input, tc.expected, result)
 		}
-		if !strings.Contains(buf.String(), "Test prompt [y/N]:") {
+		// Confirm prompt contains color codes, so we check raw buffer or stripped
+		if !strings.Contains(stripAnsi(buf.String()), "Test prompt [y/N]:") {
 			t.Errorf("expected to see prompt in output")
 		}
 	}
@@ -130,10 +136,10 @@ func TestPrintResults_Success(t *testing.T) {
 	}
 
 	PrintResults(&buf, res)
-	output := buf.String()
+	output := stripAnsi(buf.String())
 
 	if !strings.Contains(output, "[1] (ok, 10ms) echo hello") {
-		t.Errorf("expected to see first command result")
+		t.Errorf("expected to see first command result, got: %s", output)
 	}
 	if !strings.Contains(output, "  hello") {
 		t.Errorf("expected to see indented output")
@@ -162,7 +168,7 @@ func TestPrintResults_WithFailures(t *testing.T) {
 	}
 
 	PrintResults(&buf, res)
-	output := buf.String()
+	output := stripAnsi(buf.String())
 
 	if !strings.Contains(output, "[1] (error, 10ms) false") {
 		t.Errorf("expected to see error status")
@@ -260,4 +266,3 @@ func TestPrintResultsJSON(t *testing.T) {
 		t.Errorf("expected 0 failures, got %d", decoded.Failed)
 	}
 }
-

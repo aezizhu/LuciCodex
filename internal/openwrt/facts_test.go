@@ -101,3 +101,43 @@ func TestCollectFacts_EmptyOutput(t *testing.T) {
 		t.Errorf("expected facts to be empty when all commands fail, but got:\n%s", facts)
 	}
 }
+
+func TestDefaultRun(t *testing.T) {
+	// defaultRun is the initial value of runCommand
+	// We can access it via the unexported function directly or by resetting runCommand
+	// But runCommand is a variable.
+
+	// Let's use the exported SetRunCommand/GetRunCommand to verify them too
+	original := GetRunCommand()
+	defer SetRunCommand(original)
+
+	// We want to test defaultRun. It is not exported.
+	// But it is the initial value of runCommand.
+	// However, other tests might have changed it.
+	// We can't easily access defaultRun if it's not exported and runCommand was changed.
+	// Wait, facts.go defines: var runCommand runFn = defaultRun
+	// But we can't access defaultRun from test package if it's in same package?
+	// Yes we can, if test is package openwrt (not openwrt_test).
+	// facts_test.go is package openwrt.
+
+	ctx := context.Background()
+
+	// Test success
+	out := defaultRun(ctx, "echo", "hello")
+	if strings.TrimSpace(out) != "hello" {
+		t.Errorf("expected 'hello', got %q", out)
+	}
+
+	// Test failure
+	out = defaultRun(ctx, "false")
+	if out != "" {
+		t.Errorf("expected empty output for failed command, got %q", out)
+	}
+
+	// Test timeout (hard to test reliably with 1s timeout, but we can try sleep)
+	// sleep 2
+	out = defaultRun(ctx, "sleep", "2")
+	if out != "" {
+		t.Errorf("expected empty output for timeout, got %q", out)
+	}
+}

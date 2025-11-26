@@ -8,7 +8,7 @@ import (
 func TestNetworkPlugin_CanHandle(t *testing.T) {
 	p := &NetworkPlugin{}
 	testCases := []struct {
-		prompt  string
+		prompt    string
 		canHandle bool
 	}{
 		{"restart the wifi", true},
@@ -43,7 +43,7 @@ func TestNetworkPlugin_GeneratePlan(t *testing.T) {
 func TestFirewallPlugin_CanHandle(t *testing.T) {
 	p := &FirewallPlugin{}
 	testCases := []struct {
-		prompt  string
+		prompt    string
 		canHandle bool
 	}{
 		{"open port 8080", true},
@@ -83,5 +83,53 @@ func TestFirewallPlugin_GeneratePlan(t *testing.T) {
 	}
 	if !foundPort {
 		t.Error("did not find command to set destination port to 80")
+	}
+}
+
+func TestNetworkPlugin_GeneratePlan_ShowInterface(t *testing.T) {
+	p := &NetworkPlugin{}
+	plan, err := p.GeneratePlan(context.Background(), "show interface")
+	if err != nil {
+		t.Fatalf("GeneratePlan failed: %v", err)
+	}
+
+	if len(plan.Commands) != 2 {
+		t.Errorf("expected 2 commands, got %d", len(plan.Commands))
+	}
+	if plan.Commands[0].Command[2] != "network" {
+		t.Errorf("expected uci show network, got %v", plan.Commands[0].Command)
+	}
+}
+
+func TestFirewallPlugin_GeneratePlan_Ports(t *testing.T) {
+	p := &FirewallPlugin{}
+
+	tests := []struct {
+		prompt string
+		port   string
+	}{
+		{"open port 22", "22"},
+		{"open port 443", "443"},
+		{"open ssh port", "22"}, // default
+	}
+
+	for _, tt := range tests {
+		plan, err := p.GeneratePlan(context.Background(), tt.prompt)
+		if err != nil {
+			t.Errorf("GeneratePlan(%q) failed: %v", tt.prompt, err)
+			continue
+		}
+
+		found := false
+		expected := "firewall.@rule[-1].dest_port=" + tt.port
+		for _, cmd := range plan.Commands {
+			if len(cmd.Command) > 2 && cmd.Command[2] == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("GeneratePlan(%q) did not contain command with %q", tt.prompt, expected)
+		}
 	}
 }

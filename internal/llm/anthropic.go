@@ -21,7 +21,7 @@ type AnthropicClient struct {
 }
 
 func NewAnthropicClient(cfg config.Config) *AnthropicClient {
-	return &AnthropicClient{httpClient: &http.Client{Timeout: 30 * time.Second}, cfg: cfg}
+	return &AnthropicClient{httpClient: newHTTPClient(cfg, 30*time.Second), cfg: cfg}
 }
 
 type anthropicMessage struct {

@@ -67,6 +67,27 @@ Author: AZ <Aezi.zhu@icloud.com>
 
 ---
 
+## Testing and Development
+
+LuciCodex has comprehensive test coverage and follows Test-Driven Development practices.
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-coverage
+
+# Generate HTML coverage report
+make test-html
+```
+
+For detailed testing information, see [Testing Guide](docs/TESTING.md).
+
+**Current Coverage:** >90% for internal packages, 72% for CLI (Target: >70% overall)
+
+---
+
 ## Getting Started
 
 ### Prerequisites

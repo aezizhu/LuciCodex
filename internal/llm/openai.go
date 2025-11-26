@@ -21,7 +21,7 @@ type OpenAIClient struct {
 }
 
 func NewOpenAIClient(cfg config.Config) *OpenAIClient {
-	return &OpenAIClient{httpClient: &http.Client{Timeout: 30 * time.Second}, cfg: cfg}
+	return &OpenAIClient{httpClient: newHTTPClient(cfg, 30*time.Second), cfg: cfg}
 }
 
 type openaiMessage struct {
@@ -50,7 +50,7 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gpt-5-mini"
+		model = "gpt-4o-mini"
 	}
 	// Use configured endpoint or default
 	endpoint := c.cfg.Endpoint

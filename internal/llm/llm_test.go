@@ -5,18 +5,18 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
 	"github.com/aezizhu/LuciCodex/internal/plan"
+	"github.com/aezizhu/LuciCodex/internal/testutil"
 )
 
 func TestNewGeminiClient(t *testing.T) {
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: "https://test.example.com",
 	}
 
@@ -71,7 +71,7 @@ func TestGeminiClient_GeneratePlan_Success(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -97,7 +97,7 @@ func TestGeminiClient_GeneratePlan_Success(t *testing.T) {
 func TestGeminiClient_GeneratePlan_MissingAPIKey(t *testing.T) {
 	cfg := config.Config{
 		APIKey:   "",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: "https://test.example.com",
 	}
 
@@ -108,9 +108,38 @@ func TestGeminiClient_GeneratePlan_MissingAPIKey(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for missing API key")
 	}
-	if !strings.Contains(err.Error(), "missing Gemini API key") {
-		t.Errorf("expected 'missing Gemini API key' error, got %q", err.Error())
+	testutil.AssertError(t, err)
+	testutil.AssertContains(t, err.Error(), "missing Gemini API key")
+}
+
+func TestGeminiClient_GenerateErrorFix(t *testing.T) {
+	mockResponse := generateContentResponse{
+		Candidates: []struct {
+			Content content `json:"content"`
+		}{
+			{
+				Content: content{
+					Parts: []part{{Text: `{"summary": "fix plan", "commands": [{"command": ["fix", "it"]}]}`}},
+				},
+			},
+		},
 	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(mockResponse)
+	}))
+	defer server.Close()
+
+	cfg := config.Config{
+		APIKey:   "test-key",
+		Endpoint: server.URL,
+	}
+
+	client := NewGeminiClient(cfg)
+	plan, err := client.GenerateErrorFix(context.Background(), "cmd", "error", 1)
+
+	testutil.AssertNoError(t, err)
+	testutil.AssertEqual(t, plan.Summary, "fix plan")
 }
 
 func TestGeminiClient_GeneratePlan_HTTPError(t *testing.T) {
@@ -122,7 +151,7 @@ func TestGeminiClient_GeneratePlan_HTTPError(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "invalid-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -150,7 +179,7 @@ func TestGeminiClient_GeneratePlan_EmptyResponse(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -191,7 +220,7 @@ func TestGeminiClient_GeneratePlan_InvalidJSON(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -229,7 +258,7 @@ func TestGeminiClient_GeneratePlan_WrappedJSON(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -267,8 +296,8 @@ func TestGeminiClient_GeneratePlan_DefaultModel(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !contains(r.URL.String(), "gemini-2.5-flash") {
-			t.Error("expected default model 'gemini-2.5-flash' in URL")
+		if !contains(r.URL.String(), "gemini-1.5-flash") {
+			t.Error("expected default model 'gemini-1.5-flash' in URL")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(mockResponse)
@@ -299,7 +328,7 @@ func TestGeminiClient_GeneratePlan_ContextCancellation(t *testing.T) {
 
 	cfg := config.Config{
 		APIKey:   "test-key",
-		Model:    "gemini-2.5-flash",
+		Model:    "gemini-1.5-flash",
 		Endpoint: server.URL,
 	}
 
@@ -369,7 +398,7 @@ func TestExtractJSON(t *testing.T) {
 func TestNewOpenAIClient(t *testing.T) {
 	cfg := config.Config{
 		OpenAIAPIKey: "test-key",
-		Model:        "gpt-5-mini",
+		Model:        "gpt-4o-mini",
 	}
 
 	client := NewOpenAIClient(cfg)

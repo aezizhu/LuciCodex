@@ -210,4 +210,20 @@ o.default = "/tmp/lucicodex.log"
 o.rmempty = true
 o.description = translate("Path to store execution logs. Default: /tmp/lucicodex.log")
 
+-- Proxy settings
+o = s:option(Value, "https_proxy", translate("HTTPS Proxy"))
+o.placeholder = "http://proxy.example.com:3128"
+o.rmempty = true
+o.description = translate("Optional proxy for provider HTTPS requests. Needed when LuCI runs without HTTPS_PROXY in its environment.")
+
+o = s:option(Value, "http_proxy", translate("HTTP Proxy"))
+o.placeholder = "http://proxy.example.com:3128"
+o.rmempty = true
+o.description = translate("Optional proxy for plain HTTP requests (most providers only need HTTPS).")
+
+o = s:option(Value, "no_proxy", translate("No Proxy Domains"))
+o.placeholder = "localhost,127.0.0.1,.lan"
+o.rmempty = true
+o.description = translate("Comma-separated hosts that should bypass the proxy (supports leading dots for domains).")
+
 return m

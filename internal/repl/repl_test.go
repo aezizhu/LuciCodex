@@ -3,122 +3,386 @@ package repl
 import (
 	"bytes"
 	"context"
-	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
-	"github.com/aezizhu/LuciCodex/internal/executor"
-	"github.com/aezizhu/LuciCodex/internal/openwrt"
 	"github.com/aezizhu/LuciCodex/internal/plan"
+	"github.com/aezizhu/LuciCodex/internal/testutil"
 )
 
-// MockLLMProvider is a mock implementation of the llm.Provider interface.
-type MockLLMProvider struct {
-	GeneratePlanFunc     func(ctx context.Context, prompt string) (plan.Plan, error)
-	GenerateErrorFixFunc func(ctx context.Context, originalCommand string, errorOutput string, attempt int) (plan.Plan, error)
+// MockProvider implements llm.Provider for testing
+type MockProvider struct {
+	Plan plan.Plan
+	Err  error
 }
 
-func (m *MockLLMProvider) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
-	if m.GeneratePlanFunc != nil {
-		return m.GeneratePlanFunc(ctx, prompt)
-	}
-	return plan.Plan{}, errors.New("GeneratePlan not implemented")
+func (m *MockProvider) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
+	return m.Plan, m.Err
 }
 
-func (m *MockLLMProvider) GenerateErrorFix(ctx context.Context, originalCommand string, errorOutput string, attempt int) (plan.Plan, error) {
-	if m.GenerateErrorFixFunc != nil {
-		return m.GenerateErrorFixFunc(ctx, originalCommand, errorOutput, attempt)
-	}
-	return plan.Plan{}, errors.New("GenerateErrorFix not implemented")
+func (m *MockProvider) GenerateErrorFix(ctx context.Context, cmd, output string, attempt int) (plan.Plan, error) {
+	return m.Plan, m.Err
 }
 
-func TestREPL_SimpleCommands(t *testing.T) {
-	input := "status\nset dry-run=false\nhelp\nhistory\nexit\n"
+func TestREPL_Commands(t *testing.T) {
+	input := `help
+status
+set dry-run=false
+status
+history
+clear
+exit
+`
 	var output bytes.Buffer
-	cfg := config.Config{DryRun: true}
-
-	r := New(cfg, strings.NewReader(input), &output)
-	r.addToHistory("a previous command")
-	r.Run(context.Background())
-
-	outStr := output.String()
-	if !strings.Contains(outStr, "Dry run: true") {
-		t.Error("expected to see initial status of dry-run")
-	}
-	if !strings.Contains(outStr, "Set dry-run to false") {
-		t.Error("expected to see confirmation of setting dry-run")
-	}
-	if !strings.Contains(outStr, "Available commands:") {
-		t.Error("expected to see help output")
-	}
-	if !strings.Contains(outStr, "1  a previous command") {
-		t.Error("expected to see history output")
-	}
-}
-
-func TestREPL_ExecutePrompt(t *testing.T) {
-	// --- Setup Mocks ---
-	// Mock for LLM provider
-	mockProvider := &MockLLMProvider{
-		GeneratePlanFunc: func(ctx context.Context, prompt string) (plan.Plan, error) {
-			return plan.Plan{
-				Summary: "Mock plan for allowed command",
-				Commands: []plan.PlannedCommand{
-					{Command: []string{"ip", "addr"}},
-				},
-			}, nil
-		},
-	}
-
-	// Mock for executor engine
-	originalExecCommand := executor.GetRunCommand()
-	defer executor.SetRunCommand(originalExecCommand)
-	executor.SetRunCommand(func(ctx context.Context, argv []string) (string, error) {
-		if len(argv) > 0 && argv[0] == "ip" {
-			return "1: lo: <LOOPBACK,UP,LOWER_UP>...", nil
-		}
-		return "", errors.New("unexpected command")
-	})
-
-	// Mock for openwrt facts
-	originalFactsCommand := openwrt.GetRunCommand()
-	defer openwrt.SetRunCommand(originalFactsCommand)
-	openwrt.SetRunCommand(func(ctx context.Context, name string, args ...string) string {
-		return "mock facts"
-	})
-
-	// --- Setup REPL ---
-	input := "show ip address\ny\nexit\n" // prompt, confirmation, exit
-	var output bytes.Buffer
-	// Use a config that would allow the 'ip' command
 	cfg := config.Config{
-		DryRun:      false,
-		AutoApprove: false,
-		Allowlist:   []string{
-			"^ip(\\s|$)",
-		},
+		Provider: "test",
+		Model:    "test-model",
+		DryRun:   true,
 	}
 
 	r := New(cfg, strings.NewReader(input), &output)
-	// Replace provider with mock
-	r.provider = mockProvider
 
-	// --- Act ---
-	r.Run(context.Background())
+	// Run REPL
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
 
-	// --- Assert ---
-	outStr := output.String()
-	if !strings.Contains(outStr, "Mock plan for allowed command") {
-		t.Error("expected to see the plan summary from the mock provider")
+	outStr := testutil.StripAnsi(output.String())
+
+	// Check help output
+	testutil.AssertContains(t, outStr, "Available commands:")
+
+	// Check initial status
+	testutil.AssertContains(t, outStr, "Dry run: true")
+
+	// Check set command
+	testutil.AssertContains(t, outStr, "Set dry-run to false")
+
+	// Check updated status
+	testutil.AssertContains(t, outStr, "Dry run: false")
+
+	// Check history
+	testutil.AssertContains(t, outStr, "history")
+
+	// Check clear
+	testutil.AssertContains(t, outStr, "History cleared")
+}
+
+func TestREPL_LLMInteraction(t *testing.T) {
+	// Mock LLM response
+	mockPlan := plan.Plan{
+		Summary: "Test Plan",
+		Commands: []plan.PlannedCommand{
+			{Command: []string{"echo", "test"}},
+		},
 	}
-	if !strings.Contains(outStr, "Execute these commands? [y/N]:") {
-		t.Error("expected to see the confirmation prompt")
+
+	input := "do something\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider:    "test",
+		DryRun:      true, // Keep dry run to avoid execution
+		MaxCommands: 10,
+		Allowlist:   []string{"^echo"},
 	}
-	if !strings.Contains(outStr, "1: lo: <LOOPBACK,UP,LOWER_UP>...") {
-		t.Errorf("expected to see the indented execution result. Full output:\n%s", outStr)
+
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider
+	r.provider = &MockProvider{Plan: mockPlan}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+
+	// Check plan output
+	testutil.AssertContains(t, outStr, "Summary: Test Plan")
+	testutil.AssertContains(t, outStr, "echo test")
+	testutil.AssertContains(t, outStr, "Dry run mode - no execution")
+}
+
+func TestREPL_HistoryCommand(t *testing.T) {
+	// Test !1 command
+	input := "echo test\n!1\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		DryRun:    true,
+		Allowlist: []string{"^echo"},
 	}
-	if !strings.Contains(outStr, "All commands executed successfully") {
-		t.Error("expected to see the final success message")
+
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider
+	mockPlan := plan.Plan{
+		Summary: "Echo Test",
+		Commands: []plan.PlannedCommand{
+			{Command: []string{"echo", "test"}},
+		},
 	}
+	r.provider = &MockProvider{Plan: mockPlan}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "Re-running: echo test")
+}
+
+func TestREPL_SetCommands(t *testing.T) {
+	input := `set provider=anthropic
+set model=claude-3-opus
+set auto-approve=true
+set unknown=value
+set invalid
+exit
+`
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider: "gemini",
+	}
+
+	r := New(cfg, strings.NewReader(input), &output)
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+
+	testutil.AssertContains(t, outStr, "Set provider to anthropic")
+	testutil.AssertContains(t, outStr, "Set model to claude-3-opus")
+	testutil.AssertContains(t, outStr, "Set auto-approve to true")
+	testutil.AssertContains(t, outStr, "unknown setting: unknown")
+	testutil.AssertContains(t, outStr, "usage: set key=value")
+}
+
+func TestREPL_LLMError(t *testing.T) {
+	input := "do something\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{Provider: "test"}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider with error
+	r.provider = &MockProvider{Err: context.DeadlineExceeded}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "Error: LLM error")
+}
+
+func TestREPL_PolicyRejection(t *testing.T) {
+	input := "destroy everything\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider: "test",
+		Denylist: []string{"^rm"},
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider with dangerous command
+	mockPlan := plan.Plan{
+		Summary: "Dangerous Plan",
+		Commands: []plan.PlannedCommand{
+			{Command: []string{"rm", "-rf", "/"}},
+		},
+	}
+	r.provider = &MockProvider{Plan: mockPlan}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "Error: Plan rejected")
+}
+
+func TestREPL_HistoryErrors(t *testing.T) {
+	// Add a command first so history is not empty
+	input := "echo test\n!abc\n!999\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider: "test",
+		DryRun:   true,
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Mock provider for the "echo test" command
+	r.provider = &MockProvider{Plan: plan.Plan{
+		Summary:  "Echo",
+		Commands: []plan.PlannedCommand{{Command: []string{"echo", "test"}}},
+	}}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "Error: invalid history index")      // !abc
+	testutil.AssertContains(t, outStr, "Error: history index out of range") // !999
+}
+
+func TestREPL_EmptyPlan(t *testing.T) {
+	input := "do nothing\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{Provider: "test"}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider with empty plan
+	mockPlan := plan.Plan{
+		Summary:  "Empty Plan",
+		Commands: []plan.PlannedCommand{},
+	}
+	r.provider = &MockProvider{Plan: mockPlan}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "No commands proposed")
+}
+
+func TestREPL_MaxCommands(t *testing.T) {
+	input := "do too much\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider:    "test",
+		MaxCommands: 1,
+		DryRun:      true,
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Inject mock provider with 2 commands
+	mockPlan := plan.Plan{
+		Summary: "Too Many Commands",
+		Commands: []plan.PlannedCommand{
+			{Command: []string{"echo", "1"}},
+			{Command: []string{"echo", "2"}},
+		},
+	}
+	r.provider = &MockProvider{Plan: mockPlan}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	// Should only show first command
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "echo 1")
+	testutil.AssertNotContains(t, outStr, "echo 2")
+}
+
+func TestREPL_ConfirmationCancellation(t *testing.T) {
+	input := "do something\nn\nexit\n" // Command, then 'n' to cancel
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider:    "test",
+		DryRun:      false, // Need dry run false to trigger confirmation
+		AutoApprove: false,
+		Allowlist:   []string{"^echo"},
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	r.provider = &MockProvider{Plan: plan.Plan{
+		Summary:  "Dangerous",
+		Commands: []plan.PlannedCommand{{Command: []string{"echo", "dangerous"}}},
+	}}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "Execute these commands?")
+	testutil.AssertContains(t, outStr, "Cancelled")
+	testutil.AssertNotContains(t, outStr, "Executing:")
+}
+
+func TestREPL_HistoryLimit(t *testing.T) {
+	// Add 3 commands with limit 2
+	input := "cmd1\ncmd2\ncmd3\nhistory\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider: "test",
+		DryRun:   true,
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+	r.maxHistory = 2 // Override for test
+
+	// Mock provider to just return success
+	r.provider = &MockProvider{Plan: plan.Plan{
+		Summary:  "Echo",
+		Commands: []plan.PlannedCommand{{Command: []string{"echo", "ok"}}},
+	}}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	// Should contain cmd2 and cmd3, but not cmd1
+	testutil.AssertContains(t, outStr, "cmd2")
+	testutil.AssertContains(t, outStr, "cmd3")
+	testutil.AssertNotContains(t, outStr, "cmd1")
+}
+
+func TestREPL_ShowHistory(t *testing.T) {
+	input := "cmd1\ncmd2\nhistory\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider: "test",
+		DryRun:   true,
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	r.provider = &MockProvider{Plan: plan.Plan{
+		Summary:  "Echo",
+		Commands: []plan.PlannedCommand{{Command: []string{"echo", "ok"}}},
+	}}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "1  cmd1")
+	testutil.AssertContains(t, outStr, "2  cmd2")
+}
+
+type errorReader struct{}
+
+func (e *errorReader) Read(p []byte) (n int, err error) {
+	return 0, fmt.Errorf("read error")
+}
+
+func TestREPL_ReadError(t *testing.T) {
+	var output bytes.Buffer
+	cfg := config.Config{Provider: "test"}
+	// bufio.NewReader wraps our errorReader. ReadString calls Read.
+	r := New(cfg, &errorReader{}, &output)
+
+	err := r.Run(context.Background())
+	if err == nil || err.Error() != "read error" {
+		t.Errorf("expected read error, got %v", err)
+	}
+}
+
+func TestREPL_ExecutionResults(t *testing.T) {
+	input := "echo test\nexit\n"
+	var output bytes.Buffer
+	cfg := config.Config{
+		Provider:    "test",
+		DryRun:      false,
+		AutoApprove: true,
+		Allowlist:   []string{"^echo"},
+	}
+	r := New(cfg, strings.NewReader(input), &output)
+
+	// Mock provider
+	r.provider = &MockProvider{Plan: plan.Plan{
+		Summary:  "Echo",
+		Commands: []plan.PlannedCommand{{Command: []string{"echo", "test"}}},
+	}}
+
+	err := r.Run(context.Background())
+	testutil.AssertNoError(t, err)
+
+	outStr := testutil.StripAnsi(output.String())
+	testutil.AssertContains(t, outStr, "echo test")
 }

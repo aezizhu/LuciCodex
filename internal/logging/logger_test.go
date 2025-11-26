@@ -105,3 +105,25 @@ func TestLogger_Concurrency(t *testing.T) {
 		t.Errorf("expected %d log lines, but got %d", numRoutines, len(lines))
 	}
 }
+
+func TestLogger_WriteJSON_Error(t *testing.T) {
+	tempDir := t.TempDir()
+	logFile := filepath.Join(tempDir, "error.log")
+	logger := New(logFile)
+
+	// Pass a channel, which cannot be marshaled to JSON
+	logger.writeJSON("error_event", make(chan int))
+
+	// Verify that nothing was written (or at least no panic)
+	content, err := os.ReadFile(logFile)
+	if err != nil {
+		// File might not exist if nothing was written
+		if !os.IsNotExist(err) {
+			t.Fatalf("unexpected error reading log file: %v", err)
+		}
+	} else {
+		if len(content) > 0 {
+			t.Error("expected nothing to be written on marshal error")
+		}
+	}
+}

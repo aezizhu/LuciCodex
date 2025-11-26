@@ -144,3 +144,52 @@ func TestStore_Concurrency(t *testing.T) {
 		t.Errorf("expected %d tokens in the store, but got %d", numRoutines, len(store.tokens))
 	}
 }
+
+func TestStore_PathOrDefault_NoHome(t *testing.T) {
+	t.Setenv("HOME", "")
+	// On some systems, UserHomeDir might still return something from /etc/passwd even if HOME is empty.
+	// But if it returns empty, we expect /etc/lucicodex/tokens.json
+
+	// We can't easily mock os.UserHomeDir without refactoring.
+	// But we can check if it returns empty.
+	home, _ := os.UserHomeDir()
+	if home == "" {
+		s := NewStore("")
+		if s.PathOrDefault() != "/etc/lucicodex/tokens.json" {
+			t.Errorf("expected /etc/lucicodex/tokens.json when HOME is empty")
+		}
+	}
+}
+
+func TestStore_Save_Errors(t *testing.T) {
+	// Test MkdirAll error (permission denied)
+	// We can try to save to a root path
+	s := NewStore("/root/tokens.json")
+	if os.Geteuid() != 0 { // Only if not root
+		err := s.Save()
+		if err == nil {
+			// It might fail or not depending on env, but usually fails
+		}
+	}
+
+	// Better: save to a file where directory is a file
+	tempDir := t.TempDir()
+	fileAsDir := filepath.Join(tempDir, "file")
+	os.WriteFile(fileAsDir, []byte("test"), 0600)
+
+	s = NewStore(filepath.Join(fileAsDir, "tokens.json"))
+	err := s.Save()
+	if err == nil {
+		t.Error("expected error when directory is a file")
+	}
+}
+
+func TestStore_Put_NilMap(t *testing.T) {
+	// Manually create store with nil map
+	s := &Store{}
+	s.Put(Token{Provider: "test"})
+
+	if len(s.tokens) != 1 {
+		t.Error("expected token to be added even if map was nil")
+	}
+}

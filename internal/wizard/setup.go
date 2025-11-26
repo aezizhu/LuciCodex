@@ -205,7 +205,11 @@ func (w *Wizard) readString(prompt, defaultValue string) string {
 		fmt.Fprintf(w.writer, "%s: ", prompt)
 	}
 
-	line, _ := w.reader.ReadString('\n')
+	line, err := w.reader.ReadString('\n')
+	if err != nil {
+		// On error (e.g. EOF), return default if available, or empty string
+		return defaultValue
+	}
 	line = strings.TrimSpace(line)
 
 	if line == "" {
@@ -222,7 +226,10 @@ func (w *Wizard) readBool(prompt string, defaultValue bool) bool {
 
 	for {
 		fmt.Fprintf(w.writer, "%s [%s]: ", prompt, defaultStr)
-		line, _ := w.reader.ReadString('\n')
+		line, err := w.reader.ReadString('\n')
+		if err != nil {
+			return defaultValue
+		}
 		line = strings.TrimSpace(strings.ToLower(line))
 
 		if line == "" {
@@ -243,7 +250,10 @@ func (w *Wizard) readBool(prompt string, defaultValue bool) bool {
 func (w *Wizard) readInt(prompt string, defaultValue, min, max int) int {
 	for {
 		fmt.Fprintf(w.writer, "%s [%d]: ", prompt, defaultValue)
-		line, _ := w.reader.ReadString('\n')
+		line, err := w.reader.ReadString('\n')
+		if err != nil {
+			return defaultValue
+		}
 		line = strings.TrimSpace(line)
 
 		if line == "" {
@@ -268,7 +278,10 @@ func (w *Wizard) readInt(prompt string, defaultValue, min, max int) int {
 func (w *Wizard) readChoice(prompt string, min, max int) (int, error) {
 	for {
 		fmt.Fprintf(w.writer, "%s [%d-%d]: ", prompt, min, max)
-		line, _ := w.reader.ReadString('\n')
+		line, err := w.reader.ReadString('\n')
+		if err != nil {
+			return 0, err
+		}
 		line = strings.TrimSpace(line)
 
 		choice, err := strconv.Atoi(line)
