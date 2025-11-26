@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -278,11 +279,24 @@ func fileExists(p string) bool {
 }
 
 func uciGet(key string) (string, error) {
-	_, err := exec.LookPath("uci")
-	if err != nil {
-		return "", err
+	// Try common UCI paths - web server might not have /sbin in PATH
+	uciPaths := []string{"/sbin/uci", "/usr/sbin/uci", "uci"}
+	var uciCmd string
+	for _, p := range uciPaths {
+		if _, err := exec.LookPath(p); err == nil {
+			uciCmd = p
+			break
+		}
+		// Also check if it exists as a file directly
+		if _, err := os.Stat(p); err == nil {
+			uciCmd = p
+			break
+		}
 	}
-	out, err := exec.Command("uci", "-q", "get", key).Output()
+	if uciCmd == "" {
+		return "", fmt.Errorf("uci command not found")
+	}
+	out, err := exec.Command(uciCmd, "-q", "get", key).Output()
 	if err != nil {
 		return "", err
 	}
