@@ -21,6 +21,14 @@ func TestNewHTTPClient(t *testing.T) {
 }
 
 func TestProxyFunc(t *testing.T) {
+	// Clear proxy env vars to ensure deterministic testing
+	t.Setenv("HTTP_PROXY", "")
+	t.Setenv("HTTPS_PROXY", "")
+	t.Setenv("NO_PROXY", "")
+	t.Setenv("http_proxy", "")
+	t.Setenv("https_proxy", "")
+	t.Setenv("no_proxy", "")
+
 	tests := []struct {
 		name      string
 		cfg       config.Config
