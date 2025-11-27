@@ -24,23 +24,24 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-const version = "0.4.33"
+const version = "0.4.35"
+
+var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
 func acquireLock() (*os.File, string, error) {
-	lockPaths := []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 	var lastErr error
 
-	for i, lockPath := range lockPaths {
-		f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	for i, path := range lockPaths {
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 		if err == nil {
 			if i > 0 {
-				fmt.Fprintf(os.Stderr, "Note: falling back to %s\n", lockPath)
+				fmt.Fprintf(os.Stderr, "Note: falling back to %s\n", path)
 			}
-			return f, lockPath, nil
+			return f, path, nil
 		}
 		lastErr = err
 		if os.IsExist(err) {
-			return nil, "", fmt.Errorf("execution in progress (lock file exists: %s)", lockPath)
+			return nil, "", fmt.Errorf("execution in progress (lock file exists: %s)", path)
 		}
 	}
 
@@ -110,6 +111,9 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 	if setFlags["model"] {
 		cfg.Model = *model
+		// Prevent provider-specific settings from overriding the explicit CLI flag
+		cfg.OpenAIModel = ""
+		cfg.AnthropicModel = ""
 	}
 	if setFlags["provider"] {
 		cfg.Provider = *provider

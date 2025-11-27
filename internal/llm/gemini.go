@@ -20,8 +20,12 @@ type GeminiClient struct {
 }
 
 func NewGeminiClient(cfg config.Config) *GeminiClient {
+	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
 	return &GeminiClient{
-		httpClient: newHTTPClient(cfg, 30*time.Second),
+		httpClient: newHTTPClient(cfg, timeout),
 		cfg:        cfg,
 	}
 }

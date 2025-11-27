@@ -21,7 +21,11 @@ type OpenAIClient struct {
 }
 
 func NewOpenAIClient(cfg config.Config) *OpenAIClient {
-	return &OpenAIClient{httpClient: newHTTPClient(cfg, 30*time.Second), cfg: cfg}
+	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
+	return &OpenAIClient{httpClient: newHTTPClient(cfg, timeout), cfg: cfg}
 }
 
 type openaiMessage struct {
