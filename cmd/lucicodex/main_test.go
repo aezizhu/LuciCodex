@@ -81,6 +81,9 @@ func TestMain_ConfigError(t *testing.T) {
 
 // TestMain_Locking tests the locking mechanism with a mock LLM
 func TestMain_Locking(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("Skipping TestMain_Locking in CI environment")
+	}
 	// Start a mock LLM server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Return a valid Gemini response

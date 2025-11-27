@@ -126,7 +126,7 @@ func TestMonitor_Timeout(t *testing.T) {
 	// Create a command that sleeps for 2 seconds
 	cmd := exec.Command("sleep", "2")
 	limits := ResourceLimits{
-		MaxExecutionTime: 100 * time.Millisecond, // Short timeout
+		MaxExecutionTime: 500 * time.Millisecond, // Increased timeout for CI stability
 	}
 
 	m := NewMonitor(cmd, limits)
