@@ -15,6 +15,7 @@ import (
 
 func TestSandbox_ValidateCommand(t *testing.T) {
 	s := NewSandbox(config.Config{})
+	s.tmpDir = t.TempDir()
 
 	testCases := []struct {
 		name        string
@@ -47,6 +48,7 @@ func TestSandbox_ValidateCommand(t *testing.T) {
 func TestSandbox_ExecuteCommand(t *testing.T) {
 	cfg := config.Config{TimeoutSeconds: 15}
 	s := NewSandbox(cfg)
+	s.tmpDir = t.TempDir()
 
 	pc := plan.PlannedCommand{Command: []string{"/bin/echo", "hello", "world"}}
 
@@ -154,6 +156,7 @@ func TestMonitor_Timeout(t *testing.T) {
 
 func TestSandbox_ExecuteCommand_Empty(t *testing.T) {
 	s := NewSandbox(config.Config{})
+	s.tmpDir = t.TempDir()
 	pc := plan.PlannedCommand{Command: []string{}}
 
 	_, err := s.ExecuteCommand(context.Background(), pc)
@@ -164,6 +167,7 @@ func TestSandbox_ExecuteCommand_Empty(t *testing.T) {
 
 func TestSandbox_GetRestrictedEnv(t *testing.T) {
 	s := NewSandbox(config.Config{})
+	s.tmpDir = t.TempDir()
 	env := s.getRestrictedEnv()
 
 	foundPath := false
@@ -222,6 +226,7 @@ func TestSandbox_CleanupError(t *testing.T) {
 
 func TestSandbox_ValidateCommand_MorePatterns(t *testing.T) {
 	s := NewSandbox(config.Config{})
+	s.tmpDir = t.TempDir()
 	patterns := []string{
 		"/proc/cpuinfo",
 		"/sys/class",
@@ -263,6 +268,7 @@ func TestMonitor_StartFailure(t *testing.T) {
 
 func TestSandbox_SetLimits(t *testing.T) {
 	s := NewSandbox(config.Config{})
+	s.tmpDir = t.TempDir()
 	limits := ResourceLimits{
 		MaxMemoryMB:   256,
 		MaxCPUPercent: 80,
