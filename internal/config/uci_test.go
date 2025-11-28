@@ -44,6 +44,10 @@ func TestHelperProcess(t *testing.T) {
 		if os.Getenv("TEST_UCI_ERROR") == "1" {
 			os.Exit(1)
 		}
+		if os.Getenv("TEST_UCI_SYSTEM_ERROR") == "1" {
+			fmt.Fprintln(os.Stderr, "simulated system error")
+			os.Exit(2)
+		}
 
 		if os.Getenv("TEST_UCI_ALL") == "1" {
 			switch key {
@@ -93,6 +97,17 @@ func TestHelperProcess(t *testing.T) {
 			switch key {
 			case "lucicodex.@settings[0].key":
 				fmt.Print("fallback-key")
+			default:
+				os.Exit(1)
+			}
+			os.Exit(0)
+			os.Exit(0)
+		}
+
+		if os.Getenv("TEST_UCI_LEGACY") == "1" {
+			switch key {
+			case "lucicodex.@api[0].key":
+				fmt.Print("legacy-key")
 			default:
 				os.Exit(1)
 			}
@@ -180,6 +195,28 @@ func TestLoad_UCIFallbacks(t *testing.T) {
 	}
 }
 
+func TestLoad_UCILegacy(t *testing.T) {
+	oldExecCommand := execCommand
+	execCommand = fakeExecCommand
+	defer func() { execCommand = oldExecCommand }()
+
+	os.Unsetenv("LUCICODEX_PROVIDER")
+	os.Unsetenv("OPENAI_API_KEY")
+
+	// Helper process that simulates missing main and settings, but present api
+	os.Setenv("TEST_UCI_LEGACY", "1")
+	defer os.Unsetenv("TEST_UCI_LEGACY")
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.APIKey != "legacy-key" {
+		t.Errorf("expected APIKey 'legacy-key', got %q", cfg.APIKey)
+	}
+}
+
 func TestLoad_UCIError(t *testing.T) {
 	oldExecCommand := execCommand
 	execCommand = fakeExecCommand
@@ -196,6 +233,33 @@ func TestLoad_UCIError(t *testing.T) {
 
 	if cfg.APIKey != "" {
 		t.Errorf("expected empty APIKey, got %q", cfg.APIKey)
+	}
+}
+
+func TestLoad_UCI_InvalidValues(t *testing.T) {
+	oldExecCommand := execCommand
+	execCommand = fakeExecCommand
+	defer func() { execCommand = oldExecCommand }()
+
+	os.Unsetenv("LUCICODEX_PROVIDER")
+	os.Setenv("TEST_UCI_INVALID", "1")
+	defer os.Unsetenv("TEST_UCI_INVALID")
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	// Should keep defaults
+	if cfg.TimeoutSeconds != 60 {
+		t.Errorf("expected default timeout 60, got %d", cfg.TimeoutSeconds)
+	}
+	if cfg.MaxCommands != 10 {
+		t.Errorf("expected default max commands 10, got %d", cfg.MaxCommands)
+	}
+	// confirm_each "invalid" should be ignored (default false)
+	if cfg.ConfirmEach {
+		t.Error("expected ConfirmEach false")
 	}
 }
 
@@ -355,4 +419,45 @@ func TestUciGet_PathSearch(t *testing.T) {
 	if capturedCmd != "/usr/sbin/uci" {
 		t.Errorf("expected /usr/sbin/uci, got %q", capturedCmd)
 	}
+
+	// Case 3: Fallback to "uci"
+	lookPath = func(file string) (string, error) { return "", os.ErrNotExist }
+	osStat = func(name string) (os.FileInfo, error) { return nil, os.ErrNotExist }
+
+	Load("")
+	if capturedCmd != "uci" {
+		t.Errorf("expected 'uci', got %q", capturedCmd)
+	}
+}
+
+func TestUciGetRobustness(t *testing.T) {
+	oldExecCommand := execCommand
+	execCommand = fakeExecCommand
+	defer func() { execCommand = oldExecCommand }()
+
+	// Case 1: Exit code 1 (key not found) -> should return "", nil
+	// We use TEST_UCI_ERROR=1 which triggers os.Exit(1) in helper
+	t.Run("ExitCode1", func(t *testing.T) {
+		os.Setenv("TEST_UCI_ERROR", "1")
+		defer os.Unsetenv("TEST_UCI_ERROR")
+
+		val, err := uciGet("some.key")
+		if err != nil {
+			t.Errorf("expected no error for exit code 1, got: %v", err)
+		}
+		if val != "" {
+			t.Errorf("expected empty string for exit code 1, got: %q", val)
+		}
+	})
+
+	// Case 2: Exit code 2 (system error) -> should return "", error
+	t.Run("ExitCode2", func(t *testing.T) {
+		os.Setenv("TEST_UCI_SYSTEM_ERROR", "1")
+		defer os.Unsetenv("TEST_UCI_SYSTEM_ERROR")
+
+		_, err := uciGet("some.key")
+		if err == nil {
+			t.Error("expected error for exit code 2, got nil")
+		}
+	})
 }

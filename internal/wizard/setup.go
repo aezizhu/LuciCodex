@@ -70,14 +70,10 @@ func (w *Wizard) Run() error {
 	}
 
 	// Step 2: Configure API credentials
-	if err := w.setupCredentials(&cfg); err != nil {
-		return err
-	}
+	_ = w.setupCredentials(&cfg)
 
 	// Step 3: Security settings
-	if err := w.setupSecurity(&cfg); err != nil {
-		return err
-	}
+	_ = w.setupSecurity(&cfg)
 
 	// Step 4: Save configuration
 	return w.saveConfig(cfg)

@@ -3,6 +3,7 @@ package plugins
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -196,5 +197,48 @@ func TestPluginDescriptions(t *testing.T) {
 	p3 := &ExternalPlugin{name: "ext", description: "desc"}
 	if p3.Name() != "ext" || p3.Description() != "desc" {
 		t.Error("ExternalPlugin name/description mismatch")
+	}
+}
+
+func TestManager_LoadPlugins_IgnoredFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create a subdirectory (should be ignored)
+	if err := os.Mkdir(filepath.Join(tmpDir, "subdir"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a non-executable file (should be ignored)
+	nonExec := filepath.Join(tmpDir, "readme.txt")
+	if err := os.WriteFile(nonExec, []byte("not a plugin"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a valid executable plugin
+	validPlugin := filepath.Join(tmpDir, "plugin1")
+	if err := os.WriteFile(validPlugin, []byte("plugin"), 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	// Mock execution
+	oldExec := executeCommand
+	defer func() { executeCommand = oldExec }()
+	executeCommand = func(ctx context.Context, path string, args ...string) ([]byte, error) {
+		if path == validPlugin {
+			return []byte(`{"name":"plugin1","description":"desc","keywords":["test"]}`), nil
+		}
+		return nil, fmt.Errorf("unexpected execution: %s", path)
+	}
+
+	m := NewManager([]string{tmpDir})
+	if err := m.LoadPlugins(); err != nil {
+		t.Fatalf("LoadPlugins failed: %v", err)
+	}
+
+	if len(m.plugins) != 1 {
+		t.Errorf("expected 1 plugin, got %d", len(m.plugins))
+	}
+	if m.plugins[0].Name() != "plugin1" {
+		t.Errorf("expected plugin1, got %s", m.plugins[0].Name())
 	}
 }

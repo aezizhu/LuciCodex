@@ -49,7 +49,7 @@ func defaultConfig() Config {
 		Provider:          "gemini",
 		DryRun:            true,
 		AutoApprove:       false,
-		TimeoutSeconds:    30,
+		TimeoutSeconds:    60,
 		MaxCommands:       10,
 		MaxRetries:        2,
 		AutoRetry:         true,
@@ -121,15 +121,15 @@ func Load(path string) (Config, error) {
 	// Helper to try main section, then settings section, then api section
 	getUci := func(option string) string {
 		// Try named 'main' section first
-		if val, _ := uciGet("lucicodex.main." + option); val != "" {
+		if val, err := uciGet("lucicodex.main." + option); err == nil && val != "" {
 			return val
 		}
 		// Try anonymous settings section
-		if val, _ := uciGet("lucicodex.@settings[0]." + option); val != "" {
+		if val, err := uciGet("lucicodex.@settings[0]." + option); err == nil && val != "" {
 			return val
 		}
 		// Try anonymous api section (legacy)
-		if val, _ := uciGet("lucicodex.@api[0]." + option); val != "" {
+		if val, err := uciGet("lucicodex.@api[0]." + option); err == nil && val != "" {
 			return val
 		}
 		return ""
@@ -330,6 +330,13 @@ func uciGet(key string) (string, error) {
 	cmd := execCommand(uciCmd, "-q", "get", key)
 	out, err := cmd.Output()
 	if err != nil {
+		// If exit code is 1, it means key not found, which is fine.
+		// If exit code is anything else, it's a real error.
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 1 {
+				return "", nil
+			}
+		}
 		return "", err
 	}
 	return strings.TrimSpace(string(out)), nil

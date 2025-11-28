@@ -100,3 +100,47 @@ func TestAnthropicClient_GenerateErrorFix(t *testing.T) {
 	testutil.AssertNoError(t, err)
 	testutil.AssertEqual(t, plan.Summary, "fix plan")
 }
+
+func TestAnthropicClient_EdgeCases(t *testing.T) {
+	// 1. Missing API Key
+	client := NewAnthropicClient(config.Config{})
+	_, err := client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+	testutil.AssertContains(t, err.Error(), "missing Anthropic API key")
+
+	// 2. HTTP Client Error (Connection Refused)
+	// Create a client pointing to a closed port
+	client = NewAnthropicClient(config.Config{
+		AnthropicAPIKey: "key",
+		Endpoint:        "http://127.0.0.1:1", // Should fail
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+
+	// 3. Invalid JSON Response
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	client = NewAnthropicClient(config.Config{
+		AnthropicAPIKey: "key",
+		Endpoint:        server.URL,
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+
+	// 4. Empty Response Content
+	serverEmpty := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"content": []}`))
+	}))
+	defer serverEmpty.Close()
+
+	client = NewAnthropicClient(config.Config{
+		AnthropicAPIKey: "key",
+		Endpoint:        serverEmpty.URL,
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+	testutil.AssertContains(t, err.Error(), "empty response")
+}

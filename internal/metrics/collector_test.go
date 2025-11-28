@@ -2,7 +2,9 @@ package metrics
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -12,7 +14,7 @@ import (
 
 func TestRecordRequest(t *testing.T) {
 	c := NewCollector("") // No file path for this test
-	c.Stop() // Stop periodic saving for predictable test
+	c.Stop()              // Stop periodic saving for predictable test
 
 	p := plan.Plan{
 		Commands: []plan.PlannedCommand{
@@ -148,5 +150,80 @@ func TestConcurrency(t *testing.T) {
 	}
 	if m.TotalDuration != time.Duration(numRoutines)*10*time.Millisecond {
 		t.Errorf("expected TotalDuration to be %v, got %v", time.Duration(numRoutines)*10*time.Millisecond, m.TotalDuration)
+	}
+}
+
+func TestCollector_FullBuffer(t *testing.T) {
+	c := NewCollector("")
+	c.Stop()
+
+	// Fill buffer + 1
+	p := plan.Plan{}
+	for i := 0; i < 101; i++ {
+		c.RecordRequest("p", "prompt", p, 0, nil)
+	}
+
+	m := c.GetMetrics()
+	if len(m.RecentRequests) != 100 {
+		t.Errorf("expected 100 recent requests, got %d", len(m.RecentRequests))
+	}
+}
+
+func TestCollector_Errors(t *testing.T) {
+	// Test Save error (invalid path)
+	c := NewCollector("/invalid/path/metrics.json")
+	c.Stop()
+	if err := c.Save(); err == nil {
+		t.Error("expected error saving to invalid path")
+	}
+
+	// Test Load error (corrupt file)
+	tmpFile := filepath.Join(t.TempDir(), "corrupt.json")
+	if err := os.WriteFile(tmpFile, []byte("{invalid json"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Manually create collector to avoid NewCollector starting periodicSave which overwrites file
+	c = &Collector{
+		metrics:  &Metrics{},
+		filePath: tmpFile,
+	}
+
+	if err := c.Load(); err == nil {
+		t.Error("expected error loading corrupt file")
+	}
+
+	// Test Load error (permission denied)
+	// Hard to simulate portably without root/chmod tricks that might fail in containers.
+	// But corrupt file covers json.Unmarshal error.
+	// os.ReadFile error is covered by IsNotExist check (returns nil).
+	// We need a non-NotExist error.
+	if err := os.Chmod(tmpFile, 0000); err == nil {
+		// If chmod succeeds, try to load
+		if err := c.Load(); err == nil {
+			t.Error("expected error loading unreadable file")
+		}
+		os.Chmod(tmpFile, 0644) // Restore
+	}
+}
+
+func TestCollector_LongPrompt(t *testing.T) {
+	c := NewCollector("")
+	c.Stop()
+
+	longPrompt := strings.Repeat("a", 200)
+	c.RecordRequest("p", longPrompt, plan.Plan{}, 0, nil)
+
+	m := c.GetMetrics()
+	if len(m.RecentRequests) != 1 {
+		t.Fatal("expected 1 request")
+	}
+
+	got := m.RecentRequests[0].Prompt
+	if len(got) > 100 {
+		t.Errorf("expected prompt length <= 100, got %d", len(got))
+	}
+	if !strings.HasSuffix(got, "...") {
+		t.Error("expected prompt to be truncated with ...")
 	}
 }

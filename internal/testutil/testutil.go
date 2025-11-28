@@ -8,13 +8,23 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
 )
 
+// TestingT is an interface wrapper around *testing.T
+type TestingT interface {
+	Helper()
+	Fatalf(format string, args ...interface{})
+	Fatal(args ...interface{})
+	Errorf(format string, args ...interface{})
+	Error(args ...interface{})
+	TempDir() string
+	Logf(format string, args ...interface{})
+}
+
 // AssertNoError fails the test if err is not nil
-func AssertNoError(t *testing.T, err error) {
+func AssertNoError(t TestingT, err error) {
 	t.Helper()
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -22,7 +32,7 @@ func AssertNoError(t *testing.T, err error) {
 }
 
 // AssertError fails the test if err is nil
-func AssertError(t *testing.T, err error) {
+func AssertError(t TestingT, err error) {
 	t.Helper()
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -30,7 +40,7 @@ func AssertError(t *testing.T, err error) {
 }
 
 // AssertEqual fails the test if got != want
-func AssertEqual(t *testing.T, got, want interface{}) {
+func AssertEqual(t TestingT, got, want interface{}) {
 	t.Helper()
 	if got != want {
 		t.Fatalf("got %v, want %v", got, want)
@@ -38,7 +48,7 @@ func AssertEqual(t *testing.T, got, want interface{}) {
 }
 
 // AssertContains fails the test if haystack doesn't contain needle
-func AssertContains(t *testing.T, haystack, needle string) {
+func AssertContains(t TestingT, haystack, needle string) {
 	t.Helper()
 	if !strings.Contains(haystack, needle) {
 		t.Fatalf("expected %q to contain %q", haystack, needle)
@@ -46,7 +56,7 @@ func AssertContains(t *testing.T, haystack, needle string) {
 }
 
 // AssertNotContains fails the test if haystack contains needle
-func AssertNotContains(t *testing.T, haystack, needle string) {
+func AssertNotContains(t TestingT, haystack, needle string) {
 	t.Helper()
 	if strings.Contains(haystack, needle) {
 		t.Fatalf("expected %q to not contain %q", haystack, needle)
@@ -54,7 +64,7 @@ func AssertNotContains(t *testing.T, haystack, needle string) {
 }
 
 // AssertTrue fails the test if condition is false
-func AssertTrue(t *testing.T, condition bool) {
+func AssertTrue(t TestingT, condition bool) {
 	t.Helper()
 	if !condition {
 		t.Fatal("expected true, got false")
@@ -62,7 +72,7 @@ func AssertTrue(t *testing.T, condition bool) {
 }
 
 // AssertFalse fails the test if condition is true
-func AssertFalse(t *testing.T, condition bool) {
+func AssertFalse(t TestingT, condition bool) {
 	t.Helper()
 	if condition {
 		t.Fatal("expected false, got true")
@@ -70,7 +80,7 @@ func AssertFalse(t *testing.T, condition bool) {
 }
 
 // TempConfig creates a temporary config file with the given config and returns its path
-func TempConfig(t *testing.T, cfg config.Config) string {
+func TempConfig(t TestingT, cfg config.Config) string {
 	t.Helper()
 
 	tmpDir := t.TempDir()
@@ -87,7 +97,7 @@ func TempConfig(t *testing.T, cfg config.Config) string {
 
 // MockHTTPServer creates a mock HTTP server that returns the given response
 // The caller is responsible for closing the server
-func MockHTTPServer(t *testing.T, statusCode int, responseBody string) *httptest.Server {
+func MockHTTPServer(t TestingT, statusCode int, responseBody string) *httptest.Server {
 	t.Helper()
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +107,7 @@ func MockHTTPServer(t *testing.T, statusCode int, responseBody string) *httptest
 }
 
 // MockHTTPServerJSON creates a mock HTTP server that returns JSON response
-func MockHTTPServerJSON(t *testing.T, statusCode int, responseData interface{}) *httptest.Server {
+func MockHTTPServerJSON(t TestingT, statusCode int, responseData interface{}) *httptest.Server {
 	t.Helper()
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,13 +121,13 @@ func MockHTTPServerJSON(t *testing.T, statusCode int, responseData interface{}) 
 }
 
 // MockHTTPServerFunc creates a mock HTTP server with a custom handler function
-func MockHTTPServerFunc(t *testing.T, handler func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
+func MockHTTPServerFunc(t TestingT, handler func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(handler))
 }
 
 // ReadBody reads the entire request body and returns it as a string
-func ReadBody(t *testing.T, r io.Reader) string {
+func ReadBody(t TestingT, r io.Reader) string {
 	t.Helper()
 	data, err := io.ReadAll(r)
 	AssertNoError(t, err)
@@ -145,7 +155,7 @@ func DefaultTestConfig() config.Config {
 }
 
 // TempFile creates a temporary file with the given content
-func TempFile(t *testing.T, content string) string {
+func TempFile(t TestingT, content string) string {
 	t.Helper()
 
 	tmpFile, err := os.CreateTemp(t.TempDir(), "test-*")
@@ -159,7 +169,7 @@ func TempFile(t *testing.T, content string) string {
 }
 
 // TempDir creates a temporary directory
-func TempDir(t *testing.T) string {
+func TempDir(t TestingT) string {
 	t.Helper()
 	return t.TempDir()
 }

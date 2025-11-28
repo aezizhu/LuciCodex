@@ -282,3 +282,25 @@ func TestSandbox_SetLimits(t *testing.T) {
 		t.Errorf("expected MaxCPUPercent 80, got %d", s.limits.MaxCPUPercent)
 	}
 }
+
+func TestMonitor_Safety(t *testing.T) {
+	// Test monitorResources with nil process
+	cmd := exec.Command("echo", "test")
+	// Do NOT start command, so Process is nil
+	m := NewMonitor(cmd, ResourceLimits{})
+
+	// Run monitorResources directly
+	// It should return immediately when it sees Process is nil
+	done := make(chan bool)
+	go func() {
+		m.monitorResources(context.Background())
+		done <- true
+	}()
+
+	select {
+	case <-done:
+		// Success
+	case <-time.After(1 * time.Second):
+		t.Error("monitorResources did not return immediately for nil process")
+	}
+}

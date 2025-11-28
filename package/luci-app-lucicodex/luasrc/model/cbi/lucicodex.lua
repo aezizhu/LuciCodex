@@ -36,7 +36,7 @@ local function ensure_section()
         cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
         cursor:set(conf, name, "dry_run", "1")
         cursor:set(conf, name, "confirm_each", "0")
-        cursor:set(conf, name, "timeout", "30")
+        cursor:set(conf, name, "timeout", "60")
         cursor:set(conf, name, "max_commands", "10")
         cursor:set(conf, name, "log_file", "/tmp/lucicodex.log")
         cursor:commit(conf)
@@ -150,8 +150,8 @@ o.description = translate("Ask for confirmation before executing each individual
 
 o = s:option(Value, "timeout", translate("Command Timeout"))
 o.datatype = "uinteger"
-o.placeholder = "30"
-o.default = "30"
+o.placeholder = "60"
+o.default = "60"
 o.rmempty = true
 o.description = translate("Seconds to wait for each command to complete before timing out. Default: 30")
 

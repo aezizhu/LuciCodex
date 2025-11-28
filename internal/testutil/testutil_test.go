@@ -4,50 +4,29 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
-func TestAssertNoError(t *testing.T) {
-	// Should not fail
+func TestAssertHelpers(t *testing.T) {
+	// We can only test success paths easily without mocking testing.T
 	AssertNoError(t, nil)
-
-	// We can't easily test that it fails without mocking testing.T,
-	// but we can verify it compiles and runs for success case.
-}
-
-func TestAssertError(t *testing.T) {
-	AssertError(t, errors.New("test error"))
-}
-
-func TestAssertEqual(t *testing.T) {
+	AssertError(t, errors.New("error"))
 	AssertEqual(t, 1, 1)
-	AssertEqual(t, "a", "a")
-}
-
-func TestAssertContains(t *testing.T) {
 	AssertContains(t, "hello world", "world")
-}
-
-func TestAssertNotContains(t *testing.T) {
 	AssertNotContains(t, "hello world", "foo")
-}
-
-func TestAssertTrue(t *testing.T) {
 	AssertTrue(t, true)
-}
-
-func TestAssertFalse(t *testing.T) {
 	AssertFalse(t, false)
 }
 
 func TestTempConfig(t *testing.T) {
 	cfg := DefaultTestConfig()
 	path := TempConfig(t, cfg)
-	defer os.Remove(path)
-
 	if !FileExists(path) {
-		t.Error("TempConfig failed to create file")
+		t.Error("TempConfig file not created")
 	}
+	// Verify content
+	// ...
 }
 
 func TestMockHTTPServer(t *testing.T) {
@@ -92,35 +71,126 @@ func TestMockHTTPServerFunc(t *testing.T) {
 }
 
 func TestTempFile(t *testing.T) {
-	content := "test content"
-	path := TempFile(t, content)
-	defer os.Remove(path)
-
+	path := TempFile(t, "content")
 	if !FileExists(path) {
-		t.Error("TempFile failed to create file")
+		t.Error("TempFile not created")
 	}
-
-	readContent, err := os.ReadFile(path)
+	content, err := os.ReadFile(path)
 	AssertNoError(t, err)
-	AssertEqual(t, string(readContent), content)
+	AssertEqual(t, string(content), "content")
+}
+
+func TestTempDir(t *testing.T) {
+	dir := TempDir(t)
+	if !DirExists(dir) {
+		t.Error("TempDir not created")
+	}
+}
+
+func TestFileExists(t *testing.T) {
+	tmp := TempFile(t, "")
+	AssertTrue(t, FileExists(tmp))
+	AssertFalse(t, FileExists(tmp+"_nonexistent"))
+	AssertFalse(t, FileExists(filepath.Dir(tmp))) // Dir is not file
 }
 
 func TestDirExists(t *testing.T) {
-	dir := TempDir(t)
-	// TempDir is automatically cleaned up by t.Cleanup?
-	// t.TempDir() returns a dir that is cleaned up.
-
-	if !DirExists(dir) {
-		t.Error("DirExists returned false for existing dir")
-	}
-
-	if DirExists("/non/existent/dir") {
-		t.Error("DirExists returned true for non-existent dir")
-	}
+	tmp := TempDir(t)
+	AssertTrue(t, DirExists(tmp))
+	AssertFalse(t, DirExists(tmp+"_nonexistent"))
+	// File is not dir
+	f := TempFile(t, "")
+	AssertFalse(t, DirExists(f))
 }
 
 func TestStripAnsi(t *testing.T) {
-	colored := "\033[31mred\033[0m"
-	plain := StripAnsi(colored)
-	AssertEqual(t, plain, "red")
+	colored := "\033[31mRed\033[0m"
+	stripped := StripAnsi(colored)
+	AssertEqual(t, stripped, "Red")
+}
+
+// MockTestingT is a mock implementation of TestingT
+type MockTestingT struct {
+	Failed bool
+	Msg    string
+}
+
+func (m *MockTestingT) Helper() {}
+func (m *MockTestingT) Fatalf(format string, args ...interface{}) {
+	m.Failed = true
+	m.Msg = format // simplified
+}
+func (m *MockTestingT) Fatal(args ...interface{}) {
+	m.Failed = true
+	m.Msg = "fatal"
+}
+func (m *MockTestingT) Errorf(format string, args ...interface{}) {
+	m.Failed = true
+	m.Msg = format
+}
+func (m *MockTestingT) Error(args ...interface{}) {
+	m.Failed = true
+	m.Msg = "error"
+}
+func (m *MockTestingT) TempDir() string {
+	return os.TempDir()
+}
+func (m *MockTestingT) Logf(format string, args ...interface{}) {}
+
+func TestAssertHelpers_Failures(t *testing.T) {
+	mock := &MockTestingT{}
+
+	AssertNoError(mock, errors.New("error"))
+	if !mock.Failed {
+		t.Error("AssertNoError should fail on error")
+	}
+	mock.Failed = false
+
+	AssertError(mock, nil)
+	if !mock.Failed {
+		t.Error("AssertError should fail on nil")
+	}
+	mock.Failed = false
+
+	AssertEqual(mock, 1, 2)
+	if !mock.Failed {
+		t.Error("AssertEqual should fail on inequality")
+	}
+	mock.Failed = false
+
+	AssertContains(mock, "hello", "world")
+	if !mock.Failed {
+		t.Error("AssertContains should fail on missing substring")
+	}
+	mock.Failed = false
+
+	AssertNotContains(mock, "hello world", "world")
+	if !mock.Failed {
+		t.Error("AssertNotContains should fail on present substring")
+	}
+	mock.Failed = false
+
+	AssertTrue(mock, false)
+	if !mock.Failed {
+		t.Error("AssertTrue should fail on false")
+	}
+	mock.Failed = false
+
+	AssertFalse(mock, true)
+	if !mock.Failed {
+		t.Error("AssertFalse should fail on true")
+	}
+}
+
+func TestMockHTTPServerJSON_Error(t *testing.T) {
+	// Pass a channel which cannot be marshaled to JSON
+	server := MockHTTPServerJSON(t, 200, make(chan int))
+	defer server.Close()
+
+	resp, err := http.Get(server.URL)
+	AssertNoError(t, err)
+	defer resp.Body.Close()
+
+	// Server logs error but returns 200 (and partial/empty body)
+	// We just want to ensure it doesn't panic and hits the error path
 }

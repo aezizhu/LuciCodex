@@ -113,3 +113,46 @@ func TestOpenAIClient_Error(t *testing.T) {
 	testutil.AssertContains(t, err.Error(), "openai http 400")
 	testutil.AssertContains(t, err.Error(), "invalid key")
 }
+
+func TestOpenAIClient_EdgeCases(t *testing.T) {
+	// 1. Missing API Key
+	client := NewOpenAIClient(config.Config{})
+	_, err := client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+	testutil.AssertContains(t, err.Error(), "missing OpenAI API key")
+
+	// 2. HTTP Client Error (Connection Refused)
+	client = NewOpenAIClient(config.Config{
+		OpenAIAPIKey: "key",
+		Endpoint:     "http://127.0.0.1:1", // Should fail
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+
+	// 3. Invalid JSON Response
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	client = NewOpenAIClient(config.Config{
+		OpenAIAPIKey: "key",
+		Endpoint:     server.URL,
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+
+	// 4. Empty Response Content
+	serverEmpty := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"choices": []}`))
+	}))
+	defer serverEmpty.Close()
+
+	client = NewOpenAIClient(config.Config{
+		OpenAIAPIKey: "key",
+		Endpoint:     serverEmpty.URL,
+	})
+	_, err = client.GeneratePlan(context.Background(), "test")
+	testutil.AssertError(t, err)
+	testutil.AssertContains(t, err.Error(), "empty response")
+}

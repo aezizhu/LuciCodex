@@ -11,6 +11,51 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/config"
 )
 
+func TestWizard_Retry(t *testing.T) {
+	// Test readBool retry
+	input := "invalid\ny\n"
+	w := New(strings.NewReader(input), io.Discard)
+	if !w.readBool("Prompt", false) {
+		t.Error("readBool expected true after retry")
+	}
+
+	// Test readInt retry (invalid number)
+	input = "invalid\n10\n"
+	w = New(strings.NewReader(input), io.Discard)
+	if val := w.readInt("Prompt", 0, 1, 100); val != 10 {
+		t.Errorf("readInt expected 10 after retry, got %d", val)
+	}
+
+	// Test readInt retry (out of range)
+	input = "999\n10\n"
+	w = New(strings.NewReader(input), io.Discard)
+	if val := w.readInt("Prompt", 0, 1, 100); val != 10 {
+		t.Errorf("readInt expected 10 after retry, got %d", val)
+	}
+
+	// Test readChoice retry (invalid number)
+	input = "invalid\n2\n"
+	w = New(strings.NewReader(input), io.Discard)
+	choice, err := w.readChoice("Prompt", 1, 3)
+	if err != nil {
+		t.Fatalf("readChoice failed: %v", err)
+	}
+	if choice != 2 {
+		t.Errorf("readChoice expected 2 after retry, got %d", choice)
+	}
+
+	// Test readChoice retry (out of range)
+	input = "9\n2\n"
+	w = New(strings.NewReader(input), io.Discard)
+	choice, err = w.readChoice("Prompt", 1, 3)
+	if err != nil {
+		t.Fatalf("readChoice failed: %v", err)
+	}
+	if choice != 2 {
+		t.Errorf("readChoice expected 2 after retry, got %d", choice)
+	}
+}
+
 func TestWizard_readString(t *testing.T) {
 	input := "hello world\n"
 	reader := strings.NewReader(input)

@@ -26,8 +26,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.AutoApprove {
 		t.Error("expected AutoApprove to be false by default")
 	}
-	if cfg.TimeoutSeconds != 30 {
-		t.Errorf("expected timeout 30, got %d", cfg.TimeoutSeconds)
+	if cfg.TimeoutSeconds != 60 {
+		t.Errorf("expected timeout 60, got %d", cfg.TimeoutSeconds)
 	}
 	if cfg.MaxCommands != 10 {
 		t.Errorf("expected max commands 10, got %d", cfg.MaxCommands)
@@ -446,5 +446,51 @@ func TestLoad_EtcFile(t *testing.T) {
 		if !strings.Contains(err.Error(), "/etc/lucicodex/config.json") {
 			t.Errorf("expected error for /etc file, got: %v", err)
 		}
+	}
+}
+
+func TestLoad_AllEnvVars(t *testing.T) {
+	os.Setenv("GEMINI_ENDPOINT", "https://env.gemini.com")
+	os.Setenv("LUCICODEX_CONFIRM_EACH", "true")
+	os.Setenv("LUCICODEX_AUTO_RETRY", "false")
+	os.Setenv("LUCICODEX_MAX_RETRIES", "5")
+	os.Setenv("HTTP_PROXY", "http://env-proxy")
+	os.Setenv("HTTPS_PROXY", "https://env-proxy")
+	os.Setenv("NO_PROXY", "env-no-proxy")
+	defer func() {
+		os.Unsetenv("GEMINI_ENDPOINT")
+		os.Unsetenv("LUCICODEX_CONFIRM_EACH")
+		os.Unsetenv("LUCICODEX_AUTO_RETRY")
+		os.Unsetenv("LUCICODEX_MAX_RETRIES")
+		os.Unsetenv("HTTP_PROXY")
+		os.Unsetenv("HTTPS_PROXY")
+		os.Unsetenv("NO_PROXY")
+	}()
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+
+	if cfg.Endpoint != "https://env.gemini.com" {
+		t.Errorf("got Endpoint %q", cfg.Endpoint)
+	}
+	if !cfg.ConfirmEach {
+		t.Error("expected ConfirmEach true")
+	}
+	if cfg.AutoRetry {
+		t.Error("expected AutoRetry false")
+	}
+	if cfg.MaxRetries != 5 {
+		t.Errorf("got MaxRetries %d", cfg.MaxRetries)
+	}
+	if cfg.HTTPProxy != "http://env-proxy" {
+		t.Errorf("got HTTPProxy %q", cfg.HTTPProxy)
+	}
+	if cfg.HTTPSProxy != "https://env-proxy" {
+		t.Errorf("got HTTPSProxy %q", cfg.HTTPSProxy)
+	}
+	if cfg.NoProxy != "env-no-proxy" {
+		t.Errorf("got NoProxy %q", cfg.NoProxy)
 	}
 }

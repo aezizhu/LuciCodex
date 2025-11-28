@@ -127,3 +127,13 @@ func TestLogger_WriteJSON_Error(t *testing.T) {
 		}
 	}
 }
+
+func TestLogger_FileError(t *testing.T) {
+	// Use a directory path as the log file, which should fail to open for writing
+	tempDir := t.TempDir()
+	logger := New(tempDir)
+
+	logger.Plan("test", plan.Plan{})
+
+	// Should not panic and should return early
+}

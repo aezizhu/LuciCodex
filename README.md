@@ -128,6 +128,7 @@ wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-arm
 wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-amd64.ipk
 ```
 
+
 #### Step 2: Install the Package
 
 ```bash
