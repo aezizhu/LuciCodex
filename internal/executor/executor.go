@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"syscall"
+
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -41,8 +41,6 @@ func defaultRunCommand(ctx context.Context, argv []string) (string, error) {
 	}
 	// Drop env except PATH
 	cmd.Env = minimalEnv()
-	// Ensure hard kill on deadline
-	cmd = commandWithContext(ctx, cmd)
 
 	out, err := cmd.CombinedOutput()
 	return string(out), err
@@ -120,21 +118,6 @@ func minimalEnv() []string {
 	return []string{"PATH=" + path}
 }
 
-// commandWithContext ensures the process receives SIGKILL on context deadline.
-func commandWithContext(ctx context.Context, cmd *exec.Cmd) *exec.Cmd {
-	go func() {
-		<-
-		ctx.Done()
-		if ctx.Err() != nil && cmd.Process != nil {
-			// Try SIGTERM then SIGKILL
-			_ = cmd.Process.Signal(syscall.SIGTERM)
-			time.Sleep(500 * time.Millisecond)
-			_ = cmd.Process.Kill()
-		}
-	}()
-	return cmd
-}
-
 // FormatCommand returns a shell-like string for logging only (no execution).
 func FormatCommand(argv []string) string {
 	q := make([]string, 0, len(argv))
@@ -147,4 +130,3 @@ func FormatCommand(argv []string) string {
 	}
 	return strings.Join(q, " ")
 }
-

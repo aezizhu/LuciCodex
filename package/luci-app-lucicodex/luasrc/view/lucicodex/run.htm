@@ -143,184 +143,6 @@
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .sidebar-section:first-of-type {
-            border-top: none;
-            padding-top: 0;
-        }
-
-        .sidebar-input {
-            width: 100%;
-            padding: 0.6rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-subtle);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 0.9rem;
-            margin-bottom: 2rem;
-            outline: none;
-            font-family: var(--font-stack);
-        }
-
-        .sidebar-input::placeholder {
-            color: var(--text-secondary);
-            opacity: 0.6;
-        }
-
-        /* Sidebar Grouping */
-        .sidebar-group {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .chat-history {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            overflow-y: auto;
-        }
-
-        .chat-history-item {
-            padding: 0.8rem;
-            border-radius: 10px;
-            margin-bottom: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid transparent;
-            position: relative;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .chat-history-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.1);
-            transform: translateX(2px);
-        }
-
-        .chat-history-item.active {
-            background: rgba(0, 122, 255, 0.15);
-            border-color: rgba(0, 122, 255, 0.3);
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        /* Main Chat */
-        .chat-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: var(--bg-chat);
-            position: relative;
-        }
-
-        .message-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .message-meta {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.3rem;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .chat-message:hover .message-meta {
-            opacity: 1;
-        }
-
-        .chat-header {
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border-subtle);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-        }
-
-        .chat-header-badge {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 4px 12px;
-            border-radius: 20px;
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .chat-message {
-            display: flex;
-            gap: 0.8rem;
-            margin-bottom: 1.5rem;
-            animation: messageSlideIn 0.3s ease-out;
-        }
-
-        @keyframes messageSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .chat-message.user {
-            align-self: flex-end;
-            flex-direction: row-reverse;
-        }
-
-        .message-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.8rem;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .message-avatar.user {
-            background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-            color: white;
-        }
-
-        .message-avatar.ai {
-            background: #1c1c1e;
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-        }
-
-        .message-bubble {
-            padding: 0.9rem 1.3rem;
-            border-radius: 20px;
-            font-size: 1.05rem;
-            line-height: 1.5;
-            position: relative;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
 
         .message-bubble.user {
             background: var(--bubble-user-grad);
@@ -654,8 +476,15 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .empty-state-icon {
@@ -745,8 +574,15 @@
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
         }
 
         /* Provider Indicator in Selector */
@@ -937,12 +773,13 @@
                     <div class="empty-state-icon">🤖</div>
                     <h2>Welcome to LuciCodex</h2>
                     <p>Your AI-powered router assistant. Ask me anything about managing your OpenWrt device.</p>
-                    
+
                     <div class="suggested-prompts">
                         <button class="suggested-prompt" onclick="useSuggestedPrompt('Show my connected devices')">
                             📱 Show connected devices
                         </button>
-                        <button class="suggested-prompt" onclick="useSuggestedPrompt('What is my current internet speed?')">
+                        <button class="suggested-prompt"
+                            onclick="useSuggestedPrompt('What is my current internet speed?')">
                             🚀 Check internet speed
                         </button>
                         <button class="suggested-prompt" onclick="useSuggestedPrompt('Update all installed packages')">
@@ -958,7 +795,7 @@
                             🔥 Firewall rules
                         </button>
                     </div>
-                    
+
                     <div class="quick-tips">
                         <h4>💡 Quick Tips</h4>
                         <ul>
@@ -1017,7 +854,7 @@
                 state.provider = savedProvider;
                 document.getElementById('providerSelect').value = savedProvider;
             }
-            
+
             // Update model placeholder based on provider
             const modelInput = document.getElementById('modelInput');
             const defaultModels = {
@@ -1026,14 +863,14 @@
                 'anthropic': 'claude-haiku-4-5-20251001'
             };
             modelInput.placeholder = defaultModels[state.provider] || 'Leave empty for provider default';
-            
+
             // Only restore saved model if it matches the current provider's format
             if (savedModel) {
-                const isModelMatchingProvider = 
+                const isModelMatchingProvider =
                     (state.provider === 'gemini' && savedModel.includes('gemini')) ||
                     (state.provider === 'openai' && (savedModel.includes('gpt') || savedModel.includes('o1') || savedModel.includes('o3'))) ||
                     (state.provider === 'anthropic' && savedModel.includes('claude'));
-                
+
                 if (isModelMatchingProvider) {
                     state.model = savedModel;
                     modelInput.value = savedModel;
@@ -1167,7 +1004,7 @@
         function updateStatus(status, text) {
             const badge = document.getElementById('statusBadge');
             const statusText = document.getElementById('statusText');
-            
+
             badge.className = 'status-badge ' + status;
             statusText.textContent = text;
         }
@@ -1453,7 +1290,7 @@
         function addMessage(role, content) {
             // Hide empty state when first message is added
             hideEmptyState();
-            
+
             state.currentMessages.push({ role, type: 'text', content, timestamp: Date.now() });
 
             const div = document.createElement('div');
@@ -1592,7 +1429,7 @@
             state.isProcessing = processing;
             document.getElementById('chatInput').disabled = processing;
             document.getElementById('sendBtn').disabled = processing;
-            
+
             if (processing) {
                 updateStatus('processing', 'Processing...');
             } else {
@@ -1616,7 +1453,7 @@
         function updateExecMode() {
             state.execMode = document.getElementById('execMode').value;
             localStorage.setItem('lucicodex_exec_mode', state.execMode);
-            
+
             const indicator = document.getElementById('execModeIndicator');
             if (state.execMode === 'auto') {
                 indicator.className = 'exec-mode-indicator risky';
@@ -1652,12 +1489,12 @@
         function updateProvider() {
             state.provider = document.getElementById('providerSelect').value;
             localStorage.setItem('lucicodex_provider', state.provider);
-            
+
             // Clear model when provider changes to avoid using wrong model
             state.model = '';
             document.getElementById('modelInput').value = '';
             localStorage.removeItem('lucicodex_model');
-            
+
             // Update placeholder to show default model for selected provider
             const modelInput = document.getElementById('modelInput');
             const defaultModels = {

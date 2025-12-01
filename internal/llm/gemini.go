@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -141,6 +142,21 @@ Rules:
 }
 
 func extractJSON(s string) string {
+	// 1. Try to find markdown code block
+	if start := strings.Index(s, "```json"); start != -1 {
+		s = s[start+7:]
+		if end := strings.Index(s, "```"); end != -1 {
+			return strings.TrimSpace(s[:end])
+		}
+	} else if start := strings.Index(s, "```"); start != -1 {
+		// Generic code block
+		s = s[start+3:]
+		if end := strings.Index(s, "```"); end != -1 {
+			return strings.TrimSpace(s[:end])
+		}
+	}
+
+	// 2. Fallback: find first outer brace pair
 	start := -1
 	depth := 0
 	for i, ch := range s {

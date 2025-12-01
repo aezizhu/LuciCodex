@@ -3,7 +3,6 @@ package executor
 import (
 	"context"
 	"errors"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
@@ -417,32 +416,4 @@ func TestMinimalEnv_Empty(t *testing.T) {
 		}
 	}
 	testutil.AssertTrue(t, found)
-}
-
-func TestCommandWithContext_Cancellation(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping in short mode")
-	}
-
-	// Create a command that sleeps long enough
-	ctx, cancel := context.WithCancel(context.Background())
-	cmd := exec.Command("sleep", "10")
-
-	// Wrap it
-	cmd = commandWithContext(ctx, cmd)
-
-	if err := cmd.Start(); err != nil {
-		t.Fatal(err)
-	}
-
-	// Cancel context immediately to trigger the goroutine
-	cancel()
-
-	// Wait for command to exit
-	err := cmd.Wait()
-
-	// It should fail because it was killed
-	if err == nil {
-		t.Error("expected error from killed command")
-	}
 }
