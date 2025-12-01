@@ -58,6 +58,21 @@ function action_plan()
         return
     end
     
+    -- Get API keys from UCI to pass as env vars (fixes missing key issue)
+    local uci = require "luci.model.uci".cursor()
+    local function get_key(option)
+        local val = uci:get("lucicodex", "main", option)
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@settings[0]", option)
+        end
+        return val
+    end
+
+    local gemini_key = get_key("key")
+    local openai_key = get_key("openai_key")
+    local anthropic_key = get_key("anthropic_key")
+
+
     local argv = {"/usr/bin/lucicodex", "-json", "-dry-run"}
     
     -- Support provider/model overrides
@@ -81,6 +96,18 @@ function action_plan()
         nixio.dup(stderr_w, nixio.stderr)
         stdout_w:close()
         stderr_w:close()
+        
+        -- Set environment variables for the child process
+        if gemini_key and gemini_key ~= "" then
+            nixio.setenv("GEMINI_API_KEY", gemini_key)
+        end
+        if openai_key and openai_key ~= "" then
+            nixio.setenv("OPENAI_API_KEY", openai_key)
+        end
+        if anthropic_key and anthropic_key ~= "" then
+            nixio.setenv("ANTHROPIC_API_KEY", anthropic_key)
+        end
+        
         nixio.exec(unpack(argv))
         nixio.exit(1)
     end
@@ -181,6 +208,20 @@ function action_execute()
         return
     end
     
+    -- Get API keys from UCI
+    local uci = require "luci.model.uci".cursor()
+    local function get_key(option)
+        local val = uci:get("lucicodex", "main", option)
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@settings[0]", option)
+        end
+        return val
+    end
+
+    local gemini_key = get_key("key")
+    local openai_key = get_key("openai_key")
+    local anthropic_key = get_key("anthropic_key")
+    
     local argv = {"/usr/bin/lucicodex", "-json"}
     
     if data.dry_run then
@@ -214,6 +255,18 @@ function action_execute()
         nixio.dup(stderr_w, nixio.stderr)
         stdout_w:close()
         stderr_w:close()
+        
+        -- Set environment variables
+        if gemini_key and gemini_key ~= "" then
+            nixio.setenv("GEMINI_API_KEY", gemini_key)
+        end
+        if openai_key and openai_key ~= "" then
+            nixio.setenv("OPENAI_API_KEY", openai_key)
+        end
+        if anthropic_key and anthropic_key ~= "" then
+            nixio.setenv("ANTHROPIC_API_KEY", anthropic_key)
+        end
+        
         nixio.exec(unpack(argv))
         nixio.exit(1)
     end
@@ -297,6 +350,19 @@ function action_validate()
     end
     
     -- Build CLI command for validation
+    local uci = require "luci.model.uci".cursor()
+    local function get_key(option)
+        local val = uci:get("lucicodex", "main", option)
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@settings[0]", option)
+        end
+        return val
+    end
+
+    local gemini_key = get_key("key")
+    local openai_key = get_key("openai_key")
+    local anthropic_key = get_key("anthropic_key")
+
     local argv = {"/usr/bin/lucicodex", "-json", "-dry-run"}
     
     if data.provider and data.provider ~= "" then
@@ -320,6 +386,18 @@ function action_validate()
         nixio.dup(stderr_w, nixio.stderr)
         stdout_w:close()
         stderr_w:close()
+        
+        -- Set environment variables
+        if gemini_key and gemini_key ~= "" then
+            nixio.setenv("GEMINI_API_KEY", gemini_key)
+        end
+        if openai_key and openai_key ~= "" then
+            nixio.setenv("OPENAI_API_KEY", openai_key)
+        end
+        if anthropic_key and anthropic_key ~= "" then
+            nixio.setenv("ANTHROPIC_API_KEY", anthropic_key)
+        end
+        
         nixio.exec(unpack(argv))
         nixio.exit(1)
     end
