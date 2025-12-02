@@ -11,9 +11,9 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/config"
 	"github.com/aezizhu/LuciCodex/internal/executor"
 	"github.com/aezizhu/LuciCodex/internal/llm"
+	"github.com/aezizhu/LuciCodex/internal/llm/prompts"
 	"github.com/aezizhu/LuciCodex/internal/logging"
 	"github.com/aezizhu/LuciCodex/internal/openwrt"
-	"github.com/aezizhu/LuciCodex/internal/plan"
 	"github.com/aezizhu/LuciCodex/internal/policy"
 	"github.com/aezizhu/LuciCodex/internal/ui"
 )
@@ -105,7 +105,7 @@ func (r *REPL) executePrompt(ctx context.Context, prompt string, output io.Write
 	r.addToHistory(prompt)
 
 	// Build instruction with facts
-	instruction := plan.BuildInstructionWithLimit(r.cfg.MaxCommands)
+	instruction := prompts.GenerateSurvivalPrompt(r.cfg.MaxCommands)
 	if true { // facts enabled by default in REPL
 		factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
@@ -183,98 +183,98 @@ func (r *REPL) executePrompt(ctx context.Context, prompt string, output io.Write
 }
 
 func (r *REPL) addToHistory(cmd string) {
-    r.history = append(r.history, cmd)
-    if len(r.history) > r.maxHistory {
-        r.history = r.history[1:]
-    }
+	r.history = append(r.history, cmd)
+	if len(r.history) > r.maxHistory {
+		r.history = r.history[1:]
+	}
 }
 
 func (r *REPL) showHelp(output io.Writer) {
-    fmt.Fprintln(output, "Available commands:")
-    fmt.Fprintln(output, "  help                    - Show this help")
-    fmt.Fprintln(output, "  history                 - Show command history")
-    fmt.Fprintln(output, "  clear                   - Clear history")
-    fmt.Fprintln(output, "  status                  - Show current configuration")
-    fmt.Fprintln(output, "  set <key>=<value>       - Change configuration")
-    fmt.Fprintln(output, "  !<number>               - Re-run command from history")
-    fmt.Fprintln(output, "  exit, quit              - Exit interactive mode")
-    fmt.Fprintln(output, "  <natural language>      - Execute AI-planned commands")
+	fmt.Fprintln(output, "Available commands:")
+	fmt.Fprintln(output, "  help                    - Show this help")
+	fmt.Fprintln(output, "  history                 - Show command history")
+	fmt.Fprintln(output, "  clear                   - Clear history")
+	fmt.Fprintln(output, "  status                  - Show current configuration")
+	fmt.Fprintln(output, "  set <key>=<value>       - Change configuration")
+	fmt.Fprintln(output, "  !<number>               - Re-run command from history")
+	fmt.Fprintln(output, "  exit, quit              - Exit interactive mode")
+	fmt.Fprintln(output, "  <natural language>      - Execute AI-planned commands")
 }
 
 func (r *REPL) showHistory(output io.Writer) {
-    if len(r.history) == 0 {
-        fmt.Fprintln(output, "No history")
-        return
-    }
-    
-    for i, cmd := range r.history {
-        fmt.Fprintf(output, "%3d  %s\n", i+1, cmd)
-    }
+	if len(r.history) == 0 {
+		fmt.Fprintln(output, "No history")
+		return
+	}
+
+	for i, cmd := range r.history {
+		fmt.Fprintf(output, "%3d  %s\n", i+1, cmd)
+	}
 }
 
 func (r *REPL) clearHistory() {
-    r.history = r.history[:0]
+	r.history = r.history[:0]
 }
 
 func (r *REPL) showStatus(output io.Writer) {
-    fmt.Fprintf(output, "Provider: %s\n", r.cfg.Provider)
-    fmt.Fprintf(output, "Model: %s\n", r.cfg.Model)
-    fmt.Fprintf(output, "Dry run: %t\n", r.cfg.DryRun)
-    fmt.Fprintf(output, "Auto approve: %t\n", r.cfg.AutoApprove)
-    fmt.Fprintf(output, "Max commands: %d\n", r.cfg.MaxCommands)
-    fmt.Fprintf(output, "Timeout: %ds\n", r.cfg.TimeoutSeconds)
+	fmt.Fprintf(output, "Provider: %s\n", r.cfg.Provider)
+	fmt.Fprintf(output, "Model: %s\n", r.cfg.Model)
+	fmt.Fprintf(output, "Dry run: %t\n", r.cfg.DryRun)
+	fmt.Fprintf(output, "Auto approve: %t\n", r.cfg.AutoApprove)
+	fmt.Fprintf(output, "Max commands: %d\n", r.cfg.MaxCommands)
+	fmt.Fprintf(output, "Timeout: %ds\n", r.cfg.TimeoutSeconds)
 }
 
 func (r *REPL) handleSet(setting string, output io.Writer) error {
-    parts := strings.SplitN(setting, "=", 2)
-    if len(parts) != 2 {
-        return fmt.Errorf("usage: set key=value")
-    }
-    
-    key, value := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
-    
-    switch key {
-    case "dry-run":
-        r.cfg.DryRun = value == "true"
-        fmt.Fprintf(output, "Set dry-run to %t\n", r.cfg.DryRun)
-    case "auto-approve":
-        r.cfg.AutoApprove = value == "true"
-        fmt.Fprintf(output, "Set auto-approve to %t\n", r.cfg.AutoApprove)
-    case "provider":
-        r.cfg.Provider = value
-        r.cfg.ApplyProviderSettings() // Apply provider-specific defaults
-        r.provider = llm.NewProvider(r.cfg)
-        fmt.Fprintf(output, "Set provider to %s (model: %s, endpoint: %s)\n", r.cfg.Provider, r.cfg.Model, r.cfg.Endpoint)
-    case "model":
-        r.cfg.Model = value
-        r.provider = llm.NewProvider(r.cfg)
-        fmt.Fprintf(output, "Set model to %s\n", r.cfg.Model)
-    default:
-        return fmt.Errorf("unknown setting: %s", key)
-    }
-    
-    return nil
+	parts := strings.SplitN(setting, "=", 2)
+	if len(parts) != 2 {
+		return fmt.Errorf("usage: set key=value")
+	}
+
+	key, value := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+
+	switch key {
+	case "dry-run":
+		r.cfg.DryRun = value == "true"
+		fmt.Fprintf(output, "Set dry-run to %t\n", r.cfg.DryRun)
+	case "auto-approve":
+		r.cfg.AutoApprove = value == "true"
+		fmt.Fprintf(output, "Set auto-approve to %t\n", r.cfg.AutoApprove)
+	case "provider":
+		r.cfg.Provider = value
+		r.cfg.ApplyProviderSettings() // Apply provider-specific defaults
+		r.provider = llm.NewProvider(r.cfg)
+		fmt.Fprintf(output, "Set provider to %s (model: %s, endpoint: %s)\n", r.cfg.Provider, r.cfg.Model, r.cfg.Endpoint)
+	case "model":
+		r.cfg.Model = value
+		r.provider = llm.NewProvider(r.cfg)
+		fmt.Fprintf(output, "Set model to %s\n", r.cfg.Model)
+	default:
+		return fmt.Errorf("unknown setting: %s", key)
+	}
+
+	return nil
 }
 
 func (r *REPL) handleHistoryCommand(indexStr string, ctx context.Context, output io.Writer) error {
-    if len(r.history) == 0 {
-        return fmt.Errorf("no history")
-    }
-    
-    var index int
-    if indexStr == "" {
-        index = len(r.history)
-    } else {
-        if _, err := fmt.Sscanf(indexStr, "%d", &index); err != nil {
-            return fmt.Errorf("invalid history index")
-        }
-    }
-    
-    if index < 1 || index > len(r.history) {
-        return fmt.Errorf("history index out of range")
-    }
-    
-    cmd := r.history[index-1]
-    fmt.Fprintf(output, "Re-running: %s\n", cmd)
-    return r.executePrompt(ctx, cmd, output)
+	if len(r.history) == 0 {
+		return fmt.Errorf("no history")
+	}
+
+	var index int
+	if indexStr == "" {
+		index = len(r.history)
+	} else {
+		if _, err := fmt.Sscanf(indexStr, "%d", &index); err != nil {
+			return fmt.Errorf("invalid history index")
+		}
+	}
+
+	if index < 1 || index > len(r.history) {
+		return fmt.Errorf("history index out of range")
+	}
+
+	cmd := r.history[index-1]
+	fmt.Fprintf(output, "Re-running: %s\n", cmd)
+	return r.executePrompt(ctx, cmd, output)
 }

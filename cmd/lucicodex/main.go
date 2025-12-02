@@ -15,9 +15,9 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/config"
 	"github.com/aezizhu/LuciCodex/internal/executor"
 	"github.com/aezizhu/LuciCodex/internal/llm"
+	"github.com/aezizhu/LuciCodex/internal/llm/prompts"
 	"github.com/aezizhu/LuciCodex/internal/logging"
 	"github.com/aezizhu/LuciCodex/internal/openwrt"
-	"github.com/aezizhu/LuciCodex/internal/plan"
 	"github.com/aezizhu/LuciCodex/internal/policy"
 	"github.com/aezizhu/LuciCodex/internal/repl"
 	"github.com/aezizhu/LuciCodex/internal/ui"
@@ -186,7 +186,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	execEngine := executor.New(cfg)
 	logger := logging.New(cfg.LogFile)
 
-	instruction := plan.BuildInstructionWithLimit(cfg.MaxCommands)
+	instruction := prompts.GenerateSurvivalPrompt(cfg.MaxCommands)
 	if *facts {
 		factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		defer cancel()
