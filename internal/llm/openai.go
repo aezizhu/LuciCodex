@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
+	"github.com/aezizhu/LuciCodex/internal/llm/prompts"
 	"github.com/aezizhu/LuciCodex/internal/plan"
 )
 
@@ -92,29 +93,6 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 }
 
 func (c *OpenAIClient) GenerateErrorFix(ctx context.Context, originalCommand string, errorOutput string, attempt int) (plan.Plan, error) {
-	prompt := fmt.Sprintf(`You are a router command error fixer for OpenWrt systems.
-
-The following command failed:
-Command: %s
-Error output: %s
-Attempt: %d
-
-Analyze the error and provide a corrected plan to fix the issue. Output strict JSON:
-{
-  "summary": "brief explanation of the fix",
-  "commands": [ { "command": [string, ...], "description": string, "needs_root": bool } ],
-  "warnings": [string]
-}
-
-Rules:
-- Analyze the error carefully (file not found, permission denied, syntax error, etc.)
-- Provide alternative commands or fixes
-- Use OpenWrt tools: uci, ubus, fw4, opkg, logread, wifi, /etc/init.d/*
-- For permission errors, set needs_root to true
-- For file not found, check alternative paths or suggest installation
-- For syntax errors, correct the command syntax
-- Keep the fix minimal and directly actionable
-- Common OpenWrt paths: /etc/config/, /var/log/, /sys/class/net/`, originalCommand, errorOutput, attempt)
-
+	prompt := prompts.GenerateErrorFixPrompt(originalCommand, errorOutput, attempt)
 	return c.GeneratePlan(ctx, prompt)
 }

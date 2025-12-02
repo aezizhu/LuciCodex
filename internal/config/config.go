@@ -57,6 +57,9 @@ func defaultConfig() Config {
 		OpenAIModel:       "gpt-4o-mini",
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
 		AnthropicModel:    "claude-3-haiku-20240307",
+		// Allowlist defines commands allowed to run.
+		// CAUTION: This list is broad to allow standard admin tasks.
+		// Ensure the policy engine enforces strict argument validation where possible.
 		Allowlist: []string{
 			`^uci(\s|$)`,
 			`^ubus(\s|$)`,
