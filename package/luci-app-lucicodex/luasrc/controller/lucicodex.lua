@@ -139,7 +139,7 @@ function action_plan()
     stdout_r:close()
     stderr_r:close()
     
-    local status, code = nixio.waitpid(pid)
+    local _, status, code = nixio.waitpid(pid)
     lock:close()
     nixio.fs.unlink(lockfile)
     
@@ -307,7 +307,7 @@ function action_execute()
     stdout_r:close()
     stderr_r:close()
     
-    local status, code = nixio.waitpid(pid)
+    local _, status, code = nixio.waitpid(pid)
     lock:close()
     nixio.fs.unlink(lockfile)
     
