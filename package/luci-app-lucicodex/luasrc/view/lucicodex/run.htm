@@ -1239,7 +1239,31 @@
                 removeTypingIndicator();
 
                 if (execResponse.ok) {
-                    const output = execResponse.output || JSON.stringify(execResponse.result, null, 2);
+                    // Extract outputs from the results JSON
+                    let output = '';
+                    if (execResponse.result && execResponse.result.items) {
+                        // Execution results - extract command outputs
+                        output = execResponse.result.items
+                            .map((item, idx) => {
+                                let itemOutput = `[Command ${idx + 1}] ${item.command ? item.command.join(' ') : 'unknown'}\n`;
+                                if (item.output && item.output.trim()) {
+                                    itemOutput += item.output.trim();
+                                } else {
+                                    itemOutput += '(no output)';
+                                }
+                                if (item.error) {
+                                    itemOutput += `\nError: ${item.error}`;
+                                }
+                                return itemOutput;
+                            })
+                            .join('\n\n');
+                    } else if (execResponse.output) {
+                        output = execResponse.output;
+                    } else if (execResponse.result) {
+                        output = JSON.stringify(execResponse.result, null, 2);
+                    } else {
+                        output = 'Command executed successfully (no output)';
+                    }
                     addResultBlock(output, true);
                 } else {
                     addResultBlock(execResponse.error || 'Execution failed', false);
