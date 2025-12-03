@@ -1,85 +1,50 @@
 #!/bin/sh
-set -e
 
-# LuciCodex Universal Installer
-# Run this script on your OpenWrt router to install the latest version.
+# LuciCodex Installer
+# Usage: wget -O - https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
+VERSION="v0.4.63"
 REPO="aezizhu/LuciCodex"
-BASE_URL="https://github.com/$REPO/releases/latest/download"
+URL="https://github.com/${REPO}/releases/download/${VERSION}/luci-app-lucicodex.ipk"
 
-echo "=== LuciCodex Installer ==="
+echo "========================================"
+echo "      LuciCodex Installer ${VERSION}"
+echo "========================================"
 
-# 1. Detect Architecture
-ARCH=$(uname -m)
-echo "Detected Architecture: $ARCH"
+# Check for opkg
+if ! command -v opkg >/dev/null 2>&1; then
+    echo "Error: opkg not found. Is this OpenWrt?"
+    exit 1
+fi
 
-case "$ARCH" in
-  x86_64)
-    TARGET="amd64"
-    ;;
-  aarch64)
-    TARGET="arm64"
-    ;;
-  armv7*|armv8*)
-    # Most modern ARM routers (Cortex-A7/A9/A53 etc)
-    TARGET="arm"
-    ;;
-  mips)
-    TARGET="mips"
-    ;;
-  mipsle)
-    TARGET="mipsle"
-    ;;
-  *)
-    echo "⚠️  Warning: Unknown architecture '$ARCH'. Trying to detect via opkg..."
-    if opkg print-architecture | grep -q "aarch64"; then
-        TARGET="arm64"
-    elif opkg print-architecture | grep -q "arm_"; then
-        TARGET="arm"
-    elif opkg print-architecture | grep -q "mips_"; then
-        TARGET="mips"
-    elif opkg print-architecture | grep -q "mipsel_"; then
-        TARGET="mipsle"
-    elif opkg print-architecture | grep -q "x86_64"; then
-        TARGET="amd64"
-    else
-        echo "❌ Error: Could not determine compatible package for '$ARCH'."
-        exit 1
-    fi
-    ;;
-esac
+echo "[1/4] Updating package lists..."
+opkg update >/dev/null 2>&1
 
-echo "Selected Target: $TARGET"
+echo "[2/4] Installing dependencies..."
+opkg install luci-base luci-compat ca-bundle curl >/dev/null 2>&1
 
-# 2. Download Files
-echo "⬇️  Downloading packages..."
+echo "[3/4] Downloading and installing LuciCodex..."
 cd /tmp
-
-# Remove old files if they exist
-rm -f lucicodex.ipk luci-app-lucicodex.ipk
-
-if ! curl -L -o lucicodex.ipk "$BASE_URL/lucicodex-$TARGET.ipk"; then
-    echo "❌ Error: Failed to download core package."
-    exit 1
-fi
-
-if ! curl -L -o luci-app-lucicodex.ipk "$BASE_URL/luci-app-lucicodex.ipk"; then
-    echo "❌ Error: Failed to download LuCI app package."
-    exit 1
-fi
-
-# 3. Install
-echo "📦 Installing..."
-if opkg install lucicodex.ipk luci-app-lucicodex.ipk; then
-    echo ""
-    echo "✅ Success! LuciCodex installed."
-    echo "   Go to System -> LuciCodex in your router's web interface."
-    echo "   Don't forget to configure your API key!"
-    
-    # Clean up
-    rm -f lucicodex.ipk luci-app-lucicodex.ipk
+if wget -O luci-app-lucicodex.ipk "$URL"; then
+    opkg install luci-app-lucicodex.ipk
+    rm -f luci-app-lucicodex.ipk
+    rm -rf /tmp/luci-modulecache/
 else
-    echo "❌ Error: Installation failed."
-    echo "   Try running 'opkg update' first and run this script again."
+    echo "Error: Failed to download package from $URL"
     exit 1
 fi
+
+echo "[4/4] Optimizing system configuration..."
+# Increase uhttpd timeouts to prevent 502 errors
+uci set uhttpd.main.script_timeout='300'
+uci set uhttpd.main.network_timeout='300'
+uci commit uhttpd
+service uhttpd restart
+
+echo "========================================"
+echo "      Installation Complete!"
+echo "========================================"
+echo "1. Refresh your LuCI web interface."
+echo "2. Go to System > LuciCodex."
+echo "3. Configure your API key."
+echo "========================================"
