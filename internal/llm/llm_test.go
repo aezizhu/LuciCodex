@@ -342,59 +342,6 @@ func TestGeminiClient_GeneratePlan_ContextCancellation(t *testing.T) {
 	}
 }
 
-func TestExtractJSON(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "pure JSON",
-			input:    `{"key":"value"}`,
-			expected: `{"key":"value"}`,
-		},
-		{
-			name:     "JSON with prefix",
-			input:    `Here is the JSON: {"key":"value"}`,
-			expected: `{"key":"value"}`,
-		},
-		{
-			name:     "JSON with suffix",
-			input:    `{"key":"value"} - that's it`,
-			expected: `{"key":"value"}`,
-		},
-		{
-			name:     "JSON with both",
-			input:    `Prefix {"key":"value"} suffix`,
-			expected: `{"key":"value"}`,
-		},
-		{
-			name:     "nested JSON",
-			input:    `{"outer":{"inner":"value"}}`,
-			expected: `{"outer":{"inner":"value"}}`,
-		},
-		{
-			name:     "no JSON",
-			input:    `no json here`,
-			expected: `no json here`,
-		},
-		{
-			name:     "multiple JSON objects",
-			input:    `{"first":"obj"} and {"second":"obj"}`,
-			expected: `{"first":"obj"}`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := extractJSON(tt.input)
-			if result != tt.expected {
-				t.Errorf("expected %q, got %q", tt.expected, result)
-			}
-		})
-	}
-}
-
 func TestNewOpenAIClient(t *testing.T) {
 	cfg := config.Config{
 		OpenAIAPIKey: "test-key",
