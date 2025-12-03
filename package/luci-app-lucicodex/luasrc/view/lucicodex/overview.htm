@@ -1,13 +1,34 @@
-<% local uci=require "luci.model.uci" .cursor() -- Check configuration status local function get_config(option) local
-    val=uci:get("lucicodex", "main" , option) if not val or val=="" then val=uci:get("lucicodex", "@settings[0]" ,
-    option) end return val or "" end local provider=get_config("provider") or "gemini" local
-    gemini_key=get_config("key") local openai_key=get_config("openai_key") local
-    anthropic_key=get_config("anthropic_key") local is_configured=false local active_provider_name="Not configured" if
-    provider=="gemini" and gemini_key and gemini_key ~="" then is_configured=true active_provider_name="Google Gemini"
-    elseif provider=="openai" and openai_key and openai_key ~="" then is_configured=true active_provider_name="OpenAI"
-    elseif provider=="anthropic" and anthropic_key and anthropic_key ~="" then is_configured=true
-    active_provider_name="Anthropic Claude" end %>
+<%
+local uci = require "luci.model.uci".cursor()
 
+-- Check configuration status
+local function get_config(option)
+    local val = uci:get("lucicodex", "main", option)
+    if not val or val == "" then
+        val = uci:get("lucicodex", "@settings[0]", option)
+    end
+    return val or ""
+end
+
+local provider = get_config("provider") or "gemini"
+local gemini_key = get_config("key")
+local openai_key = get_config("openai_key")
+local anthropic_key = get_config("anthropic_key")
+
+local is_configured = false
+local active_provider_name = "Not configured"
+
+if provider == "gemini" and gemini_key and gemini_key ~= "" then
+    is_configured = true
+    active_provider_name = "Google Gemini"
+elseif provider == "openai" and openai_key and openai_key ~= "" then
+    is_configured = true
+    active_provider_name = "OpenAI"
+elseif provider == "anthropic" and anthropic_key and anthropic_key ~= "" then
+    is_configured = true
+    active_provider_name = "Anthropic Claude"
+end
+%>
 
     <style>
         :root {
