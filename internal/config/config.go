@@ -58,14 +58,9 @@ func defaultConfig() Config {
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
 		AnthropicModel:    "claude-3-haiku-20240307",
 		// No default allowlist - user approval is the safety mechanism
-		// Only deny catastrophic commands
-		Allowlist: []string{},
-		Denylist: []string{
-			`^rm\s+-rf\s+/`,
-			`^mkfs(\s|$)`,
-			`^dd(\s|$)`,
-			`^:(){:|:&};:`,
-		},
+		// No default denylist - trust users to review and approve commands
+		Allowlist:      []string{},
+		Denylist:       []string{},
 		ConfirmEach:    false,
 		LogFile:        "/tmp/lucicodex.log",
 		ElevateCommand: "",

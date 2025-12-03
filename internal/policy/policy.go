@@ -44,17 +44,11 @@ func (e *Engine) ValidatePlan(p plan.Plan) error {
 				return fmt.Errorf("command %d arg %d contains NUL", i, j)
 			}
 		}
-		if strings.ContainsAny(c.Command[0], "|&;><`$") {
+		if strings.ContainsAny(c.Command[0], "|&;<>`$") {
 			return fmt.Errorf("command %d contains shell metacharacters in argv[0]", i)
 		}
-		cmdline := strings.Join(c.Command, " ")
-		// Check denylist only - user approval is the primary safety mechanism
-		for _, re := range e.denyREs {
-			if re.MatchString(cmdline) {
-				return fmt.Errorf("command %d denied by policy: %s", i, cmdline)
-			}
-		}
-		// No allowlist check - trust AI + user approval workflow
+		// No allowlist or denylist - user approval is the ONLY safety mechanism
+		// Users are trusted to review and approve/reject commands themselves
 	}
 	return nil
 }
