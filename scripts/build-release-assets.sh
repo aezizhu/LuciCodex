@@ -141,6 +141,15 @@ ipk_pack_luci() {
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/run.htm"
   install -m0644 package/luci-app-lucicodex/luasrc/view/cbi/lucicodex.htm "$work/data/usr/lib/lua/luci/view/cbi/lucicodex.htm" 2>/dev/null || true
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/modern_run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/modern_run.htm" 2>/dev/null || true
+  
+  # Copy root directory contents (init scripts, ACLs, uci-defaults)
+  if [ -d "package/luci-app-lucicodex/root" ]; then
+    cp -r package/luci-app-lucicodex/root/* "$work/data/"
+    # Ensure init script is executable
+    if [ -f "$work/data/etc/init.d/lucicodex" ]; then
+      chmod 0755 "$work/data/etc/init.d/lucicodex"
+    fi
+  fi
   cat > "$work/control/control" <<EOF
 Package: luci-app-lucicodex
 Version: $VERSION
