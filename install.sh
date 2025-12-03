@@ -25,6 +25,43 @@ opkg install luci-base luci-compat ca-bundle curl >/dev/null 2>&1
 
 echo "[3/4] Downloading and installing LuciCodex..."
 cd /tmp
+
+# Detect architecture
+ARCH_IPK=""
+if opkg print-architecture | grep -q "x86_64"; then ARCH_IPK="amd64"; fi
+if opkg print-architecture | grep -q "aarch64"; then ARCH_IPK="arm64"; fi
+if opkg print-architecture | grep -q "arm_cortex-a7"; then ARCH_IPK="arm"; fi
+if opkg print-architecture | grep -q "mips_24kc"; then ARCH_IPK="mips"; fi
+if opkg print-architecture | grep -q "mipsel_24kc"; then ARCH_IPK="mipsle"; fi
+
+if [ -z "$ARCH_IPK" ]; then
+    # Fallback to uname
+    UARCH=$(uname -m)
+    case "$UARCH" in
+        x86_64) ARCH_IPK="amd64" ;;
+        aarch64) ARCH_IPK="arm64" ;;
+        armv7*) ARCH_IPK="arm" ;;
+        mips) ARCH_IPK="mips" ;;
+        *) 
+            echo "Error: Could not detect architecture. Please install manually."
+            exit 1
+            ;;
+    esac
+fi
+
+echo "Detected architecture: $ARCH_IPK"
+BINARY_URL="https://github.com/${REPO}/releases/download/${VERSION}/lucicodex-${ARCH_IPK}.ipk"
+
+# Install binary package first
+if wget -O lucicodex.ipk "$BINARY_URL"; then
+    opkg install lucicodex.ipk
+    rm -f lucicodex.ipk
+else
+    echo "Error: Failed to download binary package from $BINARY_URL"
+    exit 1
+fi
+
+# Install LuCI app
 if wget -O luci-app-lucicodex.ipk "$URL"; then
     opkg install luci-app-lucicodex.ipk
     rm -f luci-app-lucicodex.ipk
