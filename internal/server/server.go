@@ -114,7 +114,9 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("LLM error: %v", err), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("LLM error: %v", err)})
 		return
 	}
 
@@ -189,7 +191,9 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("LLM error: %v", err), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("LLM error: %v", err)})
 		return
 	}
 

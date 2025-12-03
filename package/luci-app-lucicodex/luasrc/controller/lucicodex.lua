@@ -106,7 +106,7 @@ function action_plan()
     }
     
     local resp, err = call_daemon("/v1/plan", payload)
-    if resp and resp.ok then
+    if resp then
         http.prepare_content("application/json")
         http.write_json(resp)
         return
@@ -208,7 +208,7 @@ function action_execute()
     }
     
     local resp, err = call_daemon("/v1/execute", payload)
-    if resp and resp.ok then
+    if resp then
         http.prepare_content("application/json")
         http.write_json(resp)
         return
