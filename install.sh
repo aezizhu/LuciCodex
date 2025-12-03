@@ -3,7 +3,7 @@
 # LuciCodex Installer
 # Usage: wget -O - https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="v0.4.63"
+VERSION="v0.4.64"
 REPO="aezizhu/LuciCodex"
 URL="https://github.com/${REPO}/releases/download/${VERSION}/luci-app-lucicodex.ipk"
 
@@ -40,6 +40,12 @@ uci set uhttpd.main.script_timeout='300'
 uci set uhttpd.main.network_timeout='300'
 uci commit uhttpd
 service uhttpd restart
+
+echo "[5/4] Starting LuciCodex Daemon..."
+if [ -f /etc/init.d/lucicodex ]; then
+    /etc/init.d/lucicodex enable
+    /etc/init.d/lucicodex restart
+fi
 
 echo "========================================"
 echo "      Installation Complete!"
