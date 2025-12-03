@@ -1241,13 +1241,20 @@
             setProcessing(true);
 
             try {
-                const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, {
+                const payload = {
                     prompt,
                     dry_run: false,
                     timeout: 300,
                     provider: state.provider,
                     model: state.model
-                });
+                };
+
+                // Stateless Execution: Send commands if available
+                if (state.currentPlan && state.currentPlan.commands) {
+                    payload.commands = state.currentPlan.commands;
+                }
+
+                const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
 
                 removeTypingIndicator();
 

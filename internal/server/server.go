@@ -12,6 +12,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/llm"
 	"github.com/aezizhu/LuciCodex/internal/llm/prompts"
 	"github.com/aezizhu/LuciCodex/internal/openwrt"
+	"github.com/aezizhu/LuciCodex/internal/plan"
 	"github.com/aezizhu/LuciCodex/internal/policy"
 )
 
@@ -45,12 +46,13 @@ type PlanRequest struct {
 }
 
 type ExecuteRequest struct {
-	Prompt   string            `json:"prompt"`
-	Provider string            `json:"provider"`
-	Model    string            `json:"model"`
-	Config   map[string]string `json:"config"`
-	DryRun   bool              `json:"dry_run"`
-	Timeout  int               `json:"timeout"`
+	Prompt   string                `json:"prompt"`
+	Provider string                `json:"provider"`
+	Model    string                `json:"model"`
+	Config   map[string]string     `json:"config"`
+	DryRun   bool                  `json:"dry_run"`
+	Timeout  int                   `json:"timeout"`
+	Commands []plan.PlannedCommand `json:"commands"` // Optional: Direct execution
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -170,36 +172,43 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	policyEngine := policy.New(cfg)
 	execEngine := executor.New(cfg)
 
-	// Re-generate plan (stateless execution for now to keep it simple)
-	// In a real daemon we could cache plans, but re-generating ensures context
-	// Actually, for "execute", we usually receive the PROMPT and re-plan+execute
-	// OR we receive the PLAN. But the current CLI flow is "prompt -> plan -> execute".
-	// To match CLI behavior: Generate Plan -> Validate -> Execute.
+	var p plan.Plan
+	var err error
 
-	// Collect facts
-	factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-	defer cancel()
-	envFacts := openwrt.CollectFacts(factsCtx)
+	// Check if commands are provided directly (Stateless Execution)
+	if len(req.Commands) > 0 {
+		fmt.Println("Executing provided plan directly (skipping LLM)...")
+		p = plan.Plan{
+			Summary:  "Direct execution",
+			Commands: req.Commands,
+		}
+	} else {
+		// Legacy: Re-generate plan
+		// Collect facts
+		factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		defer cancel()
+		envFacts := openwrt.CollectFacts(factsCtx)
 
-	instruction := prompts.GenerateSurvivalPrompt(cfg.MaxCommands)
-	if envFacts != "" {
-		instruction += "\n\nEnvironment facts (read-only):\n" + envFacts
+		instruction := prompts.GenerateSurvivalPrompt(cfg.MaxCommands)
+		if envFacts != "" {
+			instruction += "\n\nEnvironment facts (read-only):\n" + envFacts
+		}
+		fullPrompt := instruction + "\n\nUser request: " + req.Prompt
+
+		// Generate plan
+		planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
+		defer cancel()
+
+		fmt.Println("Generating plan for execution...")
+		start := time.Now()
+		p, err = llmProvider.GeneratePlan(planCtx, fullPrompt)
+		if err != nil {
+			fmt.Printf("Plan generation failed: %v\n", err)
+			http.Error(w, fmt.Sprintf("Failed to generate plan: %v", err), http.StatusInternalServerError)
+			return
+		}
+		fmt.Printf("Plan generated in %v\n", time.Since(start))
 	}
-	fullPrompt := instruction + "\n\nUser request: " + req.Prompt
-
-	// Generate plan
-	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
-	defer cancel()
-
-	fmt.Println("Generating plan for execution...")
-	start := time.Now()
-	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
-	if err != nil {
-		fmt.Printf("Plan generation failed: %v\n", err)
-		http.Error(w, fmt.Sprintf("Failed to generate plan: %v", err), http.StatusInternalServerError)
-		return
-	}
-	fmt.Printf("Plan generated in %v\n", time.Since(start))
 
 	if len(p.Commands) == 0 {
 		w.Header().Set("Content-Type", "application/json")
