@@ -38,6 +38,16 @@ local function call_daemon(endpoint, payload)
     local json = require "luci.jsonc"
     local os = require "os"
     local io = require "io"
+
+    local function log_debug(msg)
+        local f = io.open("/tmp/lucicodex_debug.log", "a")
+        if f then
+            f:write(os.date() .. " " .. msg .. "\n")
+            f:close()
+        end
+    end
+    
+    log_debug("Calling daemon: " .. endpoint)
     
     -- Prepare JSON body
     local body = json.stringify(payload)

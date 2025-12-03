@@ -128,7 +128,9 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Received /v1/execute request")
 	if r.Method != http.MethodPost {
+		fmt.Println("Error: Method not allowed")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}

@@ -1406,7 +1406,9 @@
                         try {
                             resolve(JSON.parse(xhr.responseText));
                         } catch (e) {
-                            reject(new Error('Invalid JSON response'));
+                            const error = new Error('Invalid JSON response');
+                            error.response = { details: { backend_output: xhr.responseText } };
+                            reject(error);
                         }
                     } else {
                         try {
@@ -1415,7 +1417,9 @@
                             error.response = err; // Attach full response for detailed error display
                             reject(error);
                         } catch (e) {
-                            reject(new Error(`Request failed (${xhr.status})`));
+                            const error = new Error(`Request failed (${xhr.status})`);
+                            error.response = { details: { backend_output: xhr.responseText } };
+                            reject(error);
                         }
                     }
                 };
