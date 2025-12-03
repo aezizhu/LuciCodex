@@ -967,8 +967,8 @@
             // Update model placeholder based on provider
             const modelInput = document.getElementById('modelInput');
             const defaultModels = {
-                'gemini': 'gemini-1.5-flash',
-                'openai': 'gpt-4o-mini',
+                'gemini': 'gemini-2.5-pro',
+                'openai': 'gpt-5',
                 'anthropic': 'claude-3-5-sonnet-20240620'
             };
             modelInput.placeholder = defaultModels[state.provider] || 'Leave empty for provider default';
@@ -1637,8 +1637,8 @@
             // Update placeholder to show default model for selected provider
             const modelInput = document.getElementById('modelInput');
             const defaultModels = {
-                'gemini': 'gemini-1.5-flash',
-                'openai': 'gpt-4o-mini',
+                'gemini': 'gemini-2.5-pro',
+                'openai': 'gpt-5',
                 'anthropic': 'claude-3-5-sonnet-20240620'
             };
             modelInput.placeholder = defaultModels[state.provider] || 'Leave empty for provider default';
