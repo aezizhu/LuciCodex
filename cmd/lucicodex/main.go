@@ -24,7 +24,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.4.53"
+var version = "0.4.54"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
@@ -209,7 +209,14 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 
 	if len(p.Commands) == 0 {
-		fmt.Fprintln(stdout, "No commands proposed.")
+		if *jsonOutput {
+			if err := ui.PrintPlanJSON(stdout, p); err != nil {
+				fmt.Fprintf(stderr, "JSON output error: %v\n", err)
+				return 1
+			}
+		} else {
+			fmt.Fprintln(stdout, "No commands proposed.")
+		}
 		return 0
 	}
 
