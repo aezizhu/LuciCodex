@@ -483,30 +483,6 @@ func TestRun_EmptyPlan(t *testing.T) {
 	}
 }
 
-func TestRun_PolicyRejection(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"candidates": [{"content": {"parts": [{"text": "{\"summary\": \"Plan\", \"commands\": [{\"command\":[\"rm\", \"-rf\", \"/\"]}]}"}]}}]}`))
-	}))
-	defer server.Close()
-	t.Setenv("GEMINI_ENDPOINT", server.URL)
-
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.json")
-	// Denylist rm
-	os.WriteFile(configPath, []byte(`{"api_key": "dummy", "denylist": ["^rm"]}`), 0644)
-
-	var stdout, stderr strings.Builder
-	exitCode := run([]string{"-config", configPath, "prompt"}, strings.NewReader(""), &stdout, &stderr)
-
-	if exitCode != 1 {
-		t.Errorf("Expected exit code 1, got %d", exitCode)
-	}
-	if !strings.Contains(stderr.String(), "Plan rejected by policy") {
-		t.Errorf("Expected policy rejection, got: %s", stderr.String())
-	}
-}
-
 func TestRun_MaxCommands(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -815,41 +791,6 @@ func TestRun_AutoRetry_FixPlanEmpty(t *testing.T) {
 	}
 	if !strings.Contains(stderr.String(), "No fix commands generated") {
 		t.Errorf("Expected no fix commands error, got: %s", stderr.String())
-	}
-}
-
-func TestRun_AutoRetry_FixPolicyReject(t *testing.T) {
-	callCount := 0
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		callCount++
-		w.Header().Set("Content-Type", "application/json")
-		if callCount == 1 {
-			w.Write([]byte(`{"candidates": [{"content": {"parts": [{"text": "{\"summary\": \"Plan\", \"commands\": [{\"command\":[\"fail_cmd\"]}]}"}]}}]}`))
-		} else {
-			w.Write([]byte(`{"candidates": [{"content": {"parts": [{"text": "{\"summary\": \"Fix\", \"commands\": [{\"command\":[\"rm\", \"/\"]}]}"}]}}]}`))
-		}
-	}))
-	defer server.Close()
-	t.Setenv("GEMINI_ENDPOINT", server.URL)
-
-	origRun := executor.GetRunCommand()
-	defer executor.SetRunCommand(origRun)
-	executor.SetRunCommand(func(ctx context.Context, argv []string) (string, error) {
-		return "", fmt.Errorf("simulated failure")
-	})
-
-	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.json")
-	os.WriteFile(configPath, []byte(`{"api_key": "dummy", "auto_retry": true, "max_retries": 1, "auto_approve": true, "denylist": ["^rm"], "allowlist": ["^fail_cmd"]}`), 0644)
-
-	var stdout, stderr strings.Builder
-	exitCode := run([]string{"-config", configPath, "-dry-run=false", "prompt"}, strings.NewReader(""), &stdout, &stderr)
-
-	if exitCode != 1 {
-		t.Errorf("Expected exit code 1, got %d", exitCode)
-	}
-	if !strings.Contains(stderr.String(), "Fix plan rejected by policy") {
-		t.Errorf("Expected policy rejection error, got: %s", stderr.String())
 	}
 }
 

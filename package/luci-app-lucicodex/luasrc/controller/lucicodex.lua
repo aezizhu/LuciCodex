@@ -50,14 +50,18 @@ local function call_daemon(endpoint, payload)
     f:close()
     
     -- Use curl to talk to daemon (timeout 300s)
-    local cmd = string.format("curl -s -m 300 -X POST -H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s", tmpfile, endpoint)
+    -- Capture stderr to debug connection issues
+    local cmd = string.format("curl -v -s -m 300 -X POST -H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s 2>/tmp/lucicodex_curl.err", tmpfile, endpoint)
     local handle = io.popen(cmd)
     local result = handle:read("*a")
     handle:close()
     os.remove(tmpfile)
     
     if not result or result == "" then
-        return nil, "daemon unreachable"
+        local f = io.open("/tmp/lucicodex_curl.err", "r")
+        local err_msg = f and f:read("*a") or "unknown error"
+        if f then f:close() end
+        return nil, "daemon unreachable: " .. err_msg
     end
     
     local decoded = json.parse(result)
