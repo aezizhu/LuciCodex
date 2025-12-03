@@ -441,7 +441,7 @@ function action_validate()
     stdout_r:close()
     stderr_r:close()
     
-    local status, code = nixio.waitpid(pid)
+    local _, status, code = nixio.waitpid(pid)
     
     if status == "exited" and code == 0 then
         http.prepare_content("application/json")
