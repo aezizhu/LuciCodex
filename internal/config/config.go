@@ -45,7 +45,7 @@ func defaultConfig() Config {
 	return Config{
 		Author:            "AZ <Aezi.zhu@icloud.com>",
 		Endpoint:          "https://generativelanguage.googleapis.com/v1beta",
-		Model:             "gemini-1.5-flash",
+		Model:             "gemini-2.5-pro",
 		Provider:          "gemini",
 		DryRun:            true,
 		AutoApprove:       false,
@@ -54,7 +54,7 @@ func defaultConfig() Config {
 		MaxRetries:        2,
 		AutoRetry:         true,
 		OpenAIEndpoint:    "https://api.openai.com/v1",
-		OpenAIModel:       "gpt-4o-mini",
+		OpenAIModel:       "gpt-5-mini",
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
 		AnthropicModel:    "claude-3-haiku-20240307",
 		// No default allowlist - user approval is the safety mechanism
@@ -240,8 +240,8 @@ func (cfg *Config) ApplyProviderSettings() {
 	case "openai":
 		if cfg.OpenAIModel != "" {
 			cfg.Model = cfg.OpenAIModel
-		} else if cfg.Model == "" || cfg.Model == "gemini-1.5-flash" {
-			cfg.Model = "gpt-4o-mini"
+		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-pro" {
+			cfg.Model = "gpt-5-mini"
 		}
 		if cfg.OpenAIEndpoint != "" {
 			cfg.Endpoint = cfg.OpenAIEndpoint
@@ -251,7 +251,7 @@ func (cfg *Config) ApplyProviderSettings() {
 	case "anthropic":
 		if cfg.AnthropicModel != "" {
 			cfg.Model = cfg.AnthropicModel
-		} else if cfg.Model == "" || cfg.Model == "gemini-1.5-flash" {
+		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-pro" {
 			cfg.Model = "claude-3-haiku-20240307"
 		}
 		if cfg.AnthropicEndpoint != "" {
@@ -261,7 +261,7 @@ func (cfg *Config) ApplyProviderSettings() {
 		}
 	default: // gemini
 		if cfg.Model == "" {
-			cfg.Model = "gemini-1.5-flash"
+			cfg.Model = "gemini-2.5-pro"
 		}
 		if cfg.Endpoint == "" {
 			cfg.Endpoint = "https://generativelanguage.googleapis.com/v1beta"

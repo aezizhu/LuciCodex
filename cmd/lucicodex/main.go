@@ -20,6 +20,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/openwrt"
 	"github.com/aezizhu/LuciCodex/internal/policy"
 	"github.com/aezizhu/LuciCodex/internal/repl"
+	"github.com/aezizhu/LuciCodex/internal/server"
 	"github.com/aezizhu/LuciCodex/internal/ui"
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
@@ -82,6 +83,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		interactive = fs.Bool("interactive", false, "start interactive REPL mode")
 		setup       = fs.Bool("setup", false, "run setup wizard")
 		joinArgs    = fs.Bool("join-args", false, "join all arguments into single prompt (experimental)")
+		serverMode  = fs.Bool("server", false, "run in daemon mode")
+		port        = fs.Int("port", 9999, "daemon port")
 	)
 
 	if err := fs.Parse(args); err != nil {
@@ -151,6 +154,15 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		w := wizard.New(stdin, stdout)
 		if err := w.Run(); err != nil {
 			fmt.Fprintf(stderr, "Setup error: %v\n", err)
+			return 1
+		}
+		return 0
+	}
+
+	if *serverMode {
+		srv := server.New(cfg)
+		if err := srv.Start(*port); err != nil {
+			fmt.Fprintf(stderr, "Server error: %v\n", err)
 			return 1
 		}
 		return 0
