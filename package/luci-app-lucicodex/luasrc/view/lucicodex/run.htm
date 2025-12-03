@@ -1169,7 +1169,10 @@
                 // Display Commands
                 if (planResponse.plan.commands && planResponse.plan.commands.length > 0) {
                     for (const cmd of planResponse.plan.commands) {
-                        const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : cmd.command;
+                        const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
+
+                        if (!cmdStr || cmdStr.trim() === '') continue;
+
                         const desc = cmd.description || 'Execute command';
 
                         addMessage('ai', desc);
