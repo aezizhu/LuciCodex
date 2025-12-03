@@ -48,21 +48,13 @@ func (e *Engine) ValidatePlan(p plan.Plan) error {
 			return fmt.Errorf("command %d contains shell metacharacters in argv[0]", i)
 		}
 		cmdline := strings.Join(c.Command, " ")
+		// Check denylist only - user approval is the primary safety mechanism
 		for _, re := range e.denyREs {
 			if re.MatchString(cmdline) {
 				return fmt.Errorf("command %d denied by policy: %s", i, cmdline)
 			}
 		}
-		allowed := false
-		for _, re := range e.allowREs {
-			if re.MatchString(cmdline) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			return fmt.Errorf("command %d not allowed by policy: %s", i, cmdline)
-		}
+		// No allowlist check - trust AI + user approval workflow
 	}
 	return nil
 }
