@@ -65,6 +65,9 @@ function action_plan()
         if not val or val == "" then
             val = uci:get("lucicodex", "@settings[0]", option)
         end
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@api[0]", option)
+        end
         return val
     end
 
@@ -215,6 +218,9 @@ function action_execute()
         if not val or val == "" then
             val = uci:get("lucicodex", "@settings[0]", option)
         end
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@api[0]", option)
+        end
         return val
     end
 
@@ -355,6 +361,9 @@ function action_validate()
         local val = uci:get("lucicodex", "main", option)
         if not val or val == "" then
             val = uci:get("lucicodex", "@settings[0]", option)
+        end
+        if not val or val == "" then
+            val = uci:get("lucicodex", "@api[0]", option)
         end
         return val
     end
