@@ -30,122 +30,331 @@ elseif provider == "anthropic" and anthropic_key and anthropic_key ~= "" then
 end
 %>
 
-    <style>
-        :root {
-            --bg-body: #000000;
-            --bg-card: #1c1c1e;
-            --bg-card-hover: #2c2c2e;
-            --text-primary: #F5F5F7;
-            --text-secondary: #86868b;
-            --accent-blue: #007AFF;
-            --accent-green: #34C759;
-            --accent-orange: #FF9500;
-            --accent-red: #FF3B30;
-            --border-subtle: rgba(255, 255, 255, 0.1);
-            --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-        }
+<style>
+    :root {
+        --bg-body: #000000;
+        --bg-card: #1c1c1e;
+        --bg-card-hover: #2c2c2e;
+        --text-primary: #F5F5F7;
+        --text-secondary: #86868b;
+        --accent-blue: #2997FF;
+        --accent-glow: rgba(41, 151, 255, 0.4);
+        --font-stack: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
 
-        body {
-            font-family: var(--font-stack);
-            background: var(--bg-body);
-            color: var(--text-primary);
-        }
+    body {
+        font-family: var(--font-stack);
+        background-color: var(--bg-body);
+        color: var(--text-primary);
+        margin: 0;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+    }
 
-        .overview-container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+    .overview-container {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 60px 20px;
+    }
 
-        .hero-section {
-            text-align: center;
-            margin-bottom: 60px;
-        }
+    /* Hero Section */
+    .hero-section {
+        text-align: center;
+        margin-bottom: 80px;
+        animation: fadeIn 1s ease-out;
+    }
 
-        .hero-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-        }
+    .hero-logo {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 24px;
+        display: inline-block;
+        filter: drop-shadow(0 0 40px rgba(255, 255, 255, 0.1));
+    }
 
-        .hero-title {
-            font-size: 48px;
-            font-weight: 700;
-            margin: 0 0 10px 0;
-        }
+    .hero-logo svg {
+        width: 100%;
+        height: 100%;
+        fill: var(--text-primary);
+    }
 
-        .hero-subtitle {
-            font-size: 20px;
-            color: var(--text-secondary);
-        }
+    .hero-title {
+        font-size: 56px;
+        font-weight: 700;
+        margin: 0 0 16px 0;
+        background: linear-gradient(180deg, #FFFFFF 0%, #A1A1A6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+    }
 
-        .status-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 18px;
-            padding: 24px;
-            margin-bottom: 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .hero-subtitle {
+        font-size: 24px;
+        color: var(--text-secondary);
+        font-weight: 400;
+        margin: 0;
+        letter-spacing: 0.01em;
+    }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-        }
+    /* Status Banner */
+    .status-banner {
+        background: rgba(28, 28, 30, 0.6);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 24px 32px;
+        margin-bottom: 40px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: transform 0.3s ease;
+    }
 
-        .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            padding: 32px;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
+    .status-banner:hover {
+        transform: scale(1.01);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
 
-        .feature-card:hover {
-            transform: translateY(-4px);
-        }
-    </style>
+    .status-content h3 {
+        margin: 0 0 4px 0;
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
 
-    <div class="overview-container">
-        <div class="hero-section">
-            <div class="hero-icon">🤖</div>
-            <h1 class="hero-title">LuciCodex</h1>
-            <p class="hero-subtitle">Your intelligent router assistant</p>
+    .status-content p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 15px;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+
+    .status-badge.active {
+        background: rgba(49, 209, 88, 0.15);
+        color: #32D74B;
+        box-shadow: 0 0 20px rgba(50, 215, 75, 0.1);
+    }
+
+    .status-badge.inactive {
+        background: rgba(255, 69, 58, 0.15);
+        color: #FF453A;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: currentColor;
+        box-shadow: 0 0 10px currentColor;
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .bento-card {
+        background: var(--bg-card);
+        border-radius: 24px;
+        padding: 32px;
+        text-decoration: none;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        flex-direction: column;
+        height: 240px;
+    }
+
+    .bento-card:hover {
+        transform: translateY(-8px);
+        background: var(--bg-card-hover);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .card-icon {
+        width: 40px;
+        height: 40px;
+        margin-bottom: auto;
+    }
+
+    .card-icon svg {
+        width: 100%;
+        height: 100%;
+        fill: var(--text-primary);
+        opacity: 0.8;
+    }
+
+    .card-content {
+        z-index: 1;
+    }
+
+    .card-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 8px 0;
+    }
+
+    .card-desc {
+        font-size: 16px;
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.4;
+    }
+
+    .card-arrow {
+        position: absolute;
+        bottom: 32px;
+        right: 32px;
+        opacity: 0;
+        transform: translateX(-10px);
+        transition: all 0.3s ease;
+        color: var(--accent-blue);
+        width: 24px;
+        height: 24px;
+    }
+
+    .card-arrow svg {
+        width: 100%;
+        height: 100%;
+        fill: currentColor;
+    }
+
+    .bento-card:hover .card-arrow {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    /* Footer */
+    .footer {
+        text-align: center;
+        margin-top: 80px;
+        padding-top: 40px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: var(--text-secondary);
+        font-size: 13px;
+    }
+
+    .footer a {
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .footer a:hover {
+        color: var(--accent-blue);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+        .hero-title { font-size: 40px; }
+        .hero-subtitle { font-size: 20px; }
+        .bento-grid { grid-template-columns: 1fr; }
+        .bento-card { height: auto; min-height: 200px; }
+    }
+</style>
+
+<div class="overview-container">
+    <div class="hero-section">
+        <div class="hero-logo">
+            <!-- Robot Icon SVG -->
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2M7.5 13A2.5 2.5 0 0 0 5 15.5A2.5 2.5 0 0 0 7.5 18A2.5 2.5 0 0 0 10 15.5A2.5 2.5 0 0 0 7.5 13m9 0a2.5 2.5 0 0 0-2.5 2.5a2.5 2.5 0 0 0 2.5 2.5a2.5 2.5 0 0 0 2.5-2.5a2.5 2.5 0 0 0-2.5-2.5M12 8a6 6 0 0 0-6 6h12a6 6 0 0 0-6-6Z"/></svg>
         </div>
-
-        <div class="status-card">
-            <div>
-                <h3>System Status</h3>
-                <% if is_configured then %>
-                    <p>Connected to <%=active_provider_name%></p>
-                <% else %>
-                    <p>Configuration required</p>
-                <% end %>
-            </div>
-        </div>
-
-        <div class="features-grid">
-            <a href="<%=url('admin/system/lucicodex/run')%>" class="feature-card">
-                <div>💬</div>
-                <h3>Chat Assistant</h3>
-                <p>Control your router using natural language</p>
-            </a>
-
-            <a href="<%=url('admin/system/lucicodex/config')%>" class="feature-card">
-                <div>⚙️</div>
-                <h3>Configuration</h3>
-                <p>Manage AI providers and API keys</p>
-            </a>
-
-            <a href="<%=url('admin/system/l ucicodex/metrics')%>" class="feature-card">
-                <div>📊</div>
-                <h3>Metrics</h3>
-                <p>View usage statistics</p>
-            </a>
-        </div>
-
-        <%+footer%>
+        <h1 class="hero-title">LuciCodex</h1>
+        <p class="hero-subtitle">Intelligence. Simplified.</p>
     </div>
+
+    <div class="status-banner">
+        <div class="status-content">
+            <h3>System Status</h3>
+            <% if is_configured then %>
+                <p>Connected to <%=active_provider_name%></p>
+            <% else %>
+                <p>Configuration required</p>
+            <% end %>
+        </div>
+        <% if is_configured then %>
+            <div class="status-badge active">
+                <div class="status-dot"></div>
+                Operational
+            </div>
+        <% else %>
+            <div class="status-badge inactive">
+                <div class="status-dot"></div>
+                Setup Needed
+            </div>
+        <% end %>
+    </div>
+
+    <div class="bento-grid">
+        <a href="<%=url('admin/system/lucicodex/run')%>" class="bento-card">
+            <div class="card-icon">
+                <!-- Chat Bubble SVG -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">Chat</h3>
+                <p class="card-desc">Interact with your router using natural language. Ask, command, and control.</p>
+            </div>
+            <div class="card-arrow">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"/></svg>
+            </div>
+        </a>
+
+        <a href="<%=url('admin/system/lucicodex/config')%>" class="bento-card">
+            <div class="card-icon">
+                <!-- Settings Gear SVG -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19.14 12.94c.04-.3.06-.61.06-.94c0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6s3.6 1.62 3.6 3.6s-1.62 3.6-3.6 3.6z"/></svg>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">Settings</h3>
+                <p class="card-desc">Fine-tune your experience. Manage providers, API keys, and safety protocols.</p>
+            </div>
+            <div class="card-arrow">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"/></svg>
+            </div>
+        </a>
+
+        <a href="<%=url('admin/system/lucicodex/metrics')%>" class="bento-card">
+            <div class="card-icon">
+                <!-- Chart Bar SVG -->
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z"/></svg>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">Metrics</h3>
+                <p class="card-desc">Insightful analytics on your AI usage and performance.</p>
+            </div>
+            <div class="card-arrow">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16.172 11l-5.364-5.364 1.414-1.414L20 12l-7.778 7.778-1.414-1.414L16.172 13H4v-2z"/></svg>
+            </div>
+        </a>
+    </div>
+
+    <div class="footer">
+        <p>Designed by Aezi Group · <a href="https://github.com/aezizhu/LuciCodex" target="_blank">GitHub</a></p>
+    </div>
+
+    <%+footer%>
+</div>

@@ -24,7 +24,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.4.50"
+var version = "0.4.51"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 

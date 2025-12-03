@@ -1203,11 +1203,17 @@
                     errorMsg += '\n\n**Technical Details:**';
 
                     if (details.backend_error) {
-                        errorMsg += `\n- Backend: ${details.backend_error.trim()}`;
+                        errorMsg += `\n\n**Error Log:**\n\`\`\`\n${details.backend_error.trim()}\n\`\`\``;
+                    } else {
+                        errorMsg += `\n\n**Error Log:** (empty)`;
                     }
-                    if (details.exit_code) {
-                        errorMsg += `\n- Exit Code: ${details.exit_code}`;
+
+                    if (details.backend_output) {
+                        errorMsg += `\n\n**Output Log:**\n\`\`\`\n${details.backend_output.trim()}\n\`\`\``;
                     }
+
+                    errorMsg += `\n\n- Exit Status: ${details.exit_status || 'unknown'}`;
+                    errorMsg += `\n- Exit Code: ${details.exit_code !== undefined ? details.exit_code : 'unknown'}`;
                 }
 
                 addMessage('ai', errorMsg);

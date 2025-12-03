@@ -87,6 +87,9 @@ function action_plan()
     end
     
     table.insert(argv, data.prompt)
+
+    -- DEBUG: Log the command we are about to run
+    nixio.stderr:write("LuciCodex DEBUG: Executing command: " .. table.concat(argv, " ") .. "\n")
     
     local stdout_r, stdout_w = nixio.pipe()
     local stderr_r, stderr_w = nixio.pipe()
@@ -252,6 +255,9 @@ function action_execute()
     end
     
     table.insert(argv, data.prompt)
+    
+    -- DEBUG: Log the command we are about to run
+    nixio.stderr:write("LuciCodex DEBUG: Executing command: " .. table.concat(argv, " ") .. "\n")
     
     local stdout_r, stdout_w = nixio.pipe()
     local stderr_r, stderr_w = nixio.pipe()
