@@ -24,7 +24,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.4.57"
+var version = "0.4.60"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
@@ -199,7 +199,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fullPrompt := instruction + "\n\nUser request: " + prompt
 
 	// Generate plan
-	planCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	// Generate plan
+	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer cancel()
 
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
