@@ -26,8 +26,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.AutoApprove {
 		t.Error("expected AutoApprove to be false by default")
 	}
-	if cfg.TimeoutSeconds != 60 {
-		t.Errorf("expected timeout 60, got %d", cfg.TimeoutSeconds)
+	if cfg.TimeoutSeconds != 120 {
+		t.Errorf("expected timeout 120, got %d", cfg.TimeoutSeconds)
 	}
 	if cfg.MaxCommands != 10 {
 		t.Errorf("expected max commands 10, got %d", cfg.MaxCommands)
@@ -129,7 +129,7 @@ func TestLoadFromJSONFile(t *testing.T) {
 		Provider:       "gemini",
 		DryRun:         false,
 		AutoApprove:    true,
-		TimeoutSeconds: 60,
+		TimeoutSeconds: 120,
 		MaxCommands:    20,
 		Allowlist:      []string{"^test"},
 		Denylist:       []string{"^danger"},
@@ -165,8 +165,8 @@ func TestLoadFromJSONFile(t *testing.T) {
 	if !cfg.AutoApprove {
 		t.Error("expected AutoApprove to be true")
 	}
-	if cfg.TimeoutSeconds != 60 {
-		t.Errorf("expected timeout 60, got %d", cfg.TimeoutSeconds)
+	if cfg.TimeoutSeconds != 120 {
+		t.Errorf("expected timeout 120, got %d", cfg.TimeoutSeconds)
 	}
 	if cfg.MaxCommands != 20 {
 		t.Errorf("expected max commands 20, got %d", cfg.MaxCommands)

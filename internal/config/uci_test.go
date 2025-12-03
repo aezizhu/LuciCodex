@@ -251,8 +251,8 @@ func TestLoad_UCI_InvalidValues(t *testing.T) {
 	}
 
 	// Should keep defaults
-	if cfg.TimeoutSeconds != 60 {
-		t.Errorf("expected default timeout 60, got %d", cfg.TimeoutSeconds)
+	if cfg.TimeoutSeconds != 120 {
+		t.Errorf("expected default timeout 120, got %d", cfg.TimeoutSeconds)
 	}
 	if cfg.MaxCommands != 10 {
 		t.Errorf("expected default max commands 10, got %d", cfg.MaxCommands)
