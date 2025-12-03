@@ -3,7 +3,7 @@
 # LuciCodex Installer
 # Usage: wget -O - https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="v0.4.67"
+VERSION="v0.4.68"
 REPO="aezizhu/LuciCodex"
 URL="https://github.com/${REPO}/releases/download/${VERSION}/luci-app-lucicodex.ipk"
 
