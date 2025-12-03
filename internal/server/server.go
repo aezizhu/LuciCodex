@@ -17,21 +17,24 @@ import (
 
 type Server struct {
 	cfg config.Config
+	mux *http.ServeMux
 }
 
 func New(cfg config.Config) *Server {
-	return &Server{cfg: cfg}
+	s := &Server{
+		cfg: cfg,
+		mux: http.NewServeMux(),
+	}
+	s.mux.HandleFunc("/v1/plan", s.handlePlan)
+	s.mux.HandleFunc("/v1/execute", s.handleExecute)
+	s.mux.HandleFunc("/health", s.handleHealth)
+	return s
 }
 
 func (s *Server) Start(port int) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/plan", s.handlePlan)
-	mux.HandleFunc("/v1/execute", s.handleExecute)
-	mux.HandleFunc("/health", s.handleHealth)
-
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	fmt.Printf("LuciCodex Daemon listening on %s\n", addr)
-	return http.ListenAndServe(addr, mux)
+	return http.ListenAndServe(addr, s.mux)
 }
 
 type PlanRequest struct {
@@ -64,6 +67,11 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 	var req PlanRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Prompt == "" {
+		http.Error(w, "Prompt is required", http.StatusBadRequest)
 		return
 	}
 
