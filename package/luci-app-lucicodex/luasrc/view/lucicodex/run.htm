@@ -1231,7 +1231,7 @@
                 const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, {
                     prompt,
                     dry_run: false,
-                    timeout: 90,
+                    timeout: 300,
                     provider: state.provider,
                     model: state.model
                 });

@@ -49,7 +49,7 @@ func defaultConfig() Config {
 		Provider:          "gemini",
 		DryRun:            true,
 		AutoApprove:       false,
-		TimeoutSeconds:    120,
+		TimeoutSeconds:    300,
 		MaxCommands:       10,
 		MaxRetries:        2,
 		AutoRetry:         true,
