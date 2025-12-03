@@ -1,40 +1,18 @@
-<%
-local uci = require "luci.model.uci".cursor()
-
--- Check configuration status
-local function get_config(option)
-    local val = uci:get("lucicodex", "main", option)
-    if not val or val == "" then
-        val = uci:get("lucicodex", "@settings[0]", option)
-    end
-    return val or ""
-end
-
-local provider = get_config("provider") or "gemini"
-local gemini_key = get_config("key")
-local openai_key = get_config("openai_key")
-local anthropic_key = get_config("anthropic_key")
-
-local is_configured = false
-local active_provider_name = "Not configured"
-
-if provider == "gemini" and gemini_key and gemini_key ~= "" then
-    is_configured = true
-    active_provider_name = "Google Gemini"
-elseif provider == "openai" and openai_key and openai_key ~= "" then
-    is_configured = true
-    active_provider_name = "OpenAI"
-elseif provider == "anthropic" and anthropic_key and anthropic_key ~= "" then
-    is_configured = true
-    active_provider_name = "Anthropic Claude"
-end
-%>
+<% local uci=require "luci.model.uci" .cursor() -- Check configuration status local function get_config(option) local
+    val=uci:get("lucicodex", "main" , option) if not val or val=="" then val=uci:get("lucicodex", "@settings[0]" ,
+    option) end return val or "" end local provider=get_config("provider") or "gemini" local
+    gemini_key=get_config("key") local openai_key=get_config("openai_key") local
+    anthropic_key=get_config("anthropic_key") local is_configured=false local active_provider_name="Not configured" if
+    provider=="gemini" and gemini_key and gemini_key ~="" then is_configured=true active_provider_name="Google Gemini"
+    elseif provider=="openai" and openai_key and openai_key ~="" then is_configured=true active_provider_name="OpenAI"
+    elseif provider=="anthropic" and anthropic_key and anthropic_key ~="" then is_configured=true
+    active_provider_name="Anthropic Claude" end %>
 
     <style>
         :root {
             --bg-body: #000000;
-            --bg-card: rgba(28, 28, 30, 0.8);
-            --bg-card-hover: rgba(44, 44, 46, 0.9);
+            --bg-card: #1c1c1e;
+            --bg-card-hover: #2c2c2e;
             --text-primary: #F5F5F7;
             --text-secondary: #86868b;
             --accent-blue: #007AFF;
@@ -92,16 +70,133 @@ end
             animation: fadeIn 0.8s ease-out;
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
+        .hero-title {
+            font-size: 48px;
+            font-weight: 700;
+            margin: 0 0 10px 0;
+            background: linear-gradient(135deg, #FFFFFF 0%, #A1A1A6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .hero-subtitle {
+            font-size: 20px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin: 0;
+        }
+
+        /* Status Card */
+        .status-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 24px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .status-info h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-info p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-indicator.active {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(52, 199, 89, 0.2);
+        }
+
+        .status-indicator.inactive {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 59, 48, 0.2);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 32px;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .feature-card:hover {
+            background: var(--bg-card-hover);
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            text-decoration: none;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            width: 64px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+        }
+
+        .feature-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .feature-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin: 0;
         }
 
         .hero-icon {
@@ -310,7 +405,7 @@ end
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(15px);
+                transform: translateY(20px);
             }
 
             to {
@@ -322,29 +417,21 @@ end
         /* Mobile */
         @media (max-width: 768px) {
             .overview-container {
-                padding: 1rem;
+                padding: 20px;
             }
 
-            .hero h1 {
-                font-size: 2rem;
+            .hero-title {
+                font-size: 36px;
             }
 
-            .main-actions {
+            .features-grid {
                 grid-template-columns: 1fr;
             }
 
-            .steps {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-
-            .try-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .status-banner {
+            .status-card {
                 flex-direction: column;
                 text-align: center;
+                gap: 20px;
             }
         }
     </style>
@@ -352,7 +439,7 @@ end
     <div class="overview-container">
         <!-- Hero -->
         <div class="hero-section">
-            <div class="hero-icon"></div>
+            <div class="hero-icon">🤖</div>
             <h1 class="hero-title">LuciCodex</h1>
             <p class="hero-subtitle">Your intelligent router assistant</p>
         </div>

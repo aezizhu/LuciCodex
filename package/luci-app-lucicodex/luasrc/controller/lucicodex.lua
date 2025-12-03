@@ -162,6 +162,9 @@ function action_plan()
     error_details.exit_code = code
     error_details.exit_status = status
     
+    -- Log full error details to stderr for debugging
+    nixio.stderr:write("LuciCodex Error: " .. json.stringify(error_details) .. "\n")
+    
     http.status(500, "Internal Server Error")
     http.write_json({ 
         error = error_msg,
