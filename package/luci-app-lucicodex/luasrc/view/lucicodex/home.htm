@@ -1,12 +1,34 @@
-<% local uci=require "luci.model.uci" .cursor() -- Check configuration status local function get_config(option) local
-    val=uci:get("lucicodex", "main" , option) if not val or val=="" then val=uci:get("lucicodex", "@settings[0]" ,
-    option) end return val or "" end local provider=get_config("provider") or "gemini" local
-    gemini_key=get_config("key") local openai_key=get_config("openai_key") local
-    anthropic_key=get_config("anthropic_key") local is_configured=false local active_provider_name="Not configured" if
-    provider=="gemini" and gemini_key and gemini_key ~="" then is_configured=true active_provider_name="Google Gemini"
-    elseif provider=="openai" and openai_key and openai_key ~="" then is_configured=true active_provider_name="OpenAI"
-    elseif provider=="anthropic" and anthropic_key and anthropic_key ~="" then is_configured=true
-    active_provider_name="Anthropic Claude" end %>
+<%
+local uci = require "luci.model.uci".cursor()
+
+-- Check configuration status
+local function get_config(option)
+    local val = uci:get("lucicodex", "main", option)
+    if not val or val == "" then
+        val = uci:get("lucicodex", "@settings[0]", option)
+    end
+    return val or ""
+end
+
+local provider = get_config("provider") or "gemini"
+local gemini_key = get_config("key")
+local openai_key = get_config("openai_key")
+local anthropic_key = get_config("anthropic_key")
+
+local is_configured = false
+local active_provider_name = "Not configured"
+
+if provider == "gemini" and gemini_key and gemini_key ~= "" then
+    is_configured = true
+    active_provider_name = "Google Gemini"
+elseif provider == "openai" and openai_key and openai_key ~= "" then
+    is_configured = true
+    active_provider_name = "OpenAI"
+elseif provider == "anthropic" and anthropic_key and anthropic_key ~= "" then
+    is_configured = true
+    active_provider_name = "Anthropic Claude"
+end
+%>
 
     <style>
         :root {
@@ -23,39 +45,10 @@
             --font-stack: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
         }
 
-        /* LuCI Tab Override */
-        .cbi-tabmenu {
-            background: rgba(255, 255, 255, 0.05) !important;
-            border-bottom: 1px solid var(--border-subtle) !important;
-            padding: 0.5rem 1rem !important;
-        }
-
-        .cbi-tabmenu li a {
-            color: var(--text-secondary) !important;
-            background: rgba(255, 255, 255, 0.05) !important;
-            border: 1px solid var(--border-subtle) !important;
-            padding: 0.6rem 1.5rem !important;
-            border-radius: 8px 8px 0 0 !important;
-            font-weight: 500 !important;
-        }
-
-        .cbi-tabmenu li a:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
-            color: var(--text-primary) !important;
-        }
-
-        .cbi-tabmenu li.cbi-tab a {
-            background: var(--accent-blue) !important;
-            color: #FFFFFF !important;
-            border-color: var(--accent-blue) !important;
-        }
-
         body {
             font-family: var(--font-stack);
             background: var(--bg-body);
             color: var(--text-primary);
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
         }
 
         .overview-container {
@@ -67,27 +60,24 @@
         .hero-section {
             text-align: center;
             margin-bottom: 60px;
-            animation: fadeIn 0.8s ease-out;
+        }
+
+        .hero-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
         }
 
         .hero-title {
             font-size: 48px;
             font-weight: 700;
             margin: 0 0 10px 0;
-            background: linear-gradient(135deg, #FFFFFF 0%, #A1A1A6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.02em;
         }
 
         .hero-subtitle {
             font-size: 20px;
             color: var(--text-secondary);
-            font-weight: 400;
-            margin: 0;
         }
 
-        /* Status Card */
         .status-card {
             background: var(--bg-card);
             border: 1px solid var(--border-subtle);
@@ -97,54 +87,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
         }
 
-        .status-info h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .status-info p {
-            margin: 0;
-            color: var(--text-secondary);
-            font-size: 14px;
-        }
-
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .status-indicator.active {
-            background: rgba(52, 199, 89, 0.15);
-            color: var(--accent-green);
-            border: 1px solid rgba(52, 199, 89, 0.2);
-        }
-
-        .status-indicator.inactive {
-            background: rgba(255, 59, 48, 0.15);
-            color: var(--accent-red);
-            border: 1px solid rgba(255, 59, 48, 0.2);
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: currentColor;
-            box-shadow: 0 0 8px currentColor;
-        }
-
-        /* Features Grid */
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -157,345 +101,51 @@
             border-radius: 20px;
             padding: 32px;
             text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            height: 100%;
-            box-sizing: border-box;
+            transition: all 0.3s;
         }
 
         .feature-card:hover {
-            background: var(--bg-card-hover);
             transform: translateY(-4px);
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            text-decoration: none;
-        }
-
-        .feature-icon {
-            font-size: 32px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            width: 64px;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 16px;
-        }
-
-        .feature-title {
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        }
-
-        .feature-desc {
-            font-size: 15px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin: 0;
-        }
-
-        .hero-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-            background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            align-items: center;
-            padding: 2rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .action-card:hover {
-            background: var(--bg-card-hover);
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            text-decoration: none;
-        }
-
-        .action-card.primary {
-            background: linear-gradient(135deg, rgba(0, 122, 255, 0.2) 0%, rgba(0, 122, 255, 0.1) 100%);
-            border-color: rgba(0, 122, 255, 0.3);
-        }
-
-        .action-card.primary:hover {
-            border-color: rgba(0, 122, 255, 0.5);
-        }
-
-        .action-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .action-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .action-desc {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            text-align: center;
-        }
-
-        /* How It Works */
-        .section {
-            margin: 3rem 0;
-            animation: fadeIn 0.6s ease-out 0.3s both;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-        }
-
-        .step {
-            text-align: center;
-            padding: 1.5rem;
-        }
-
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: var(--accent-blue);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.1rem;
-            margin: 0 auto 1rem;
-        }
-
-        .step-title {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .step-desc {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Try These */
-        .try-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-subtle);
-            border-radius: 20px;
-            padding: 2rem;
-            margin: 3rem 0;
-            animation: fadeIn 0.6s ease-out 0.4s both;
-        }
-
-        .try-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .try-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.8rem;
-        }
-
-        .try-item {
-            display: flex;
-            align-items: center;
-            gap: 0.8rem;
-            padding: 0.8rem 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-subtle);
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .try-item:hover {
-            background: rgba(0, 122, 255, 0.1);
-            border-color: rgba(0, 122, 255, 0.3);
-        }
-
-        .try-item-icon {
-            font-size: 1.2rem;
-        }
-
-        .try-item-text {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-        }
-
-        .try-item:hover .try-item-text {
-            color: var(--text-primary);
-        }
-
-        /* Safety Notice */
-        .safety-notice {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: 1.2rem 1.5rem;
-            background: rgba(255, 149, 0, 0.08);
-            border: 1px solid rgba(255, 149, 0, 0.2);
-            border-radius: 12px;
-            margin: 2rem 0;
-            animation: fadeIn 0.6s ease-out 0.5s both;
-        }
-
-        .safety-icon {
-            font-size: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .safety-text h4 {
-            margin: 0 0 0.3rem 0;
-            font-size: 0.95rem;
-            color: #FFB340;
-        }
-
-        .safety-text p {
-            margin: 0;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem 0;
-            border-top: 1px solid var(--border-subtle);
-            margin-top: 3rem;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .footer a {
-            color: var(--accent-blue);
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Mobile */
-        @media (max-width: 768px) {
-            .overview-container {
-                padding: 20px;
-            }
-
-            .hero-title {
-                font-size: 36px;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .status-card {
-                flex-direction: column;
-                text-align: center;
-                gap: 20px;
-            }
         }
     </style>
 
     <div class="overview-container">
-        <!-- Hero -->
         <div class="hero-section">
             <div class="hero-icon">🤖</div>
             <h1 class="hero-title">LuciCodex</h1>
             <p class="hero-subtitle">Your intelligent router assistant</p>
         </div>
 
-        <!-- Status Card -->
         <div class="status-card">
-            <div class="status-info">
+            <div>
                 <h3>System Status</h3>
                 <% if is_configured then %>
-                    <p>Connected to <%=active_provider_name%>
-                    </p>
-                    <% else %>
-                        <p>Configuration required</p>
-                        <% end %>
-            </div>
-            <% if is_configured then %>
-                <div class="status-indicator active">
-                    <div class="dot"></div>
-                    Ready
-                </div>
+                    <p>Connected to <%=active_provider_name%></p>
                 <% else %>
-                    <div class="status-indicator inactive">
-                        <div class="dot"></div>
-                        Setup Needed
-                    </div>
-                    <% end %>
+                    <p>Configuration required</p>
+                <% end %>
+            </div>
         </div>
 
-        <!-- Features Grid -->
         <div class="features-grid">
             <a href="<%=url('admin/system/lucicodex/run')%>" class="feature-card">
-                <div class="feature-icon">💬</div>
-                <div class="feature-title">Chat Assistant</div>
-                <p class="feature-desc">Control your router using natural language. Ask questions, run commands, and
-                    troubleshoot issues.</p>
+                <div>💬</div>
+                <h3>Chat Assistant</h3>
+                <p>Control your router using natural language</p>
             </a>
 
             <a href="<%=url('admin/system/lucicodex/config')%>" class="feature-card">
-                <div class="feature-icon">⚙️</div>
-                <div class="feature-title">Configuration</div>
-                <p class="feature-desc">Manage AI providers, API keys, and safety settings to customize your
-                    experience.</p>
+                <div>⚙️</div>
+                <h3>Configuration</h3>
+                <p>Manage AI providers and API keys</p>
             </a>
 
-            <a href="<%=url('admin/system/lucicodex/metrics')%>" class="feature-card">
-                <div class="feature-icon">📊</div>
-                <div class="feature-title">Metrics</div>
-                <p class="feature-desc">View usage statistics, success rates, and performance metrics for your AI
-                    interactions.</p>
+            <a href="<%=url('admin/system/l ucicodex/metrics')%>" class="feature-card">
+                <div>📊</div>
+                <h3>Metrics</h3>
+                <p>View usage statistics</p>
             </a>
-        </div>
-
-        <!-- Footer -->
-        <div style="text-align: center; color: var(--text-secondary); font-size: 13px; margin-top: 40px;">
-            <p>Designed by Aezi Group · <a href="https://github.com/aezizhu/LuciCodex" target="_blank"
-                    style="color: var(--accent-blue); text-decoration: none;">GitHub</a></p>
         </div>
 
         <%+footer%>
+    </div>
