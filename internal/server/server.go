@@ -191,13 +191,15 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer cancel()
 
+	fmt.Println("Generating plan for execution...")
+	start := time.Now()
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("LLM error: %v", err)})
+		fmt.Printf("Plan generation failed: %v\n", err)
+		http.Error(w, fmt.Sprintf("Failed to generate plan: %v", err), http.StatusInternalServerError)
 		return
 	}
+	fmt.Printf("Plan generated in %v\n", time.Since(start))
 
 	if len(p.Commands) == 0 {
 		w.Header().Set("Content-Type", "application/json")
@@ -210,6 +212,7 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 
 	// Validate
 	if err := policyEngine.ValidatePlan(p); err != nil {
+		fmt.Printf("Policy validation failed: %v\n", err)
 		http.Error(w, fmt.Sprintf("Policy error: %v", err), http.StatusForbidden)
 		return
 	}

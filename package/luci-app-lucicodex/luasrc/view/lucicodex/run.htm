@@ -304,9 +304,19 @@
             padding: 1.2rem;
             font-family: "SF Mono", "Menlo", monospace;
             font-size: 0.9rem;
-            color: #F5F5F7;
+            color: #F5F5F7 !important;
             overflow-x: auto;
             line-height: 1.6;
+            background: #0d0d0e !important;
+            /* Ensure background matches container */
+        }
+
+        .code-content pre {
+            margin: 0;
+            padding: 0;
+            background: transparent !important;
+            color: inherit !important;
+            border: none !important;
         }
 
         /* Input Area */
