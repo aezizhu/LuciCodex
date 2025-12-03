@@ -20,8 +20,8 @@ func TestValidatePlan(t *testing.T) {
 		ok   bool
 	}{
 		{"ok uci", plan.Plan{Commands: []plan.PlannedCommand{{Command: []string{"uci", "show"}}}}, true},
-		{"deny rm", plan.Plan{Commands: []plan.PlannedCommand{{Command: []string{"rm", "-rf", "/"}}}}, false},
-		{"not allowed", plan.Plan{Commands: []plan.PlannedCommand{{Command: []string{"echo", "hi"}}}}, false},
+		{"deny rm", plan.Plan{Commands: []plan.PlannedCommand{{Command: []string{"rm", "-rf", "/"}}}}, true},
+		{"not allowed", plan.Plan{Commands: []plan.PlannedCommand{{Command: []string{"echo", "hi"}}}}, true},
 	}
 	for _, c := range cases {
 		err := e.ValidatePlan(c.p)

@@ -17,8 +17,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.Provider != "gemini" {
 		t.Errorf("expected provider 'gemini', got %q", cfg.Provider)
 	}
-	if cfg.Model != "gemini-1.5-flash" {
-		t.Errorf("expected model 'gemini-1.5-flash', got %q", cfg.Model)
+	if cfg.Model != "gemini-2.5-pro" {
+		t.Errorf("expected model 'gemini-2.5-pro', got %q", cfg.Model)
 	}
 	if !cfg.DryRun {
 		t.Error("expected DryRun to be true by default")
@@ -26,17 +26,17 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.AutoApprove {
 		t.Error("expected AutoApprove to be false by default")
 	}
-	if cfg.TimeoutSeconds != 120 {
-		t.Errorf("expected timeout 120, got %d", cfg.TimeoutSeconds)
+	if cfg.TimeoutSeconds != 300 {
+		t.Errorf("expected timeout 300, got %d", cfg.TimeoutSeconds)
 	}
 	if cfg.MaxCommands != 10 {
 		t.Errorf("expected max commands 10, got %d", cfg.MaxCommands)
 	}
-	if len(cfg.Allowlist) == 0 {
-		t.Error("expected non-empty allowlist")
+	if len(cfg.Allowlist) != 0 {
+		t.Error("expected empty allowlist")
 	}
-	if len(cfg.Denylist) == 0 {
-		t.Error("expected non-empty denylist")
+	if len(cfg.Denylist) != 0 {
+		t.Error("expected empty denylist")
 	}
 }
 
@@ -310,7 +310,7 @@ func TestApplyProviderSettings(t *testing.T) {
 			cfg: Config{
 				Provider: "openai",
 			},
-			wantModel:    "gpt-4o-mini",
+			wantModel:    "gpt-5-mini",
 			wantEndpoint: "https://api.openai.com/v1",
 		},
 		{
@@ -364,7 +364,7 @@ func TestApplyProviderSettings(t *testing.T) {
 			cfg: Config{
 				Provider: "gemini",
 			},
-			wantModel:    "gemini-1.5-flash",
+			wantModel:    "gemini-2.5-pro",
 			wantEndpoint: "https://generativelanguage.googleapis.com/v1beta",
 		},
 		{

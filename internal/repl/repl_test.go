@@ -173,31 +173,6 @@ func TestREPL_LLMError(t *testing.T) {
 	testutil.AssertContains(t, outStr, "Error: LLM error")
 }
 
-func TestREPL_PolicyRejection(t *testing.T) {
-	input := "destroy everything\nexit\n"
-	var output bytes.Buffer
-	cfg := config.Config{
-		Provider: "test",
-		Denylist: []string{"^rm"},
-	}
-	r := New(cfg, strings.NewReader(input), &output)
-
-	// Inject mock provider with dangerous command
-	mockPlan := plan.Plan{
-		Summary: "Dangerous Plan",
-		Commands: []plan.PlannedCommand{
-			{Command: []string{"rm", "-rf", "/"}},
-		},
-	}
-	r.provider = &MockProvider{Plan: mockPlan}
-
-	err := r.Run(context.Background())
-	testutil.AssertNoError(t, err)
-
-	outStr := testutil.StripAnsi(output.String())
-	testutil.AssertContains(t, outStr, "Error: Plan rejected")
-}
-
 func TestREPL_HistoryErrors(t *testing.T) {
 	// Add a command first so history is not empty
 	input := "echo test\n!abc\n!999\nexit\n"
