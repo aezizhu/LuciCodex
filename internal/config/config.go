@@ -61,6 +61,19 @@ func defaultConfig() Config {
 		// CAUTION: This list is broad to allow standard admin tasks.
 		// Ensure the policy engine enforces strict argument validation where possible.
 		Allowlist: []string{
+			`^ls(\s|$)`,
+			`^ps(\s|$)`,
+			`^free(\s|$)`,
+			`^df(\s|$)`,
+			`^du(\s|$)`,
+			`^uname(\s|$)`,
+			`^uptime(\s|$)`,
+			`^date(\s|$)`,
+			`^echo(\s|$)`,
+			`^printf(\s|$)`,
+			`^find(\s|$)`,
+			`^which(\s|$)`,
+			`^service(\s|$)`,
 			`^uci(\s|$)`,
 			`^ubus(\s|$)`,
 			`^fw4(\s|$)`,
