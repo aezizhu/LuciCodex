@@ -61,6 +61,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Received /v1/plan request")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -75,6 +76,20 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 	if req.Prompt == "" {
 		http.Error(w, "Prompt is required", http.StatusBadRequest)
 		return
+	}
+
+	// Debug: Log received config keys (mask actual values for security)
+	fmt.Printf("Plan request - Provider: %s, Model: %s\n", req.Provider, req.Model)
+	if req.Config != nil {
+		for k, v := range req.Config {
+			if v != "" {
+				fmt.Printf("  Config[%s]: (set, %d chars)\n", k, len(v))
+			} else {
+				fmt.Printf("  Config[%s]: (empty)\n", k)
+			}
+		}
+	} else {
+		fmt.Println("  Config: nil")
 	}
 
 	// Merge config
@@ -95,6 +110,11 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 		cfg.AnthropicAPIKey = val
 	}
 	cfg.ApplyProviderSettings()
+
+	// Debug: Log final config state (mask actual values)
+	fmt.Printf("Final config - Provider: %s, Model: %s\n", cfg.Provider, cfg.Model)
+	fmt.Printf("  GeminiKey: %v, OpenAIKey: %v, AnthropicKey: %v\n",
+		cfg.APIKey != "", cfg.OpenAIAPIKey != "", cfg.AnthropicAPIKey != "")
 
 	ctx := r.Context()
 	llmProvider := llm.NewProvider(cfg)

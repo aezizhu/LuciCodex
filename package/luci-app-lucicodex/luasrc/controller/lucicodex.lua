@@ -15,22 +15,41 @@ end
 -- Helper to get API keys from UCI
 local function get_api_keys()
     local uci = require "luci.model.uci".cursor()
+    local io = require "io"
+    
+    local function log_debug(msg)
+        local f = io.open("/tmp/lucicodex_debug.log", "a")
+        if f then
+            f:write(os.date() .. " [get_api_keys] " .. msg .. "\n")
+            f:close()
+        end
+    end
+    
     local function get_key(option)
         local val = uci:get("lucicodex", "main", option)
+        log_debug("UCI lucicodex.main." .. option .. " = " .. (val and ("'" .. string.sub(val, 1, 4) .. "...' (" .. #val .. " chars)") or "nil"))
         if not val or val == "" then
             val = uci:get("lucicodex", "@settings[0]", option)
+            log_debug("UCI lucicodex.@settings[0]." .. option .. " = " .. (val and ("'" .. string.sub(val, 1, 4) .. "...' (" .. #val .. " chars)") or "nil"))
         end
         if not val or val == "" then
             val = uci:get("lucicodex", "@api[0]", option)
+            log_debug("UCI lucicodex.@api[0]." .. option .. " = " .. (val and ("'" .. string.sub(val, 1, 4) .. "...' (" .. #val .. " chars)") or "nil"))
         end
         return val
     end
 
-    return {
+    local keys = {
         gemini = get_key("key"),
         openai = get_key("openai_key"),
         anthropic = get_key("anthropic_key")
     }
+    
+    log_debug("Final keys: gemini=" .. (keys.gemini and "SET" or "nil") .. 
+              ", openai=" .. (keys.openai and "SET" or "nil") .. 
+              ", anthropic=" .. (keys.anthropic and "SET" or "nil"))
+    
+    return keys
 end
 
 -- Helper to call local daemon
