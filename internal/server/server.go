@@ -269,38 +269,7 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	// Execute
 	results := execEngine.RunPlan(ctx, p)
 
-	// Auto-retry logic (simplified from main.go)
-	if cfg.AutoRetry && results.Failed > 0 && cfg.MaxRetries > 0 {
-		// ... (Implement retry logic similar to main.go if needed, but for now keep it simple for speed)
-		// For maximum speed, maybe skip complex retry loops or implement them later.
-		// Let's include basic retry for robustness.
-		for retryAttempt := 1; retryAttempt <= cfg.MaxRetries; retryAttempt++ {
-			var failedResult *executor.Result
-			for i := range results.Items {
-				if results.Items[i].Err != nil {
-					failedResult = &results.Items[i]
-					break
-				}
-			}
-			if failedResult == nil {
-				break
-			}
-
-			fixCtx, fixCancel := context.WithTimeout(ctx, 30*time.Second)
-			fixPlan, err := llmProvider.GenerateErrorFix(fixCtx, executor.FormatCommand(failedResult.Command), failedResult.Output, retryAttempt)
-			fixCancel()
-
-			if err == nil && len(fixPlan.Commands) > 0 {
-				fixResults := execEngine.RunPlan(ctx, fixPlan)
-				if fixResults.Failed == 0 {
-					failedResult.Err = nil
-					results.Failed--
-					results.Items = append(results.Items, fixResults.Items...)
-					break
-				}
-			}
-		}
-	}
+	results = execEngine.AutoRetry(ctx, llmProvider, policyEngine, results, nil)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{

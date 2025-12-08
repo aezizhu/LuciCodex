@@ -7,11 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
 	"github.com/aezizhu/LuciCodex/internal/plan"
+	"github.com/aezizhu/LuciCodex/internal/policy"
 )
 
 type Result struct {
@@ -61,6 +61,11 @@ type Engine struct {
 }
 
 func New(cfg config.Config) *Engine { return &Engine{cfg: cfg} }
+
+// FixPlanner provides fixes for failed commands.
+type FixPlanner interface {
+	GenerateErrorFix(ctx context.Context, originalCommand string, errorOutput string, attempt int) (plan.Plan, error)
+}
 
 func (e *Engine) RunPlan(ctx context.Context, p plan.Plan) Results {
 	results := Results{}
@@ -129,4 +134,92 @@ func FormatCommand(argv []string) string {
 		}
 	}
 	return strings.Join(q, " ")
+}
+
+// AutoRetry attempts to fix each failing command up to MaxRetries using the provided planner.
+// It validates fix plans with the supplied policy engine (if non-nil) before execution.
+// Optional logf can be provided to emit user-facing messages.
+func (e *Engine) AutoRetry(ctx context.Context, planner FixPlanner, pol *policy.Engine, results Results, logf func(format string, args ...interface{})) Results {
+	if !e.cfg.AutoRetry || e.cfg.MaxRetries <= 0 || results.Failed == 0 {
+		return results
+	}
+
+	for attempt := 1; attempt <= e.cfg.MaxRetries && results.Failed > 0; attempt++ {
+		// Snapshot failing indices to avoid re-processing appended fix results within the same attempt.
+		failing := make([]int, 0, results.Failed)
+		for i := range results.Items {
+			if results.Items[i].Err != nil {
+				failing = append(failing, i)
+			}
+		}
+		for _, idx := range failing {
+			res := &results.Items[idx]
+			if res.Err == nil || results.Failed == 0 {
+				continue
+			}
+
+			origCmd := FormatCommand(res.Command)
+			if logf != nil {
+				logf("\n??  Command failed: %s\n", origCmd)
+				logf("Error: %v\n", res.Err)
+				logf("Output: %s\n", res.Output)
+				logf("?? Attempting automatic fix (attempt %d/%d)...\n", attempt, e.cfg.MaxRetries)
+			}
+
+			fixCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+			fixPlan, err := planner.GenerateErrorFix(fixCtx, origCmd, res.Output, attempt)
+			cancel()
+			if err != nil || len(fixPlan.Commands) == 0 {
+				if logf != nil {
+					if err != nil {
+						logf("Failed to generate fix: %v\n", err)
+					} else {
+						logf("No fix commands generated\n")
+					}
+				}
+				continue
+			}
+
+			if pol != nil {
+				if err := pol.ValidatePlan(fixPlan); err != nil {
+					if logf != nil {
+						logf("Fix plan rejected by policy: %v\n", err)
+					}
+					continue
+				}
+			}
+
+			if logf != nil {
+				if fixPlan.Summary != "" {
+					logf("\n?? Fix plan: %s\n", fixPlan.Summary)
+				}
+				for _, cmd := range fixPlan.Commands {
+					logf("  ? %s\n", FormatCommand(cmd.Command))
+				}
+			}
+
+			fixResults := e.RunPlan(ctx, fixPlan)
+			if fixResults.Failed == 0 {
+				results.Items[idx].Err = nil
+				results.Failed--
+				if logf != nil {
+					logf("? Fix successful!\n")
+				}
+			} else {
+				for _, fr := range fixResults.Items {
+					if fr.Err != nil {
+						results.Items[idx].Output = fr.Output
+						results.Items[idx].Err = fr.Err
+						break
+					}
+				}
+				if logf != nil {
+					logf("? Fix attempt failed\n")
+				}
+			}
+			results.Items = append(results.Items, fixResults.Items...)
+		}
+	}
+
+	return results
 }

@@ -47,8 +47,27 @@ func (e *Engine) ValidatePlan(p plan.Plan) error {
 		if strings.ContainsAny(c.Command[0], "|&;<>`$") {
 			return fmt.Errorf("command %d contains shell metacharacters in argv[0]", i)
 		}
-		// No allowlist or denylist - user approval is the ONLY safety mechanism
-		// Users are trusted to review and approve/reject commands themselves
+
+		cmdStr := strings.Join(c.Command, " ")
+
+		for _, re := range e.denyREs {
+			if re.MatchString(cmdStr) {
+				return fmt.Errorf("command %d denied by policy", i)
+			}
+		}
+
+		if len(e.allowREs) > 0 {
+			allowed := false
+			for _, re := range e.allowREs {
+				if re.MatchString(cmdStr) {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				return fmt.Errorf("command %d not allowed by policy", i)
+			}
+		}
 	}
 	return nil
 }

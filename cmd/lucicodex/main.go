@@ -25,7 +25,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.5.3"
+var version = "0.5.5"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
@@ -311,97 +311,13 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		results = execEngine.RunPlan(ctx, p)
 	}
 
-	// Retry logic for failed commands
-	if cfg.AutoRetry && results.Failed > 0 && cfg.MaxRetries > 0 {
-		for retryAttempt := 1; retryAttempt <= cfg.MaxRetries; retryAttempt++ {
-			// Find first failed command
-			var failedResult *executor.Result
-			for i := range results.Items {
-				if results.Items[i].Err != nil {
-					failedResult = &results.Items[i]
-					break
-				}
-			}
-
-			if failedResult == nil {
-				break // No more failures
-			}
-
-			if !*jsonOutput {
-				fmt.Fprintf(stderr, "\n??  Command failed: %s\n", executor.FormatCommand(failedResult.Command))
-				fmt.Fprintf(stderr, "Error: %v\n", failedResult.Err)
-				fmt.Fprintf(stderr, "Output: %s\n", failedResult.Output)
-				fmt.Fprintf(stderr, "?? Attempting automatic fix (attempt %d/%d)...\n", retryAttempt, cfg.MaxRetries)
-			}
-
-			// Generate fix plan
-			fixCtx, fixCancel := context.WithTimeout(ctx, 30*time.Second)
-			fixPlan, err := llmProvider.GenerateErrorFix(fixCtx,
-				executor.FormatCommand(failedResult.Command),
-				failedResult.Output,
-				retryAttempt)
-			fixCancel()
-
-			if err != nil {
-				if !*jsonOutput {
-					fmt.Fprintf(stderr, "Failed to generate fix: %v\n", err)
-				}
-				break
-			}
-
-			if len(fixPlan.Commands) == 0 {
-				if !*jsonOutput {
-					fmt.Fprintf(stderr, "No fix commands generated\n")
-				}
-				break
-			}
-
-			// Validate fix plan
-			if err := policyEngine.ValidatePlan(fixPlan); err != nil {
-				if !*jsonOutput {
-					fmt.Fprintf(stderr, "Fix plan rejected by policy: %v\n", err)
-				}
-				break
-			}
-
-			if !*jsonOutput {
-				fmt.Fprintf(stderr, "\n?? Fix plan: %s\n", fixPlan.Summary)
-				for _, cmd := range fixPlan.Commands {
-					fmt.Fprintf(stderr, "  ? %s\n", executor.FormatCommand(cmd.Command))
-				}
-			}
-
-			// Execute fix
-			fixResults := execEngine.RunPlan(ctx, fixPlan)
-
-			// Mark original failure as retried by removing the error if fix succeeded
-			if fixResults.Failed == 0 {
-				if !*jsonOutput {
-					fmt.Fprintf(stderr, "? Fix successful!\n")
-				}
-				failedResult.Err = nil
-				results.Failed--
-
-				// Append fix results to overall results
-				for _, fr := range fixResults.Items {
-					results.Items = append(results.Items, fr)
-				}
-				break
-			} else {
-				if !*jsonOutput {
-					fmt.Fprintf(stderr, "? Fix attempt failed\n")
-				}
-				// Update the failed result with the new error
-				for _, fr := range fixResults.Items {
-					if fr.Err != nil {
-						failedResult.Output = fr.Output
-						failedResult.Err = fr.Err
-						break
-					}
-				}
-			}
+	var retryLog func(format string, args ...interface{})
+	if !*jsonOutput {
+		retryLog = func(format string, args ...interface{}) {
+			fmt.Fprintf(stderr, format, args...)
 		}
 	}
+	results = execEngine.AutoRetry(ctx, llmProvider, policyEngine, results, retryLog)
 
 	if *jsonOutput {
 		if err := ui.PrintResultsJSON(stdout, results); err != nil {
