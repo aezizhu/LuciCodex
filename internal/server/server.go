@@ -28,6 +28,7 @@ func New(cfg config.Config) *Server {
 	}
 	s.mux.HandleFunc("/v1/plan", s.handlePlan)
 	s.mux.HandleFunc("/v1/execute", s.handleExecute)
+	s.mux.HandleFunc("/v1/summarize", s.handleSummarize)
 	s.mux.HandleFunc("/health", s.handleHealth)
 	return s
 }
@@ -53,6 +54,15 @@ type ExecuteRequest struct {
 	DryRun   bool                  `json:"dry_run"`
 	Timeout  int                   `json:"timeout"`
 	Commands []plan.PlannedCommand `json:"commands"` // Optional: Direct execution
+}
+
+type SummarizeRequest struct {
+	Prompt   string               `json:"prompt"`
+	Context  string               `json:"context"`
+	Provider string               `json:"provider"`
+	Model    string               `json:"model"`
+	Config   map[string]string    `json:"config"`
+	Commands []llm.SummaryCommand `json:"commands"`
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -296,5 +306,82 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"ok":     true,
 		"result": results,
+	})
+}
+
+func (s *Server) handleSummarize(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Received /v1/summarize request")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req SummarizeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	if len(req.Commands) == 0 {
+		http.Error(w, "Commands are required for summarization", http.StatusBadRequest)
+		return
+	}
+
+	cfg := s.cfg
+	if req.Provider != "" {
+		cfg.Provider = req.Provider
+	}
+	if req.Model != "" {
+		cfg.Model = req.Model
+	}
+	if val, ok := req.Config["openai_key"]; ok && val != "" {
+		cfg.OpenAIAPIKey = val
+	}
+	if val, ok := req.Config["gemini_key"]; ok && val != "" {
+		cfg.APIKey = val
+	}
+	if val, ok := req.Config["anthropic_key"]; ok && val != "" {
+		cfg.AnthropicAPIKey = val
+	}
+	cfg.ApplyProviderSettings()
+
+	ctx := r.Context()
+
+	// Ensure selected provider has a key; fail fast with a clear message.
+	switch cfg.Provider {
+	case "openai":
+		if cfg.OpenAIAPIKey == "" {
+			http.Error(w, "Summarize: missing OpenAI API key", http.StatusBadRequest)
+			return
+		}
+	case "gemini":
+		if cfg.APIKey == "" {
+			http.Error(w, "Summarize: missing Gemini API key", http.StatusBadRequest)
+			return
+		}
+	case "anthropic":
+		if cfg.AnthropicAPIKey == "" {
+			http.Error(w, "Summarize: missing Anthropic API key", http.StatusBadRequest)
+			return
+		}
+	default:
+		http.Error(w, fmt.Sprintf("Summarize: unsupported provider %s", cfg.Provider), http.StatusBadRequest)
+		return
+	}
+
+	summary, details, err := llm.Summarize(ctx, cfg, llm.SummaryInput{
+		Commands: req.Commands,
+		Context:  req.Context,
+		Prompt:   req.Prompt,
+	})
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to summarize: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"summary": summary,
+		"details": details,
 	})
 }

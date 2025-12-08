@@ -48,6 +48,12 @@ type openaiResp struct {
 	} `json:"choices"`
 }
 
+type openaiSummary struct {
+	Summary string   `json:"summary"`
+	Details []string `json:"details,omitempty"`
+	Status  string   `json:"status,omitempty"`
+}
+
 func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
 	var zero plan.Plan
 	if c.cfg.OpenAIAPIKey == "" {
@@ -95,4 +101,61 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 func (c *OpenAIClient) GenerateErrorFix(ctx context.Context, originalCommand string, errorOutput string, attempt int) (plan.Plan, error) {
 	prompt := prompts.GenerateErrorFixPrompt(originalCommand, errorOutput, attempt)
 	return c.GeneratePlan(ctx, prompt)
+}
+
+// Summarize sends a summarization prompt and returns the summary plus optional detail bullets.
+func (c *OpenAIClient) Summarize(ctx context.Context, prompt string) (string, []string, error) {
+	if c.cfg.OpenAIAPIKey == "" {
+		return "", nil, errors.New("missing OpenAI API key - configure it in LuCI or set OPENAI_API_KEY environment variable")
+	}
+
+	model := c.cfg.Model
+	if model == "" {
+		model = "gpt-4o-mini"
+	}
+
+	endpoint := c.cfg.Endpoint
+	if endpoint == "" {
+		endpoint = "https://api.openai.com/v1"
+	}
+	url := strings.TrimSuffix(endpoint, "/") + "/chat/completions"
+
+	body := openaiReq{
+		Model:          model,
+		Messages:       []openaiMessage{{Role: "user", Content: prompt}},
+		ResponseFormat: map[string]string{"type": "json_object"},
+	}
+
+	b, _ := json.Marshal(body)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.cfg.OpenAIAPIKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(resp.Body)
+		return "", nil, fmt.Errorf("openai http %d: %s", resp.StatusCode, string(data))
+	}
+
+	var or openaiResp
+	if err := json.NewDecoder(resp.Body).Decode(&or); err != nil {
+		return "", nil, err
+	}
+	if len(or.Choices) == 0 {
+		return "", nil, errors.New("empty response")
+	}
+
+	text := or.Choices[0].Message.Content
+	var parsed openaiSummary
+	if err := json.Unmarshal([]byte(text), &parsed); err == nil && parsed.Summary != "" {
+		return parsed.Summary, parsed.Details, nil
+	}
+
+	// Fallback: return raw text if JSON parsing failed
+	return text, nil, nil
 }

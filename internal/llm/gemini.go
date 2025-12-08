@@ -112,3 +112,51 @@ func (c *GeminiClient) GenerateErrorFix(ctx context.Context, originalCommand str
 	prompt := prompts.GenerateErrorFixPrompt(originalCommand, errorOutput, attempt)
 	return c.GeneratePlan(ctx, prompt)
 }
+
+// Summarize returns summary/details using the active Gemini model.
+func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []string, error) {
+	if c.cfg.APIKey == "" {
+		return "", nil, errors.New("missing Gemini API key - configure it in LuCI or set GEMINI_API_KEY environment variable")
+	}
+	model := c.cfg.Model
+	if model == "" {
+		model = "gemini-1.5-flash"
+	}
+	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.cfg.Endpoint, model, c.cfg.APIKey)
+
+	reqBody := generateContentRequest{
+		Contents: []content{{
+			Role:  "user",
+			Parts: []part{{Text: prompt}},
+		}},
+		Config: &generationConfig{ResponseMimeType: "application/json"},
+	}
+	b, _ := json.Marshal(reqBody)
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return "", nil, err
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(resp.Body)
+		return "", nil, fmt.Errorf("gemini http %d: %s", resp.StatusCode, string(data))
+	}
+
+	var gcr generateContentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&gcr); err != nil {
+		return "", nil, err
+	}
+	if len(gcr.Candidates) == 0 || len(gcr.Candidates[0].Content.Parts) == 0 {
+		return "", nil, errors.New("empty response")
+	}
+	text := gcr.Candidates[0].Content.Parts[0].Text
+	summary, details := parseSummary(text)
+	return summary, details, nil
+}

@@ -121,7 +121,7 @@ opkg install luci-app-lucicodex
 lucicodex -version
 ```
 
-Deberías ver: `LuciCodex version 0.4.29`
+Deberías ver: `LuciCodex version 0.5.3`
 
 ### Obtener tu Clave API
 

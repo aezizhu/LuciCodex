@@ -94,3 +94,46 @@ func (c *AnthropicClient) GenerateErrorFix(ctx context.Context, originalCommand 
 	prompt := prompts.GenerateErrorFixPrompt(originalCommand, errorOutput, attempt)
 	return c.GeneratePlan(ctx, prompt)
 }
+
+// Summarize returns summary/details using Anthropic messages API.
+func (c *AnthropicClient) Summarize(ctx context.Context, prompt string) (string, []string, error) {
+	if c.cfg.AnthropicAPIKey == "" {
+		return "", nil, errors.New("missing Anthropic API key - configure it in LuCI or set ANTHROPIC_API_KEY environment variable")
+	}
+	model := c.cfg.Model
+	if model == "" {
+		model = "claude-haiku-4-5-20251001"
+	}
+	endpoint := c.cfg.Endpoint
+	if endpoint == "" {
+		endpoint = "https://api.anthropic.com/v1"
+	}
+	url := strings.TrimSuffix(endpoint, "/") + "/messages"
+
+	body := anthropicReq{Model: model, MaxTokens: 1024}
+	body.Messages = []anthropicMessage{{Role: "user", Content: prompt}}
+	b, _ := json.Marshal(body)
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", c.cfg.AnthropicAPIKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		data, _ := io.ReadAll(resp.Body)
+		return "", nil, fmt.Errorf("anthropic http %d: %s", resp.StatusCode, string(data))
+	}
+	var ar anthropicResp
+	if err := json.NewDecoder(resp.Body).Decode(&ar); err != nil {
+		return "", nil, err
+	}
+	if len(ar.Content) == 0 {
+		return "", nil, errors.New("empty response")
+	}
+	text := ar.Content[0].Text
+	summary, details := parseSummary(text)
+	return summary, details, nil
+}

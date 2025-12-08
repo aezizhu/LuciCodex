@@ -450,6 +450,72 @@
             border: 1px solid var(--border-subtle);
         }
 
+        .summary-block {
+            margin: 0.5rem 0 0.75rem 0;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: rgba(0, 122, 255, 0.12);
+            border: 1px solid rgba(0, 122, 255, 0.3);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .summary-block .summary-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .plan-card {
+            margin: 0.5rem 0;
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .plan-card h4 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .plan-commands {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 0.75rem 0;
+        }
+
+        .plan-commands li {
+            margin: 0.35rem 0;
+            padding: 0.35rem 0.5rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .plan-commands code {
+            font-family: "SF Mono", "Menlo", monospace;
+        }
+
+        .plan-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.5rem;
+        }
+
+        .result-collapse {
+            margin-top: 0.5rem;
+        }
+
+        .result-collapse summary {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-weight: 600;
+            outline: none;
+        }
+
         .result-success {
             background: rgba(52, 199, 89, 0.1);
             border-color: rgba(52, 199, 89, 0.3);
@@ -1009,7 +1075,8 @@
         // --- Constants ---
         const API_ENDPOINTS = {
             PLAN: '<%=url("admin/system/lucicodex/plan")%>',
-            EXECUTE: '<%=url("admin/system/lucicodex/execute")%>'
+            EXECUTE: '<%=url("admin/system/lucicodex/execute")%>',
+            SUMMARIZE: '<%=url("admin/system/lucicodex/summarize")%>'
         };
 
         const STORAGE_KEY = 'lucicodex_history_v2';
@@ -1228,26 +1295,7 @@
 
                 state.currentPlan = planResponse.plan;
 
-                // Display Plan Summary
-                if (planResponse.plan.summary) {
-                    addMessage('ai', planResponse.plan.summary);
-                }
-
-                // Display Commands
-                if (planResponse.plan.commands && planResponse.plan.commands.length > 0) {
-                    for (const cmd of planResponse.plan.commands) {
-                        const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
-
-                        if (!cmdStr || cmdStr.trim() === '') continue;
-
-                        const desc = cmd.description || 'Execute command';
-
-                        addMessage('ai', desc);
-                        addCodeBlock(cmdStr, state.execMode === 'manual');
-                    }
-                } else {
-                    addMessage('ai', 'No commands needed for this request.');
-                }
+                renderPlanCard(planResponse.plan);
 
                 // Auto Execute if mode is auto
                 if (state.execMode === 'auto' && planResponse.plan.commands.length > 0) {
@@ -1318,6 +1366,13 @@
                 removeTypingIndicator();
 
                 if (execResponse.ok) {
+                    let summaryPayload = null;
+                    try {
+                        summaryPayload = await summarizeExecution(prompt, execResponse.result);
+                    } catch (e) {
+                        console.warn('Summarization failed', e);
+                    }
+
                     // Extract outputs from the results JSON
                     let output = '';
                     if (execResponse.result && execResponse.result.items) {
@@ -1343,20 +1398,50 @@
                     } else {
                         output = 'Command executed successfully (no output)';
                     }
-                    addResultBlock(output, true);
+                    addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
                 } else {
-                    addResultBlock(execResponse.error || 'Execution failed', false);
+                    addResultBlock(execResponse.error || 'Execution failed', false, null, null);
                     if (execResponse.output) {
-                        addResultBlock(execResponse.output, false);
+                        addResultBlock(execResponse.output, false, null, null);
                     }
                 }
             } catch (error) {
                 removeTypingIndicator();
-                addResultBlock(error.message, false);
+                addResultBlock(error.message, false, null, null);
             } finally {
                 setProcessing(false);
                 saveCurrentSession();
             }
+        }
+
+        async function summarizeExecution(prompt, execResult) {
+            if (!execResult || !execResult.items || execResult.items.length === 0) return null;
+
+            const payload = {
+                prompt,
+                context: prompt,
+                provider: state.provider,
+                model: state.model,
+                commands: execResult.items.map(it => ({
+                    command: it.command || it.Command || [],
+                    output: (it.output || it.Output || '').toString(),
+                    error: (it.error || it.Error || '').toString()
+                }))
+            };
+
+            try {
+                const resp = await apiCall(API_ENDPOINTS.SUMMARIZE, payload);
+                if (resp && resp.ok && resp.summary) {
+                    return { summary: resp.summary, details: resp.details || [] };
+                }
+                if (resp && resp.error) {
+                    throw new Error(resp.error);
+                }
+            } catch (e) {
+                addMessage('ai', `Summary failed: ${e.message || e}`);
+                return { error: e.message || 'Summary failed' };
+            }
+            return null;
         }
 
         function approveCommand(code) {
@@ -1599,8 +1684,71 @@
             scrollToBottom();
         }
 
-        function addResultBlock(output, isSuccess) {
-            state.currentMessages.push({ role: 'ai', type: 'result', content: output, isSuccess, timestamp: Date.now() });
+        function formatResultOutput(text) {
+            if (!text) return '<pre>(no output)</pre>';
+
+            const tryParseJson = () => {
+                try { return JSON.parse(text); } catch (e) { return null; }
+            };
+
+            const data = tryParseJson();
+            if (data && (data.Items || data.items)) {
+                const items = data.Items || data.items;
+                const failed = (data.Failed !== undefined ? data.Failed : data.failed);
+                const parts = items.map((it, idx) => {
+                    const cmd = it.Command || it.command || [];
+                    const cmdStr = Array.isArray(cmd) ? cmd.join(' ') : (cmd || '');
+                    const out = (it.Output || it.output || '').trim();
+                    const err = (it.Error || it.error || '').trim();
+                    return `
+                        <div class="result-item">
+                            <div class="result-command">[Command ${idx + 1}] ${escapeHtml(cmdStr || '(unknown)')}</div>
+                            <div class="result-output">
+                                ${out ? escapeHtml(out) : '(no output)'}
+                                ${err ? '<br><strong>Error:</strong> ' + escapeHtml(err) : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                const summary = (failed !== undefined) ? `<div><strong>Failed:</strong> ${failed}</div>` : '';
+                return `<div class="result-list">${parts}${summary}</div>`;
+            }
+
+            // If JSON but not the Items structure, pretty-print it for readability
+            if (data && typeof data === 'object') {
+                return `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+            }
+
+            return `<pre>${escapeHtml(text)}</pre>`;
+        }
+
+        function formatResultSummary(text) {
+            const tryParseJson = () => {
+                try { return JSON.parse(text); } catch (e) { return null; }
+            };
+            const data = tryParseJson();
+            if (data && (data.Items || data.items)) {
+                const items = data.Items || data.items;
+                const failed = (data.Failed !== undefined ? data.Failed : data.failed) || 0;
+                const total = items.length;
+                const ok = Math.max(total - failed, 0);
+                const parts = [];
+                parts.push(`Executed ${total} command(s); succeeded ${ok}${failed ? `; failed ${failed}` : ''}.`);
+                const names = items.slice(0, 3).map(it => {
+                    const cmd = it.Command || it.command || [];
+                    return Array.isArray(cmd) ? cmd.join(' ') : (cmd || '');
+                }).filter(Boolean);
+                if (names.length) {
+                    parts.push(`Commands: ${names.join(' | ')}`);
+                    if (items.length > 3) parts.push(`…and ${items.length - 3} more`);
+                }
+                return `<div class="result-summary">${escapeHtml(parts.join(' '))}</div>`;
+            }
+            return '';
+        }
+
+        function addResultBlock(output, isSuccess, summaryText, detailList) {
+            state.currentMessages.push({ role: 'ai', type: 'result', content: output, isSuccess, summary: summaryText, details: detailList, timestamp: Date.now() });
 
             // Remove any leftover approval prompts now that execution finished
             document.querySelectorAll('.command-approval').forEach(el => el.remove());
@@ -1610,78 +1758,18 @@
             const resultClass = isSuccess ? 'result-success' : 'result-error';
             const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
 
-            const renderResultOutput = (text) => {
-                if (!text) return '<pre>(no output)</pre>';
-
-                const tryParseJson = () => {
-                    try { return JSON.parse(text); } catch (e) { return null; }
-                };
-
-                const data = tryParseJson();
-                if (data && (data.Items || data.items)) {
-                    const items = data.Items || data.items;
-                    const failed = (data.Failed !== undefined ? data.Failed : data.failed);
-                    const parts = items.map((it, idx) => {
-                        const cmd = it.Command || it.command || [];
-                        const cmdStr = Array.isArray(cmd) ? cmd.join(' ') : (cmd || '');
-                        const out = (it.Output || it.output || '').trim();
-                        const err = (it.Error || it.error || '').trim();
-                        return `
-                            <div class="result-item">
-                                <div class="result-command">[Command ${idx + 1}] ${escapeHtml(cmdStr || '(unknown)')}</div>
-                                <div class="result-output">
-                                    ${out ? escapeHtml(out) : '(no output)'}
-                                    ${err ? '<br><strong>Error:</strong> ' + escapeHtml(err) : ''}
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                    const summary = (failed !== undefined) ? `<div><strong>Failed:</strong> ${failed}</div>` : '';
-                    return `<div class="result-list">${parts}${summary}</div>`;
-                }
-
-                // If JSON but not the Items structure, pretty-print it for readability
-                if (data && typeof data === 'object') {
-                    return `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
-                }
-
-                return `<pre>${escapeHtml(text)}</pre>`;
-            };
-
-            const renderResultSummary = (text) => {
-                const tryParseJson = () => {
-                    try { return JSON.parse(text); } catch (e) { return null; }
-                };
-                const data = tryParseJson();
-                if (data && (data.Items || data.items)) {
-                    const items = data.Items || data.items;
-                    const failed = (data.Failed !== undefined ? data.Failed : data.failed) || 0;
-                    const total = items.length;
-                    const ok = Math.max(total - failed, 0);
-                    const parts = [];
-                    parts.push(`Executed ${total} command(s); succeeded ${ok}${failed ? `; failed ${failed}` : ''}.`);
-                    // Include first few command names
-                    const names = items.slice(0, 3).map(it => {
-                        const cmd = it.Command || it.command || [];
-                        return Array.isArray(cmd) ? cmd.join(' ') : (cmd || '');
-                    }).filter(Boolean);
-                    if (names.length) {
-                        parts.push(`Commands: ${names.join(' | ')}`);
-                        if (items.length > 3) parts.push(`…and ${items.length - 3} more`);
-                    }
-                    return `<div class="result-summary">${escapeHtml(parts.join(' '))}</div>`;
-                }
-                return '';
-            };
-
             div.innerHTML = `
         <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
+                ${summaryText ? `<div class="summary-block"><span class="summary-title">AI Summary</span>${escapeHtml(summaryText)}${(detailList && detailList.length) ? `<ul>${detailList.map(d => `<li>${escapeHtml(d)}</li>`).join('')}</ul>` : ''}</div>` : ''}
                 <div class="result-block ${resultClass}">
                     <div class="result-header">${title}</div>
-                    ${renderResultSummary(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}
-                    <div class="result-content">${renderResultOutput(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}</div>
+                    ${formatResultSummary(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}
+                    <details class="result-collapse" ${summaryText ? '' : 'open'}>
+                        <summary>Raw output</summary>
+                        <div class="result-content">${formatResultOutput(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}</div>
+                    </details>
                 </div>
             </div>
         </div>
@@ -1707,6 +1795,59 @@
             </div>
         </div>
     `;
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function renderPlanCard(plan) {
+            // Persist plan message for history replay
+            state.currentMessages.push({
+                role: 'ai',
+                type: 'plan',
+                summary: plan.summary,
+                commands: plan.commands,
+                timestamp: Date.now()
+            });
+
+            const div = document.createElement('div');
+            div.className = 'chat-message ai';
+
+            const commands = (plan.commands || []).map((cmd, idx) => {
+                const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
+                const desc = cmd.description || 'Execute command';
+                const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
+                return `
+                    <li>
+                        <label style="display:flex;gap:0.5rem;align-items:flex-start;cursor:pointer;">
+                            <input class="cmd-select" type="checkbox" value="${escapeHtml(cmdStr)}" checked>
+                            <div style="flex:1;">
+                                <div style="font-weight:600;">${escapeHtml(desc)} ${needsRoot}</div>
+                                <code>${escapeHtml(cmdStr)}</code>
+                            </div>
+                        </label>
+                    </li>
+                `;
+            }).join('');
+
+            const summaryHtml = plan.summary ? `<div class="summary-block"><span class="summary-title">Plan</span>${escapeHtml(plan.summary)}</div>` : '';
+            const noCmds = (!plan.commands || plan.commands.length === 0);
+
+            div.innerHTML = `
+        <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
+        <div class="message-content">
+            <div class="message-bubble ai">
+                <div class="plan-card">
+                    ${summaryHtml || '<div class="summary-block"><span class="summary-title">Plan</span>No commands needed for this request.</div>'}
+                    ${!noCmds ? `<ul class="plan-commands">${commands}</ul>` : ''}
+                    <div class="plan-actions">
+                        <button class="btn-approve" onclick="approveCommand()">✓ Approve & Execute</button>
+                        <button class="btn-reject" onclick="rejectCommand()">✗ Reject</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
             document.getElementById('chatMessages').appendChild(div);
             scrollToBottom();
         }
@@ -1913,18 +2054,66 @@
             `;
                     document.getElementById('chatMessages').appendChild(div);
                 } else if (msg.type === 'result') {
-                    // Re-add result
                     const div = document.createElement('div');
                     div.className = 'chat-message ai';
                     const resultClass = msg.isSuccess ? 'result-success' : 'result-error';
                     const title = msg.isSuccess ? '✓ Execution Result' : '✗ Execution Error';
+                    const summaryBlock = msg.summary ? `<div class="summary-block"><span class="summary-title">AI Summary</span>${escapeHtml(msg.summary)}${(msg.details && msg.details.length) ? `<ul>${msg.details.map(d => `<li>${escapeHtml(d)}</li>`).join('')}</ul>` : ''}</div>` : '';
+                    const outputText = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content, null, 2);
                     div.innerHTML = `
-                <div class="message-avatar ai">AI</div>
+                <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
                 <div class="message-content">
                     <div class="message-bubble ai">
+                        ${summaryBlock}
                         <div class="result-block ${resultClass}">
                             <div class="result-header">${title}</div>
-                            <div class="result-content">${escapeHtml(msg.content)}</div>
+                            ${formatResultSummary(outputText)}
+                            <details class="result-collapse" ${msg.summary ? '' : 'open'}>
+                                <summary>Raw output</summary>
+                                <div class="result-content">${formatResultOutput(outputText)}</div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            `;
+                    document.getElementById('chatMessages').appendChild(div);
+                } else if (msg.type === 'plan') {
+                    // Replay plan card without pushing to state
+                    const plan = { summary: msg.summary, commands: msg.commands || [] };
+                    const div = document.createElement('div');
+                    div.className = 'chat-message ai';
+
+                    const commands = (plan.commands || []).map((cmd, idx) => {
+                        const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
+                        const desc = cmd.description || 'Execute command';
+                        const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
+                        return `
+                            <li>
+                                <label style="display:flex;gap:0.5rem;align-items:flex-start;cursor:pointer;">
+                                    <input class="cmd-select" type="checkbox" value="${escapeHtml(cmdStr)}" checked>
+                                    <div style="flex:1;">
+                                        <div style="font-weight:600;">${escapeHtml(desc)} ${needsRoot}</div>
+                                        <code>${escapeHtml(cmdStr)}</code>
+                                    </div>
+                                </label>
+                            </li>
+                        `;
+                    }).join('');
+
+                    const summaryHtml = plan.summary ? `<div class="summary-block"><span class="summary-title">Plan</span>${escapeHtml(plan.summary)}</div>` : '';
+                    const noCmds = (!plan.commands || plan.commands.length === 0);
+
+                    div.innerHTML = `
+                <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
+                <div class="message-content">
+                    <div class="message-bubble ai">
+                        <div class="plan-card">
+                            ${summaryHtml || '<div class="summary-block"><span class="summary-title">Plan</span>No commands needed for this request.</div>'}
+                            ${!noCmds ? `<ul class="plan-commands">${commands}</ul>` : ''}
+                            <div class="plan-actions">
+                                <button class="btn-approve" onclick="approveCommand()">✓ Approve & Execute</button>
+                                <button class="btn-reject" onclick="rejectCommand()">✗ Reject</button>
+                            </div>
                         </div>
                     </div>
                 </div>

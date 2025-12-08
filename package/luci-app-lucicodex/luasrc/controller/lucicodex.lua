@@ -8,6 +8,7 @@ function index()
     entry({"admin", "system", "lucicodex", "plan"}, call("action_plan")).leaf = true
     entry({"admin", "system", "lucicodex", "execute"}, call("action_execute")).leaf = true
     entry({"admin", "system", "lucicodex", "validate"}, call("action_validate")).leaf = true
+    entry({"admin", "system", "lucicodex", "summarize"}, call("action_summarize")).leaf = true
     entry({"admin", "system", "lucicodex", "providers"}, call("action_get_providers")).leaf = true
     entry({"admin", "system", "lucicodex", "metrics"}, call("action_metrics")).leaf = true
 end
@@ -365,6 +366,51 @@ function action_validate()
         http.prepare_content("application/json")
         http.write_json({ valid = false, error = "Validation failed: " .. (errors ~= "" and errors or "Unknown error"), exit_code = code })
     end
+end
+
+-- Summarize execution outputs via local daemon
+function action_summarize()
+    local http = require "luci.http"
+    local json = require "luci.jsonc"
+
+    if http.getenv("REQUEST_METHOD") ~= "POST" then
+        http.status(405, "Method Not Allowed")
+        http.write_json({ error = "POST required" })
+        return
+    end
+
+    local body = http.content()
+    local data = json.parse(body)
+
+    if not data or not data.commands or #data.commands == 0 then
+        http.status(400, "Bad Request")
+        http.write_json({ error = "missing commands" })
+        return
+    end
+
+    local keys = get_api_keys()
+    local payload = {
+        commands = data.commands,
+        context = data.context,
+        prompt = data.prompt,
+        provider = data.provider,
+        model = data.model,
+        config = {
+            gemini_key = keys.gemini,
+            openai_key = keys.openai,
+            anthropic_key = keys.anthropic
+        }
+    }
+
+    local resp, err = call_daemon("/v1/summarize", payload)
+    if resp then
+        http.prepare_content("application/json")
+        http.write_json(resp)
+        return
+    end
+
+    http.status(500, "Internal Server Error")
+    http.write_json({ error = "summarization failed", details = err })
 end
 
 function action_get_providers()
