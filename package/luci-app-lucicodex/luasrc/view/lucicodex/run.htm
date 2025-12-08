@@ -137,10 +137,16 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-subtle);
             border-radius: 10px;
-            color: var(--text-primary);
+            color: #e2e8f0 !important;
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
             outline: none;
+            min-height: 42px;
+        }
+
+        .sidebar-select option {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
         }
 
         .sidebar-input {
@@ -149,9 +155,15 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-subtle);
             border-radius: 10px;
-            color: var(--text-primary);
+            color: #e2e8f0 !important;
             font-size: 0.9rem;
             outline: none;
+        }
+
+        .sidebar-input::placeholder,
+        .sidebar-select::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1;
         }
 
         /* Main Chat Area */
@@ -473,6 +485,40 @@
             word-break: break-word;
             max-height: 300px;
             overflow-y: auto;
+            background: #0d0d0e;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .result-content pre {
+            margin: 0;
+            color: #e2e8f0 !important;
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .result-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .result-item {
+            padding: 0.75rem;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .result-command {
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 0.35rem;
+        }
+
+        .result-output {
+            color: #cbd5e1;
+            white-space: pre-wrap;
         }
 
         /* Command Approval */
@@ -1492,6 +1538,12 @@
         function addCodeBlock(code, needsApproval) {
             state.currentMessages.push({ role: 'ai', type: 'code', content: code, needsApproval, timestamp: Date.now() });
 
+            const safeCode = (() => {
+                if (!code) return '(no command provided)';
+                const trimmed = (Array.isArray(code) ? code.join(' ') : code).trim();
+                return trimmed === '' ? '(no command provided)' : trimmed;
+            })();
+
             const div = document.createElement('div');
             div.className = 'chat-message ai';
 
@@ -1514,7 +1566,7 @@
             <div class="message-bubble ai">
                 <div class="code-block">
                     <div class="code-header">SHELL</div>
-                    <div class="code-content"><pre>${escapeHtml(code)}</pre></div>
+                    <div class="code-content"><pre>${escapeHtml(safeCode)}</pre></div>
                 </div>
                 ${approvalHtml}
             </div>
@@ -1533,13 +1585,46 @@
             const resultClass = isSuccess ? 'result-success' : 'result-error';
             const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
 
+            const renderResultOutput = (text) => {
+                if (!text) return '<pre>(no output)</pre>';
+
+                const tryParseJson = () => {
+                    try { return JSON.parse(text); } catch (e) { return null; }
+                };
+
+                const data = tryParseJson();
+                if (data && (data.Items || data.items)) {
+                    const items = data.Items || data.items;
+                    const failed = (data.Failed !== undefined ? data.Failed : data.failed);
+                    const parts = items.map((it, idx) => {
+                        const cmd = it.Command || it.command || [];
+                        const cmdStr = Array.isArray(cmd) ? cmd.join(' ') : (cmd || '');
+                        const out = (it.Output || it.output || '').trim();
+                        const err = (it.Error || it.error || '').trim();
+                        return `
+                            <div class="result-item">
+                                <div class="result-command">[Command ${idx + 1}] ${escapeHtml(cmdStr || '(unknown)')}</div>
+                                <div class="result-output">
+                                    ${out ? escapeHtml(out) : '(no output)'}
+                                    ${err ? '<br><strong>Error:</strong> ' + escapeHtml(err) : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    const summary = (failed !== undefined) ? `<div><strong>Failed:</strong> ${failed}</div>` : '';
+                    return `<div class="result-list">${parts}${summary}</div>`;
+                }
+
+                return `<pre>${escapeHtml(text)}</pre>`;
+            };
+
             div.innerHTML = `
         <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
                 <div class="result-block ${resultClass}">
                     <div class="result-header">${title}</div>
-                    <div class="result-content">${escapeHtml(output)}</div>
+                    <div class="result-content">${renderResultOutput(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}</div>
                 </div>
             </div>
         </div>
@@ -1753,13 +1838,18 @@
                     // Re-add code block (without approval buttons for history)
                     const div = document.createElement('div');
                     div.className = 'chat-message ai';
+                    const safeCode = (() => {
+                        if (!msg.content) return '(no command provided)';
+                        const trimmed = (Array.isArray(msg.content) ? msg.content.join(' ') : msg.content).trim();
+                        return trimmed === '' ? '(no command provided)' : trimmed;
+                    })();
                     div.innerHTML = `
                 <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
                 <div class="message-content">
                     <div class="message-bubble ai">
                         <div class="code-block">
                             <div class="code-header">SHELL</div>
-                            <div class="code-content"><pre>${escapeHtml(msg.content)}</pre></div>
+                            <div class="code-content"><pre>${escapeHtml(safeCode)}</pre></div>
                         </div>
                     </div>
                 </div>
