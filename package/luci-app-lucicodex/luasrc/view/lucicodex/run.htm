@@ -1293,7 +1293,7 @@
             }
         }
 
-        async function executeCommands(prompt) {
+        async function executeCommands(prompt, overrideCommands) {
             addTypingIndicator();
             setProcessing(true);
 
@@ -1307,7 +1307,9 @@
                 };
 
                 // Stateless Execution: Send commands if available
-                if (state.currentPlan && state.currentPlan.commands) {
+                if (overrideCommands && overrideCommands.length > 0) {
+                    payload.commands = overrideCommands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }));
+                } else if (state.currentPlan && state.currentPlan.commands) {
                     payload.commands = state.currentPlan.commands;
                 }
 
@@ -1358,18 +1360,23 @@
         }
 
         function approveCommand(code) {
-            // In this simplified flow, approving one command executes the whole plan for now
-            // Ideally we should track which command is which, but for CLI wrapper, 
-            // we usually re-send the prompt with -approve flag.
-            // We'll use the last user prompt.
-            const lastUserMsg = state.currentMessages.slice().reverse().find(m => m.role === 'user');
-            if (lastUserMsg) {
-                // Remove the approval buttons to prevent double-click
-                const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
-                buttons.forEach(b => b.remove());
+            // Collect selected commands; if none, show a warning
+            const checkboxes = Array.from(document.querySelectorAll('.cmd-select'));
+            const selected = checkboxes.filter(cb => cb.checked).map(cb => cb.value.trim()).filter(Boolean);
 
-                executeCommands(lastUserMsg.content);
+            const lastUserMsg = state.currentMessages.slice().reverse().find(m => m.role === 'user');
+            if (!lastUserMsg) return;
+
+            if (selected.length === 0) {
+                addMessage('ai', 'No commands selected to execute. Please select at least one command.');
+                return;
             }
+
+            // Remove the approval buttons to prevent double-click
+            const buttons = document.querySelectorAll('.btn-approve, .btn-reject');
+            buttons.forEach(b => b.remove());
+
+            executeCommands(lastUserMsg.content, selected);
         }
 
         function rejectCommand() {
@@ -1562,6 +1569,10 @@
             if (needsApproval) {
                 approvalHtml = `
             <div class="command-approval">
+                <label style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;">
+                    <input class="cmd-select" type="checkbox" value="${escapeHtml(safeCode)}" checked>
+                    <span>Include this command</span>
+                </label>
                 <div class="command-approval-header">⚠️ Approval Required</div>
                 <div class="command-approval-actions">
                     <button class="btn-approve" onclick="approveCommand()">✓ Approve & Execute</button>
