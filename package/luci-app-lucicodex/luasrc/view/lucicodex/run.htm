@@ -1615,6 +1615,11 @@
                     return `<div class="result-list">${parts}${summary}</div>`;
                 }
 
+                // If JSON but not the Items structure, pretty-print it for readability
+                if (data && typeof data === 'object') {
+                    return `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+                }
+
                 return `<pre>${escapeHtml(text)}</pre>`;
             };
 
