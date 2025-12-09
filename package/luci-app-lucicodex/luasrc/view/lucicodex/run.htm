@@ -1933,10 +1933,11 @@
                 <div class="plan-card">
                     ${summaryHtml || '<div class="summary-block"><span class="summary-title">Plan</span>No commands needed for this request.</div>'}
                     ${!noCmds ? `<ul class="plan-commands">${commands}</ul>` : ''}
+                    ${!noCmds ? `
                     <div class="plan-actions">
                         <button class="btn-approve" onclick="approveCommand()">✓ Approve & Execute</button>
                         <button class="btn-reject" onclick="rejectCommand()">✗ Reject</button>
-                    </div>
+                    </div>` : ''}
                 </div>
             </div>
         </div>
