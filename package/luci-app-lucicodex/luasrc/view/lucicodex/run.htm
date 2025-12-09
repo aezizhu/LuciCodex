@@ -1435,6 +1435,58 @@
 
             let streamed = false;
             try {
+                // Fast path: single-command -> non-stream execute (lower latency)
+                if (commands.length === 1) {
+                    removeTypingIndicator();
+                    const payload = {
+                        prompt,
+                        dry_run: false,
+                        timeout: 60,
+                        provider: state.provider,
+                        model: state.model,
+                        commands: commands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }))
+                    };
+                    const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
+                    if (execResponse.ok) {
+                        let summaryPayload = null;
+                        try {
+                            summaryPayload = await summarizeExecution(prompt, execResponse.result);
+                        } catch (e) {
+                            console.warn('Summarization failed', e);
+                        }
+
+                        let output = '';
+                        if (execResponse.result && execResponse.result.items) {
+                            output = execResponse.result.items
+                                .map((item, idx) => {
+                                    let itemOutput = `[Command ${idx + 1}] ${item.command ? item.command.join(' ') : 'unknown'}\n`;
+                                    if (item.output && item.output.trim()) {
+                                        itemOutput += item.output.trim();
+                                    } else {
+                                        itemOutput += '(no output)';
+                                    }
+                                    if (item.error) {
+                                        itemOutput += `\nError: ${item.error}`;
+                                    }
+                                    return itemOutput;
+                                })
+                                .join('\n\n');
+                        } else if (execResponse.output) {
+                            output = execResponse.output;
+                        } else if (execResponse.result) {
+                            output = JSON.stringify(execResponse.result, null, 2);
+                        } else {
+                            output = 'Command executed successfully (no output)';
+                        }
+                        addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
+                    } else {
+                        addResultBlock(execResponse.error || 'Execution failed', false, null, null);
+                        if (execResponse.output) addResultBlock(execResponse.output, false, null, null);
+                    }
+                    return;
+                }
+
+                // Stream for multi-command plans
                 const streamId = addLiveConsole(prompt, commands);
                 removeTypingIndicator();
 
