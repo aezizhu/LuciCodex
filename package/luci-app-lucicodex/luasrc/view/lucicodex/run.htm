@@ -1152,6 +1152,7 @@
             const header = console.el.querySelector('.live-console-header');
             if (header) header.appendChild(status);
             scrollToBottom();
+            return console.buffer || '';
         }
 
         // --- Page Init ---
@@ -1460,6 +1461,15 @@
                 }
 
                 finalizeLiveConsole(streamId, true);
+                // Summarize the streamed output for the user
+                try {
+                    const summaryPayload = await summarizeStream(prompt, commands, liveConsoles[streamId]?.buffer || '');
+                    if (summaryPayload && summaryPayload.summary) {
+                        addResultBlock('See live console above.', true, summaryPayload.summary, summaryPayload.details);
+                    }
+                } catch (e) {
+                    console.warn('Stream summary failed', e);
+                }
             } catch (error) {
                 removeTypingIndicator();
                 addResultBlock(error.message, false, null, null);
@@ -1484,6 +1494,34 @@
                 }))
             };
 
+            try {
+                const resp = await apiCall(API_ENDPOINTS.SUMMARIZE, payload);
+                if (resp && resp.ok && resp.summary) {
+                    return { summary: resp.summary, details: resp.details || [] };
+                }
+                if (resp && resp.error) {
+                    throw new Error(resp.error);
+                }
+            } catch (e) {
+                addMessage('ai', `Summary failed: ${e.message || e}`);
+                return { error: e.message || 'Summary failed' };
+            }
+            return null;
+        }
+
+        async function summarizeStream(userPrompt, commands, bufferText) {
+            if (!bufferText || !commands || commands.length === 0) return null;
+            const payload = {
+                prompt: `Summarize these command results in plain language for the user request: "${userPrompt}". Extract the key facts (states, IPs, errors, on/off, enabled/disabled) and avoid dumping raw text.`,
+                context: bufferText.slice(-8000), // keep it light for memory/cost
+                provider: state.provider,
+                model: state.model,
+                commands: [{
+                    command: commands[0].split(/\s+/).filter(Boolean),
+                    output: bufferText.toString(),
+                    error: ''
+                }]
+            };
             try {
                 const resp = await apiCall(API_ENDPOINTS.SUMMARIZE, payload);
                 if (resp && resp.ok && resp.summary) {
