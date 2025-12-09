@@ -7,6 +7,7 @@ function index()
     entry({"admin", "system", "lucicodex", "run"}, template("lucicodex/run"), _("Chat"), 3)
     entry({"admin", "system", "lucicodex", "plan"}, call("action_plan")).leaf = true
     entry({"admin", "system", "lucicodex", "execute"}, call("action_execute")).leaf = true
+    entry({"admin", "system", "lucicodex", "execute_stream"}, call("action_execute_stream")).leaf = true
     entry({"admin", "system", "lucicodex", "validate"}, call("action_validate")).leaf = true
     entry({"admin", "system", "lucicodex", "summarize"}, call("action_summarize")).leaf = true
     entry({"admin", "system", "lucicodex", "providers"}, call("action_get_providers")).leaf = true
@@ -306,6 +307,79 @@ function action_execute()
     
     http.status(500, "Internal Server Error")
     http.write_json({ error = "execution failed", details = { backend_error = errors, backend_output = output } })
+end
+
+-- Stream approved commands directly to the shell with chunked output.
+-- Keeps memory use low by writing as data arrives.
+function action_execute_stream()
+    local http = require "luci.http"
+    local json = require "luci.jsonc"
+    local nixio = require "nixio"
+
+    if http.getenv("REQUEST_METHOD") ~= "POST" then
+        http.status(405, "Method Not Allowed")
+        http.write("method not allowed")
+        return
+    end
+
+    local body = http.content() or ""
+    local data = json.parse(body) or {}
+    local cmds = data.commands
+
+    if not cmds or #cmds == 0 then
+        http.status(400, "Bad Request")
+        http.write("missing commands")
+        return
+    end
+
+    http.prepare_content("text/plain; charset=utf-8")
+
+    local function flush(line)
+        http.write(line)
+        http.flush()
+    end
+
+    local function run_one(cmdstr)
+        flush(string.format("\n>>> %s\n", cmdstr))
+
+        local r, w = nixio.pipe()
+        local pid = nixio.fork()
+        if pid == 0 then
+            r:close()
+            nixio.dup(w, nixio.stdout)
+            nixio.dup(w, nixio.stderr)
+            w:close()
+            nixio.exec("/bin/sh", "-c", cmdstr)
+            nixio.exit(127)
+        end
+
+        w:close()
+        while true do
+            local chunk = r:read(1024)
+            if not chunk or #chunk == 0 then break end
+            flush(chunk)
+        end
+        r:close()
+
+        local _, status, code = nixio.waitpid(pid)
+        if status ~= "exited" or code ~= 0 then
+            flush(string.format("\n[exit %s code %s]\n", status or "?", code or "?"))
+        end
+    end
+
+    for _, c in ipairs(cmds) do
+        local cmdstr = c
+        if type(c) == "table" and c.command then
+            cmdstr = table.concat(c.command, " ")
+        end
+        if type(cmdstr) ~= "string" then
+            cmdstr = tostring(cmdstr or "")
+        end
+        cmdstr = cmdstr:gsub("^%s+", ""):gsub("%s+$", "")
+        if cmdstr ~= "" then
+            run_one(cmdstr)
+        end
+    end
 end
 
 function action_validate()

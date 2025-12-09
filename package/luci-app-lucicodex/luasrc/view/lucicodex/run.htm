@@ -1076,6 +1076,7 @@
         const API_ENDPOINTS = {
             PLAN: '<%=url("admin/system/lucicodex/plan")%>',
             EXECUTE: '<%=url("admin/system/lucicodex/execute")%>',
+            EXECUTE_STREAM: '<%=url("admin/system/lucicodex/execute_stream")%>',
             SUMMARIZE: '<%=url("admin/system/lucicodex/summarize")%>'
         };
 
@@ -1087,6 +1088,70 @@
             if (Array.isArray(plan.commands)) return plan.commands;
             if (typeof plan.commands === 'object') return Object.values(plan.commands).filter(Boolean);
             return [];
+        }
+
+        // Helper to locate the plan command editors and selected commands
+        function collectSelectedCommands() {
+            const selected = [];
+            document.querySelectorAll('.plan-commands .plan-command-row').forEach(row => {
+                const checkbox = row.querySelector('.cmd-select');
+                const editor = row.querySelector('.cmd-edit');
+                const text = editor ? editor.value.trim() : '';
+                if (checkbox && checkbox.checked && text) {
+                    selected.push(text);
+                }
+            });
+            return selected;
+        }
+
+        // --- Live streaming console helpers ---
+        const liveConsoles = {};
+
+        function addLiveConsole(prompt, commands) {
+            const id = `live-${Date.now()}`;
+            const div = document.createElement('div');
+            div.className = 'chat-message ai';
+            div.innerHTML = `
+        <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
+        <div class="message-content">
+            <div class="message-bubble ai">
+                <div class="plan-card">
+                    <div class="summary-block"><span class="summary-title">Executing</span>${escapeHtml(prompt)}</div>
+                    <div class="plan-commands">${commands.map(c => `<li><code>${escapeHtml(c)}</code></li>`).join('')}</div>
+                    <div class="live-console">
+                        <div class="live-console-header">Live Output</div>
+                        <pre id="${id}-pre" class="live-console-body"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+            document.getElementById('chatMessages').appendChild(div);
+            scrollToBottom();
+            liveConsoles[id] = { buffer: '', el: div };
+            return id;
+        }
+
+        function appendLiveOutput(id, text) {
+            const console = liveConsoles[id];
+            if (!console) return;
+            console.buffer += text;
+            const pre = console.el.querySelector(`#${id}-pre`);
+            if (pre) {
+                pre.textContent += text;
+                pre.scrollTop = pre.scrollHeight;
+            }
+        }
+
+        function finalizeLiveConsole(id, success) {
+            const console = liveConsoles[id];
+            if (!console) return;
+            const status = document.createElement('div');
+            status.className = success ? 'live-status success' : 'live-status error';
+            status.textContent = success ? 'Completed' : 'Finished with errors';
+            const header = console.el.querySelector('.live-console-header');
+            if (header) header.appendChild(status);
+            scrollToBottom();
         }
 
         // --- Page Init ---
@@ -1356,66 +1421,45 @@
             addTypingIndicator();
             setProcessing(true);
 
+            const commands = (overrideCommands && overrideCommands.length > 0)
+                ? overrideCommands
+                : (state.currentPlan ? normalizePlanCommands(state.currentPlan).map(c => Array.isArray(c.command) ? c.command.join(' ') : (c.command || '')) : []);
+
+            if (!commands || commands.length === 0) {
+                removeTypingIndicator();
+                addResultBlock('No commands to execute.', false, null, null);
+                setProcessing(false);
+                return;
+            }
+
             try {
-                const payload = {
-                    prompt,
-                    dry_run: false,
-                    timeout: 300,
-                    provider: state.provider,
-                    model: state.model
-                };
-
-                // Stateless Execution: Send commands if available
-                if (overrideCommands && overrideCommands.length > 0) {
-                    payload.commands = overrideCommands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }));
-                } else if (state.currentPlan && state.currentPlan.commands) {
-                    payload.commands = state.currentPlan.commands;
-                }
-
-                const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
-
+                const streamId = addLiveConsole(prompt, commands);
                 removeTypingIndicator();
 
-                if (execResponse.ok) {
-                    let summaryPayload = null;
-                    try {
-                        summaryPayload = await summarizeExecution(prompt, execResponse.result);
-                    } catch (e) {
-                        console.warn('Summarization failed', e);
-                    }
+                const response = await fetch(API_ENDPOINTS.EXECUTE_STREAM, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ commands })
+                });
 
-                    // Extract outputs from the results JSON
-                    let output = '';
-                    if (execResponse.result && execResponse.result.items) {
-                        // Execution results - extract command outputs
-                        output = execResponse.result.items
-                            .map((item, idx) => {
-                                let itemOutput = `[Command ${idx + 1}] ${item.command ? item.command.join(' ') : 'unknown'}\n`;
-                                if (item.output && item.output.trim()) {
-                                    itemOutput += item.output.trim();
-                                } else {
-                                    itemOutput += '(no output)';
-                                }
-                                if (item.error) {
-                                    itemOutput += `\nError: ${item.error}`;
-                                }
-                                return itemOutput;
-                            })
-                            .join('\n\n');
-                    } else if (execResponse.output) {
-                        output = execResponse.output;
-                    } else if (execResponse.result) {
-                        output = JSON.stringify(execResponse.result, null, 2);
-                    } else {
-                        output = 'Command executed successfully (no output)';
-                    }
-                    addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
-                } else {
-                    addResultBlock(execResponse.error || 'Execution failed', false, null, null);
-                    if (execResponse.output) {
-                        addResultBlock(execResponse.output, false, null, null);
+                if (!response.ok || !response.body) {
+                    throw new Error('Stream failed to start');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: !done });
+                        appendLiveOutput(streamId, chunk);
                     }
                 }
+
+                finalizeLiveConsole(streamId, true);
             } catch (error) {
                 removeTypingIndicator();
                 addResultBlock(error.message, false, null, null);
@@ -1457,8 +1501,7 @@
 
         function approveCommand(code) {
             // Collect selected commands; if none, show a warning
-            const checkboxes = Array.from(document.querySelectorAll('.cmd-select'));
-            const selected = checkboxes.filter(cb => cb.checked).map(cb => cb.value.trim()).filter(Boolean);
+            const selected = collectSelectedCommands();
 
             const lastUserMsg = state.currentMessages.slice().reverse().find(m => m.role === 'user');
             if (!lastUserMsg) return;
@@ -1830,12 +1873,12 @@
                 const desc = cmd.description || 'Execute command';
                 const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
                 return `
-                    <li>
+                    <li class="plan-command-row">
                         <label style="display:flex;gap:0.5rem;align-items:flex-start;cursor:pointer;">
                             <input class="cmd-select" type="checkbox" value="${escapeHtml(cmdStr)}" checked>
                             <div style="flex:1;">
                                 <div style="font-weight:600;">${escapeHtml(desc)} ${needsRoot}</div>
-                                <code>${escapeHtml(cmdStr)}</code>
+                                <textarea class="cmd-edit" style="width:100%;min-height:64px;">${escapeHtml(cmdStr)}</textarea>
                             </div>
                         </label>
                     </li>
@@ -2102,12 +2145,12 @@
                         const desc = cmd.description || 'Execute command';
                         const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
                         return `
-                            <li>
+                            <li class="plan-command-row">
                                 <label style="display:flex;gap:0.5rem;align-items:flex-start;cursor:pointer;">
                                     <input class="cmd-select" type="checkbox" value="${escapeHtml(cmdStr)}" checked>
                                     <div style="flex:1;">
                                         <div style="font-weight:600;">${escapeHtml(desc)} ${needsRoot}</div>
-                                        <code>${escapeHtml(cmdStr)}</code>
+                                        <textarea class="cmd-edit" style="width:100%;min-height:64px;">${escapeHtml(cmdStr)}</textarea>
                                     </div>
                                 </label>
                             </li>
