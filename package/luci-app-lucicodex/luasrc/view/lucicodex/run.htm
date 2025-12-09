@@ -1081,6 +1081,14 @@
 
         const STORAGE_KEY = 'lucicodex_history_v2';
 
+        // Defensive helper to guarantee commands is an array
+        function normalizePlanCommands(plan) {
+            if (!plan || !plan.commands) return [];
+            if (Array.isArray(plan.commands)) return plan.commands;
+            if (typeof plan.commands === 'object') return Object.values(plan.commands).filter(Boolean);
+            return [];
+        }
+
         // --- Page Init ---
         window.addEventListener('DOMContentLoaded', async () => {
             loadHistory();
@@ -1293,12 +1301,15 @@
                     throw new Error(planResponse.error || 'Failed to generate plan');
                 }
 
-                state.currentPlan = planResponse.plan;
+                const planCommands = normalizePlanCommands(planResponse.plan);
+                const normalizedPlan = Object.assign({}, planResponse.plan, { commands: planCommands });
 
-                renderPlanCard(planResponse.plan);
+                state.currentPlan = normalizedPlan;
+
+                renderPlanCard(normalizedPlan);
 
                 // Auto Execute if mode is auto
-                if (state.execMode === 'auto' && planResponse.plan.commands.length > 0) {
+                if (state.execMode === 'auto' && planCommands.length > 0) {
                     await executeCommands(prompt);
                 }
 
@@ -1800,19 +1811,21 @@
         }
 
         function renderPlanCard(plan) {
+            const planCommands = normalizePlanCommands(plan);
+
             // Persist plan message for history replay
             state.currentMessages.push({
                 role: 'ai',
                 type: 'plan',
                 summary: plan.summary,
-                commands: plan.commands,
+                commands: planCommands,
                 timestamp: Date.now()
             });
 
             const div = document.createElement('div');
             div.className = 'chat-message ai';
 
-            const commands = (plan.commands || []).map((cmd, idx) => {
+            const commands = planCommands.map((cmd, idx) => {
                 const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
                 const desc = cmd.description || 'Execute command';
                 const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
@@ -1830,7 +1843,7 @@
             }).join('');
 
             const summaryHtml = plan.summary ? `<div class="summary-block"><span class="summary-title">Plan</span>${escapeHtml(plan.summary)}</div>` : '';
-            const noCmds = (!plan.commands || plan.commands.length === 0);
+            const noCmds = planCommands.length === 0;
 
             div.innerHTML = `
         <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
@@ -2079,11 +2092,12 @@
                     document.getElementById('chatMessages').appendChild(div);
                 } else if (msg.type === 'plan') {
                     // Replay plan card without pushing to state
-                    const plan = { summary: msg.summary, commands: msg.commands || [] };
+                    const planCommands = normalizePlanCommands(msg);
+                    const plan = { summary: msg.summary, commands: planCommands };
                     const div = document.createElement('div');
                     div.className = 'chat-message ai';
 
-                    const commands = (plan.commands || []).map((cmd, idx) => {
+                    const commands = planCommands.map((cmd, idx) => {
                         const cmdStr = Array.isArray(cmd.command) ? cmd.command.join(' ') : (cmd.command || '');
                         const desc = cmd.description || 'Execute command';
                         const needsRoot = cmd.needs_root ? '<span style="color:#ffb02e;">(root)</span>' : '';
@@ -2101,7 +2115,7 @@
                     }).join('');
 
                     const summaryHtml = plan.summary ? `<div class="summary-block"><span class="summary-title">Plan</span>${escapeHtml(plan.summary)}</div>` : '';
-                    const noCmds = (!plan.commands || plan.commands.length === 0);
+                    const noCmds = planCommands.length === 0;
 
                     div.innerHTML = `
                 <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>

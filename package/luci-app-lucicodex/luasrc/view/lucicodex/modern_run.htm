@@ -438,8 +438,9 @@ function displayPlan(plan) {
     var commandList = document.getElementById('commandList');
     commandList.innerHTML = '';
     
-    if (plan.commands && plan.commands.length > 0) {
-        plan.commands.forEach(function(cmd) {
+    var planCommands = Array.isArray(plan.commands) ? plan.commands : (plan.commands && typeof plan.commands === 'object' ? Object.values(plan.commands) : []);
+    if (planCommands.length > 0) {
+        planCommands.forEach(function(cmd) {
             var li = document.createElement('li');
             li.className = 'command-item';
             
