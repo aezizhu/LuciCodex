@@ -949,6 +949,110 @@
             color: #FF6B6B;
         }
 
+        /* Terminal Output Block */
+        .terminal-block {
+            margin: 0.5rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            background: #0d0d0e;
+        }
+
+        .terminal-header {
+            padding: 0.6rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .terminal-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .terminal-status {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .terminal-status.success {
+            background: rgba(52, 199, 89, 0.2);
+            color: #34C759;
+        }
+
+        .terminal-status.error {
+            background: rgba(255, 69, 58, 0.2);
+            color: #FF6B6B;
+        }
+
+        .terminal-body {
+            padding: 1rem;
+            font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+            font-size: 0.85rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .term-cmd {
+            color: #68d391;
+            font-weight: 600;
+            margin-top: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .term-cmd:first-child {
+            margin-top: 0;
+        }
+
+        .term-output {
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            padding: 0.5rem 0;
+            line-height: 1.4;
+        }
+
+        /* AI Summary Block */
+        .ai-summary-block {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(0, 122, 255, 0.1);
+            border: 1px solid rgba(0, 122, 255, 0.3);
+            border-radius: 10px;
+        }
+
+        .ai-summary-header {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .ai-summary-content {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .ai-summary-details {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .ai-summary-details li {
+            margin-bottom: 0.25rem;
+        }
+
         /* Mobile Responsiveness */
         @media (max-width: 768px) {
             .lucicodex-chat {
@@ -1920,22 +2024,44 @@
 
             const div = document.createElement('div');
             div.className = 'chat-message ai';
-            const resultClass = isSuccess ? 'result-success' : 'result-error';
-            const title = isSuccess ? '✓ Execution Result' : '✗ Execution Error';
+            const statusIcon = isSuccess ? '✓' : '✗';
+            const statusClass = isSuccess ? 'success' : 'error';
+
+            // Format terminal output
+            let terminalContent = '';
+            if (typeof output === 'string' && output.includes('[Command')) {
+                // Parse command outputs for terminal display
+                const parts = output.split(/\n\n(?=\[Command)/);
+                terminalContent = parts.map(part => {
+                    const match = part.match(/^\[Command \d+\] (.+?)\n([\s\S]*)/);
+                    if (match) {
+                        const cmd = match[1];
+                        const out = match[2] || '(no output)';
+                        return `<div class="term-cmd">$ ${escapeHtml(cmd)}</div><div class="term-output">${escapeHtml(out)}</div>`;
+                    }
+                    return `<div class="term-output">${escapeHtml(part)}</div>`;
+                }).join('');
+            } else {
+                terminalContent = `<div class="term-output">${escapeHtml(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}</div>`;
+            }
 
             div.innerHTML = `
         <div class="message-avatar ai">${getProviderIcon(state.provider)}</div>
         <div class="message-content">
             <div class="message-bubble ai">
-                ${summaryText ? `<div class="summary-block"><span class="summary-title">AI Summary</span>${escapeHtml(summaryText)}${(detailList && detailList.length) ? `<ul>${detailList.map(d => `<li>${escapeHtml(d)}</li>`).join('')}</ul>` : ''}</div>` : ''}
-                <div class="result-block ${resultClass}">
-                    <div class="result-header">${title}</div>
-                    ${formatResultSummary(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}
-                    <details class="result-collapse" ${summaryText ? '' : 'open'}>
-                        <summary>Raw output</summary>
-                        <div class="result-content">${formatResultOutput(typeof output === 'string' ? output : JSON.stringify(output, null, 2))}</div>
-                    </details>
+                <div class="terminal-block">
+                    <div class="terminal-header">
+                        <span class="terminal-title">Terminal Output</span>
+                        <span class="terminal-status ${statusClass}">${statusIcon} ${isSuccess ? 'Success' : 'Error'}</span>
+                    </div>
+                    <div class="terminal-body">${terminalContent}</div>
                 </div>
+                ${summaryText ? `
+                <div class="ai-summary-block">
+                    <div class="ai-summary-header">AI Summary</div>
+                    <div class="ai-summary-content">${escapeHtml(summaryText)}</div>
+                    ${(detailList && detailList.length) ? `<ul class="ai-summary-details">${detailList.map(d => `<li>${escapeHtml(d)}</li>`).join('')}</ul>` : ''}
+                </div>` : ''}
             </div>
         </div>
     `;
