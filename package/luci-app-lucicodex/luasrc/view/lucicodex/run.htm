@@ -1486,154 +1486,64 @@
                 return;
             }
 
-            let streamed = false;
+            // Always use JSON execute (more reliable than streaming on LuCI)
             try {
-                // Fast path: single-command -> non-stream execute (lower latency)
-                if (commands.length === 1) {
-                    removeTypingIndicator();
-                    const payload = {
-                        prompt,
-                        dry_run: false,
-                        timeout: 60,
-                        provider: state.provider,
-                        model: state.model,
-                        commands: commands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }))
-                    };
-                    const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
-                    if (execResponse.ok) {
-                        let summaryPayload = null;
-                        try {
-                            summaryPayload = await summarizeExecution(prompt, execResponse.result);
-                        } catch (e) {
-                            console.warn('Summarization failed', e);
-                        }
-
-                        let output = '';
-                        if (execResponse.result && execResponse.result.items) {
-                            output = execResponse.result.items
-                                .map((item, idx) => {
-                                    let itemOutput = `[Command ${idx + 1}] ${item.command ? item.command.join(' ') : 'unknown'}\n`;
-                                    if (item.output && item.output.trim()) {
-                                        itemOutput += item.output.trim();
-                                    } else {
-                                        itemOutput += '(no output)';
-                                    }
-                                    if (item.error) {
-                                        itemOutput += `\nError: ${item.error}`;
-                                    }
-                                    return itemOutput;
-                                })
-                                .join('\n\n');
-                        } else if (execResponse.output) {
-                            output = execResponse.output;
-                        } else if (execResponse.result) {
-                            output = JSON.stringify(execResponse.result, null, 2);
-                        } else {
-                            output = 'Command executed successfully (no output)';
-                        }
-                        addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
-                    } else {
-                        addResultBlock(execResponse.error || 'Execution failed', false, null, null);
-                        if (execResponse.output) addResultBlock(execResponse.output, false, null, null);
-                    }
-                    return;
-                }
-
-                // Stream for multi-command plans
-                const streamId = addLiveConsole(prompt, commands);
                 removeTypingIndicator();
-
-                const response = await fetch(API_ENDPOINTS.EXECUTE_STREAM, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ commands })
-                });
-
-                if (!response.ok || !response.body) {
-                    throw new Error('Stream failed to start');
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let done = false;
-
-                while (!done) {
-                    const { value, done: readerDone } = await reader.read();
-                    done = readerDone;
-                    if (value) {
-                        const chunk = decoder.decode(value, { stream: !done });
-                        appendLiveOutput(streamId, chunk);
+                const payload = {
+                    prompt,
+                    dry_run: false,
+                    timeout: 120,
+                    provider: state.provider,
+                    model: state.model,
+                    commands: commands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }))
+                };
+                const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
+                if (execResponse.ok) {
+                    // Get AI summary
+                    let summaryPayload = null;
+                    try {
+                        summaryPayload = await summarizeExecution(prompt, execResponse.result);
+                    } catch (e) {
+                        console.warn('Summarization failed', e);
                     }
-                }
 
-                finalizeLiveConsole(streamId, true);
-                streamed = true;
-                // Summarize the streamed output for the user
-                try {
-                    const summaryPayload = await summarizeStream(prompt, commands, liveConsoles[streamId]?.buffer || '');
-                    if (summaryPayload && summaryPayload.summary) {
-                        addResultBlock('See live console above.', true, summaryPayload.summary, summaryPayload.details);
-                    }
-                } catch (e) {
-                    console.warn('Stream summary failed', e);
-                }
-            } catch (error) {
-                console.warn('Stream failed, falling back to JSON execute', error);
-                removeTypingIndicator();
-
-                // Fallback to non-streaming execute to ensure results show up
-                try {
-                    const payload = {
-                        prompt,
-                        dry_run: false,
-                        timeout: 120,
-                        provider: state.provider,
-                        model: state.model,
-                        commands: commands.map(cmd => ({ command: cmd.split(/\s+/).filter(Boolean) }))
-                    };
-
-                    const execResponse = await apiCall(API_ENDPOINTS.EXECUTE, payload);
-                    if (execResponse.ok) {
-                        let summaryPayload = null;
-                        try {
-                            summaryPayload = await summarizeExecution(prompt, execResponse.result);
-                        } catch (e) {
-                            console.warn('Summarization failed', e);
-                        }
-
-                        let output = '';
-                        if (execResponse.result && execResponse.result.items) {
-                            output = execResponse.result.items
-                                .map((item, idx) => {
-                                    let itemOutput = `[Command ${idx + 1}] ${item.command ? item.command.join(' ') : 'unknown'}\n`;
-                                    if (item.output && item.output.trim()) {
-                                        itemOutput += item.output.trim();
-                                    } else {
-                                        itemOutput += '(no output)';
-                                    }
-                                    if (item.error) {
-                                        itemOutput += `\nError: ${item.error}`;
-                                    }
-                                    return itemOutput;
-                                })
-                                .join('\n\n');
-                        } else if (execResponse.output) {
-                            output = execResponse.output;
-                        } else if (execResponse.result) {
-                            output = JSON.stringify(execResponse.result, null, 2);
-                        } else {
-                            output = 'Command executed successfully (no output)';
-                        }
-                        addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
+                    // Format output
+                    let output = '';
+                    const items = execResponse.result?.items || execResponse.result?.Items;
+                    if (items && items.length > 0) {
+                        output = items
+                            .map((item, idx) => {
+                                const cmd = item.command || item.Command || [];
+                                let itemOutput = `[Command ${idx + 1}] ${Array.isArray(cmd) ? cmd.join(' ') : cmd}\n`;
+                                const out = item.output || item.Output || '';
+                                if (out && out.trim()) {
+                                    itemOutput += out.trim();
+                                } else {
+                                    itemOutput += '(no output)';
+                                }
+                                const err = item.error || item.Error || (item.Err ? item.Err.toString() : '');
+                                if (err) {
+                                    itemOutput += `\nError: ${err}`;
+                                }
+                                return itemOutput;
+                            })
+                            .join('\n\n');
+                    } else if (execResponse.output) {
+                        output = execResponse.output;
+                    } else if (execResponse.result) {
+                        output = JSON.stringify(execResponse.result, null, 2);
                     } else {
-                        addResultBlock(execResponse.error || 'Execution failed', false, null, null);
-                        if (execResponse.output) {
-                            addResultBlock(execResponse.output, false, null, null);
-                        }
+                        output = 'Command executed successfully (no output)';
                     }
-                } catch (fallbackErr) {
-                    addResultBlock(fallbackErr.message || 'Execution failed', false, null, null);
+                    addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
+                } else {
+                    addResultBlock(execResponse.error || 'Execution failed', false, null, null);
+                    if (execResponse.output) {
+                        addResultBlock(execResponse.output, false, null, null);
+                    }
                 }
+            } catch (execErr) {
+                addResultBlock(execErr.message || 'Execution failed', false, null, null);
             } finally {
                 setProcessing(false);
                 saveCurrentSession();
