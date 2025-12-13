@@ -250,55 +250,100 @@ function action_execute()
         http.write_json(resp)
         return
     end
-    
-    -- Fallback to CLI
+
+    -- Fallback: If commands are provided directly, execute them via shell
+    if data.commands and #data.commands > 0 then
+        local io = require "io"
+        local items = {}
+        for i, cmd in ipairs(data.commands) do
+            local cmdstr = cmd
+            if type(cmd) == "table" and cmd.command then
+                if type(cmd.command) == "table" then
+                    cmdstr = table.concat(cmd.command, " ")
+                else
+                    cmdstr = cmd.command
+                end
+            end
+            if type(cmdstr) ~= "string" then
+                cmdstr = tostring(cmdstr or "")
+            end
+            cmdstr = cmdstr:gsub("^%s+", ""):gsub("%s+$", "")
+
+            if cmdstr ~= "" then
+                local handle = io.popen(cmdstr .. " 2>&1")
+                local output = handle:read("*a") or ""
+                local ok, _, code = handle:close()
+
+                local item = {
+                    Index = i - 1,
+                    Command = {},
+                    Output = output,
+                    Err = nil
+                }
+                -- Split command into array
+                for word in cmdstr:gmatch("%S+") do
+                    table.insert(item.Command, word)
+                end
+                if code and code ~= 0 then
+                    item.Err = "exit code " .. tostring(code)
+                end
+                table.insert(items, item)
+            end
+        end
+
+        http.prepare_content("application/json")
+        http.write_json({ ok = true, result = { Items = items } })
+        return
+    end
+
+    -- Fallback to CLI for prompt-based execution
     local lockfile = "/var/lock/lucicodex.lock"
     local lock = nixio.open(lockfile, "w")
     if not lock then
         lockfile = "/tmp/lucicodex.lock"
         lock = nixio.open(lockfile, "w")
     end
-    
+
     if not lock or not lock:lock("tlock") then
         if lock then lock:close() end
         http.status(503, "Service Unavailable")
         http.write_json({ error = "execution in progress" })
         return
     end
-    
+
     local argv = {"/usr/bin/lucicodex", "-json"}
     if data.dry_run then table.insert(argv, "-dry-run") else table.insert(argv, "-approve") end
     if data.timeout and tonumber(data.timeout) then table.insert(argv, "-timeout=" .. tostring(data.timeout)) end
     if data.provider and data.provider ~= "" then table.insert(argv, "-provider=" .. data.provider) end
     if data.model and data.model ~= "" then table.insert(argv, "-model=" .. data.model) end
-    table.insert(argv, data.prompt)
-    
+    table.insert(argv, prompt_text or "test")
+
     local stdout_r, stdout_w = nixio.pipe()
     local stderr_r, stderr_w = nixio.pipe()
     local pid = nixio.fork()
-    
+
     if pid == 0 then
         stdout_r:close(); stderr_r:close()
         nixio.dup(stdout_w, nixio.stdout); nixio.dup(stderr_w, nixio.stderr)
         stdout_w:close(); stderr_w:close()
-        
+
         if keys.gemini then nixio.setenv("GEMINI_API_KEY", keys.gemini) end
         if keys.openai then nixio.setenv("OPENAI_API_KEY", keys.openai) end
         if keys.anthropic then nixio.setenv("ANTHROPIC_API_KEY", keys.anthropic) end
-        
+
         nixio.exec(unpack(argv))
         nixio.exit(1)
     end
-    
+
     stdout_w:close(); stderr_w:close()
     local output = stdout_r:read("*a") or ""
     local errors = stderr_r:read("*a") or ""
     stdout_r:close(); stderr_r:close()
-    
+
     local _, status, code = nixio.waitpid(pid)
     lock:close()
     nixio.fs.unlink(lockfile)
-    
+
     if status == "exited" and code == 0 then
         local result = json.parse(output)
         if result then
@@ -310,7 +355,7 @@ function action_execute()
         http.write_json({ ok = true, output = output })
         return
     end
-    
+
     http.status(500, "Internal Server Error")
     http.write_json({ error = "execution failed", details = { backend_error = errors, backend_output = output } })
 end
