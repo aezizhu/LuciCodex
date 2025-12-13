@@ -75,7 +75,10 @@ func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 		}},
 		Config: &generationConfig{ResponseMimeType: "application/json"},
 	}
-	b, _ := json.Marshal(reqBody)
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return zero, fmt.Errorf("marshal request: %w", err)
+	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
@@ -131,7 +134,10 @@ func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []
 		}},
 		Config: &generationConfig{ResponseMimeType: "application/json"},
 	}
-	b, _ := json.Marshal(reqBody)
+	b, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", nil, fmt.Errorf("marshal request: %w", err)
+	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {

@@ -262,6 +262,7 @@
             font-size: 0.95rem;
             line-height: 1.5;
             position: relative;
+            overflow: hidden;
         }
 
         .message-bubble.user {
@@ -451,11 +452,11 @@
         }
 
         .summary-block {
-            margin: 0.5rem 0 0.75rem 0;
-            padding: 0.85rem 1rem;
-            border-radius: 12px;
-            background: rgba(0, 122, 255, 0.12);
-            border: 1px solid rgba(0, 122, 255, 0.3);
+            margin: 0;
+            padding: 0.5rem 0;
+            border-radius: 0;
+            background: transparent;
+            border: none;
             color: var(--text-primary);
             font-size: 0.95rem;
             line-height: 1.4;
@@ -468,11 +469,11 @@
         }
 
         .plan-card {
-            margin: 0.5rem 0;
-            padding: 1rem 1.25rem;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
+            margin: 0;
+            padding: 0.5rem 0;
+            border-radius: 0;
+            background: transparent;
+            border: none;
         }
 
         .plan-card h4 {
@@ -894,6 +895,58 @@
 
         .quick-tips li {
             margin-bottom: 0.3rem;
+        }
+
+        /* Live Console (Streaming Output) */
+        .live-console {
+            margin-top: 1rem;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            background: #0d0d0e;
+        }
+
+        .live-console-header {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .live-console-body {
+            padding: 1rem;
+            font-family: "SF Mono", "Menlo", "Monaco", "Courier New", monospace;
+            font-size: 0.85rem;
+            color: #68d391;
+            background: #0d0d0e;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin: 0;
+        }
+
+        .live-status {
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .live-status.success {
+            background: rgba(52, 199, 89, 0.2);
+            color: #34C759;
+        }
+
+        .live-status.error {
+            background: rgba(255, 69, 58, 0.2);
+            color: #FF6B6B;
         }
 
         /* Mobile Responsiveness */
@@ -1588,14 +1641,16 @@
         }
 
         async function summarizeExecution(prompt, execResult) {
-            if (!execResult || !execResult.items || execResult.items.length === 0) return null;
+            // Handle both lowercase and capitalized field names from Go backend
+            const items = execResult?.items || execResult?.Items;
+            if (!items || items.length === 0) return null;
 
             const payload = {
                 prompt,
                 context: prompt,
                 provider: state.provider,
                 model: state.model,
-                commands: execResult.items.map(it => ({
+                commands: items.map(it => ({
                     command: it.command || it.Command || [],
                     output: (it.output || it.Output || '').toString(),
                     error: (it.error || it.Error || '').toString()

@@ -1,12 +1,15 @@
 package executor
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -77,6 +80,119 @@ func (e *Engine) RunPlan(ctx context.Context, p plan.Plan) Results {
 		results.Items = append(results.Items, r)
 	}
 	return results
+}
+
+// RunPlanStreaming executes a plan with real-time output streaming.
+// The onStart callback is called when a command begins execution.
+// The onOutput callback is called for each line of output.
+// The onComplete callback is called when a command finishes.
+func (e *Engine) RunPlanStreaming(ctx context.Context, p plan.Plan, w io.Writer) Results {
+	results := Results{}
+	for i, pc := range p.Commands {
+		r := e.runOneStreaming(ctx, i, pc, w)
+		if r.Err != nil {
+			results.Failed++
+		}
+		results.Items = append(results.Items, r)
+	}
+	return results
+}
+
+func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.PlannedCommand, w io.Writer) Result {
+	start := time.Now()
+	r := Result{Index: index, Command: pc.Command}
+	if len(pc.Command) == 0 {
+		r.Err = errors.New("empty command")
+		return r
+	}
+
+	// Show command being executed
+	fmt.Fprintf(w, "\n\033[1m[%d] Executing:\033[0m %s\n", index+1, FormatCommand(pc.Command))
+
+	timeout := time.Duration(e.cfg.TimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	cctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	argv := pc.Command
+	if pc.NeedsRoot && strings.TrimSpace(e.cfg.ElevateCommand) != "" {
+		elev := fieldsSafe(e.cfg.ElevateCommand)
+		if len(elev) > 0 {
+			argv = append(elev, argv...)
+		}
+	}
+
+	var cmd *exec.Cmd
+	if len(argv) == 1 {
+		cmd = exec.CommandContext(cctx, argv[0])
+	} else {
+		cmd = exec.CommandContext(cctx, argv[0], argv[1:]...)
+	}
+	cmd.Env = minimalEnv()
+
+	// Create pipes for stdout and stderr
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		r.Err = err
+		r.Elapsed = time.Since(start)
+		return r
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		r.Err = err
+		r.Elapsed = time.Since(start)
+		return r
+	}
+
+	if err := cmd.Start(); err != nil {
+		r.Err = err
+		r.Elapsed = time.Since(start)
+		return r
+	}
+
+	// Collect output while streaming
+	var outputBuf strings.Builder
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	// Stream stdout
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			outputBuf.WriteString(line + "\n")
+			fmt.Fprintf(w, "  %s\n", line)
+		}
+	}()
+
+	// Stream stderr
+	go func() {
+		defer wg.Done()
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			outputBuf.WriteString(line + "\n")
+			fmt.Fprintf(w, "  \033[33m%s\033[0m\n", line) // Yellow for stderr
+		}
+	}()
+
+	wg.Wait()
+	err = cmd.Wait()
+	r.Output = outputBuf.String()
+	r.Err = err
+	r.Elapsed = time.Since(start)
+
+	// Show completion status
+	if r.Err != nil {
+		fmt.Fprintf(w, "  \033[31m✗ Failed\033[0m (%s): %v\n", r.Elapsed, r.Err)
+	} else {
+		fmt.Fprintf(w, "  \033[32m✓ Done\033[0m (%s)\n", r.Elapsed)
+	}
+
+	return r
 }
 
 // RunCommand executes a single planned command and returns the result.

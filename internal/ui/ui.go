@@ -23,12 +23,38 @@ func colorize(color, msg string) string {
 	return color + msg + Reset
 }
 
+// Colorize applies ANSI color codes to a message (exported for use in main).
+func Colorize(color, msg string) string {
+	return color + msg + Reset
+}
+
+// PrintResponse displays a conversational response when no commands are proposed.
+// This is used for greetings, questions, or informational requests.
+func PrintResponse(w io.Writer, p plan.Plan) {
+	if p.Summary != "" {
+		fmt.Fprintf(w, "%s\n", p.Summary)
+	} else {
+		fmt.Fprintln(w, "I understand your request, but no specific commands are needed.")
+	}
+	if len(p.Warnings) > 0 {
+		fmt.Fprintln(w)
+		for _, wmsg := range p.Warnings {
+			fmt.Fprintf(w, "%s %s\n", colorize(Yellow, "Note:"), wmsg)
+		}
+	}
+}
+
 func PrintPlan(w io.Writer, p plan.Plan) {
 	if p.Summary != "" {
 		fmt.Fprintf(w, "%s %s\n\n", colorize(Blue+Bold, "Summary:"), p.Summary)
 	}
+	if len(p.Commands) == 0 {
+		fmt.Fprintln(w, colorize(Yellow, "No commands to execute."))
+		return
+	}
+	fmt.Fprintln(w, colorize(Bold, "Proposed commands:"))
 	for i, c := range p.Commands {
-		fmt.Fprintf(w, "%s %s\n", colorize(Bold, fmt.Sprintf("[%d]", i+1)), executor.FormatCommand(c.Command))
+		fmt.Fprintf(w, "%s %s\n", colorize(Green, fmt.Sprintf("[%d]", i+1)), executor.FormatCommand(c.Command))
 		if strings.TrimSpace(c.Description) != "" {
 			fmt.Fprintf(w, "    %s %s\n", colorize(Blue, "→"), c.Description)
 		}
@@ -81,4 +107,27 @@ func indent(s string, n int) string {
 		lines[i] = pad + lines[i]
 	}
 	return strings.Join(lines, "\n")
+}
+
+// PrintSummary prints only the final summary line (used after streaming output).
+func PrintSummary(w io.Writer, res Results) {
+	total := len(res.Items)
+	if res.Failed > 0 {
+		fmt.Fprintf(w, "\n%s %d of %d command(s) failed.\n", colorize(Red+Bold, "FAILED:"), res.Failed, total)
+	} else if total > 0 {
+		fmt.Fprintf(w, "\n%s All %d command(s) executed successfully.\n", colorize(Green+Bold, "✓"), total)
+	}
+}
+
+// PrintAnswer displays the AI's answer to the user's question based on command output.
+func PrintAnswer(w io.Writer, summary string, details []string) {
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s\n", colorize(Blue+Bold, "Answer:"))
+	fmt.Fprintf(w, "%s\n", summary)
+	if len(details) > 0 {
+		fmt.Fprintln(w)
+		for _, detail := range details {
+			fmt.Fprintf(w, "  %s %s\n", colorize(Blue, "•"), detail)
+		}
+	}
 }

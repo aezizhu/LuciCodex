@@ -207,37 +207,43 @@ function action_execute()
     local http = require "luci.http"
     local json = require "luci.jsonc"
     local nixio = require "nixio"
-    
+
     if http.getenv("REQUEST_METHOD") ~= "POST" then
         http.status(405, "Method Not Allowed")
         http.write_json({ error = "POST required" })
         return
     end
-    
+
     local body = http.content()
     local data = json.parse(body)
-    
-    if not data or not data.prompt or data.prompt == "" then
+
+    -- Allow execution with either prompt or direct commands
+    if not data or ((not data.prompt or data.prompt == "") and (not data.commands or #data.commands == 0)) then
         http.status(400, "Bad Request")
-        http.write_json({ error = "missing prompt" })
+        http.write_json({ error = "missing prompt or commands" })
         return
     end
-    
+
     -- Try Daemon First
     local keys = get_api_keys()
+    local prompt_text = data.prompt
+    if (not prompt_text or prompt_text == "") and data.commands and #data.commands > 0 then
+        prompt_text = "Execute requested commands"
+    end
     local payload = {
-        prompt = data.prompt,
+        prompt = prompt_text,
         provider = data.provider,
         model = data.model,
         dry_run = data.dry_run,
         timeout = tonumber(data.timeout),
+        commands = data.commands,  -- Pass commands for direct execution
         config = {
             gemini_key = keys.gemini,
             openai_key = keys.openai,
             anthropic_key = keys.anthropic
         }
     }
-    
+
     local resp, err = call_daemon("/v1/execute", payload)
     if resp then
         http.prepare_content("application/json")

@@ -25,7 +25,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.6.2"
+var version = "0.6.3"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
@@ -85,6 +85,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		joinArgs    = fs.Bool("join-args", false, "join all arguments into single prompt (experimental)")
 		serverMode  = fs.Bool("server", false, "run in daemon mode")
 		port        = fs.Int("port", 9999, "daemon port")
+		stream      = fs.Bool("stream", true, "stream command output in real-time")
+		summarize   = fs.Bool("summarize", true, "summarize command output with AI to answer user's question")
 	)
 
 	if err := fs.Parse(args); err != nil {
@@ -211,7 +213,6 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fullPrompt := instruction + "\n\nUser request: " + prompt
 
 	// Generate plan
-	// Generate plan
 	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer cancel()
 
@@ -228,7 +229,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 				return 1
 			}
 		} else {
-			fmt.Fprintln(stdout, "No commands proposed.")
+			// Display the LLM's conversational response
+			ui.PrintResponse(stdout, p)
 		}
 		return 0
 	}
@@ -307,6 +309,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 				results.Failed++
 			}
 		}
+	} else if *stream && !*jsonOutput {
+		// Use streaming execution for real-time output
+		fmt.Fprintln(stdout, "\n"+ui.Colorize(ui.Bold, "Executing commands..."))
+		results = execEngine.RunPlanStreaming(ctx, p, stdout)
 	} else {
 		results = execEngine.RunPlan(ctx, p)
 	}
@@ -324,8 +330,43 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stderr, "JSON output error: %v\n", err)
 			return 1
 		}
-	} else {
+	} else if !*stream || *confirmEach {
+		// Print full results when not streaming or when using confirm-each mode
 		ui.PrintResults(stdout, results)
+	} else {
+		// For streaming, just print final summary
+		ui.PrintSummary(stdout, results)
+	}
+
+	// AI summarization: analyze command output and answer the user's question
+	if *summarize && !*jsonOutput && len(results.Items) > 0 {
+		// Build summary input from results
+		summaryCommands := make([]llm.SummaryCommand, 0, len(results.Items))
+		for _, item := range results.Items {
+			errStr := ""
+			if item.Err != nil {
+				errStr = item.Err.Error()
+			}
+			summaryCommands = append(summaryCommands, llm.SummaryCommand{
+				Command: item.Command,
+				Output:  item.Output,
+				Error:   errStr,
+			})
+		}
+
+		sumCtx, sumCancel := context.WithTimeout(ctx, 30*time.Second)
+		defer sumCancel()
+
+		summary, details, err := llm.Summarize(sumCtx, cfg, llm.SummaryInput{
+			Commands: summaryCommands,
+			Prompt:   prompt,
+		})
+		if err != nil {
+			// Non-fatal: just skip summarization if it fails
+			fmt.Fprintf(stderr, "Note: Could not generate summary: %v\n", err)
+		} else {
+			ui.PrintAnswer(stdout, summary, details)
+		}
 	}
 
 	items := make([]logging.ResultItem, 0, len(results.Items))

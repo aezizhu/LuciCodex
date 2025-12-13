@@ -65,8 +65,14 @@ func (c *AnthropicClient) GeneratePlan(ctx context.Context, prompt string) (plan
 
 	body := anthropicReq{Model: model, MaxTokens: 2048}
 	body.Messages = []anthropicMessage{{Role: "user", Content: prompt}}
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	b, err := json.Marshal(body)
+	if err != nil {
+		return zero, fmt.Errorf("marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return zero, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", c.cfg.AnthropicAPIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
@@ -112,8 +118,14 @@ func (c *AnthropicClient) Summarize(ctx context.Context, prompt string) (string,
 
 	body := anthropicReq{Model: model, MaxTokens: 1024}
 	body.Messages = []anthropicMessage{{Role: "user", Content: prompt}}
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	b, err := json.Marshal(body)
+	if err != nil {
+		return "", nil, fmt.Errorf("marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return "", nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", c.cfg.AnthropicAPIKey)
 	req.Header.Set("anthropic-version", "2023-06-01")

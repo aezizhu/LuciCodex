@@ -74,8 +74,14 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	body := openaiReq{Model: model}
 	body.Messages = []openaiMessage{{Role: "user", Content: prompt}}
 	body.ResponseFormat = map[string]string{"type": "json_object"}
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	b, err := json.Marshal(body)
+	if err != nil {
+		return zero, fmt.Errorf("marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return zero, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.cfg.OpenAIAPIKey)
 	resp, err := c.httpClient.Do(req)
@@ -126,8 +132,14 @@ func (c *OpenAIClient) Summarize(ctx context.Context, prompt string) (string, []
 		ResponseFormat: map[string]string{"type": "json_object"},
 	}
 
-	b, _ := json.Marshal(body)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	b, err := json.Marshal(body)
+	if err != nil {
+		return "", nil, fmt.Errorf("marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+	if err != nil {
+		return "", nil, err
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.cfg.OpenAIAPIKey)
 

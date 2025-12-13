@@ -214,7 +214,8 @@ func TestREPL_EmptyPlan(t *testing.T) {
 	testutil.AssertNoError(t, err)
 
 	outStr := testutil.StripAnsi(output.String())
-	testutil.AssertContains(t, outStr, "No commands proposed")
+	// With the new UI, empty plans show the summary from the LLM response
+	testutil.AssertContains(t, outStr, "Empty Plan")
 }
 
 func TestREPL_MaxCommands(t *testing.T) {

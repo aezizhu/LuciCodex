@@ -127,7 +127,8 @@ func (r *REPL) executePrompt(ctx context.Context, prompt string, output io.Write
 	}
 
 	if len(p.Commands) == 0 {
-		fmt.Fprintln(output, "No commands proposed.")
+		// Display the LLM's conversational response
+		ui.PrintResponse(output, p)
 		return nil
 	}
 
@@ -158,9 +159,37 @@ func (r *REPL) executePrompt(ctx context.Context, prompt string, output io.Write
 		}
 	}
 
-	// Execute
-	results := r.execEngine.RunPlan(ctx, p)
-	ui.PrintResults(output, results)
+	// Execute with streaming output
+	fmt.Fprintln(output, "\n"+ui.Colorize(ui.Bold, "Executing commands..."))
+	results := r.execEngine.RunPlanStreaming(ctx, p, output)
+	ui.PrintSummary(output, results)
+
+	// AI summarization: analyze command output and answer the user's question
+	if len(results.Items) > 0 {
+		summaryCommands := make([]llm.SummaryCommand, 0, len(results.Items))
+		for _, item := range results.Items {
+			errStr := ""
+			if item.Err != nil {
+				errStr = item.Err.Error()
+			}
+			summaryCommands = append(summaryCommands, llm.SummaryCommand{
+				Command: item.Command,
+				Output:  item.Output,
+				Error:   errStr,
+			})
+		}
+
+		sumCtx, sumCancel := context.WithTimeout(ctx, 30*time.Second)
+		defer sumCancel()
+
+		summary, details, err := llm.Summarize(sumCtx, r.cfg, llm.SummaryInput{
+			Commands: summaryCommands,
+			Prompt:   prompt,
+		})
+		if err == nil {
+			ui.PrintAnswer(output, summary, details)
+		}
+	}
 
 	// Audit results
 	items := make([]logging.ResultItem, 0, len(results.Items))

@@ -243,8 +243,10 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 	if len(p.Commands) == 0 {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
-			"ok":     true,
-			"result": executor.Results{},
+			"ok":      true,
+			"plan":    p, // Include the summary for conversational responses
+			"result":  executor.Results{},
+			"message": "No commands to execute",
 		})
 		return
 	}

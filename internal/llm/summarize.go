@@ -45,31 +45,34 @@ func Summarize(ctx context.Context, cfg config.Config, input SummaryInput) (stri
 
 func buildSummaryPrompt(input SummaryInput) string {
 	var b strings.Builder
-	b.WriteString("You are an assistant summarizing execution results for an OpenWrt router user.\n")
+	b.WriteString("You are an assistant helping an OpenWrt router user. Analyze the command outputs below and DIRECTLY ANSWER the user's original question.\n\n")
 	b.WriteString("Return strict JSON with this shape:\n")
-	b.WriteString("{\"summary\": string, \"details\": [string]}\n")
-	b.WriteString("- summary: 1-2 sentences (<80 words) that explain what happened.\n")
-	b.WriteString("- details: optional bullet-style strings calling out key successes, failures, and next steps.\n")
-	b.WriteString("Be concise, avoid code fences, and highlight any failures.\n\n")
+	b.WriteString("{\"summary\": string, \"details\": [string]}\n\n")
+	b.WriteString("Guidelines:\n")
+	b.WriteString("- summary: DIRECTLY ANSWER the user's question in 1-2 sentences. Extract specific values (IP addresses, status, names, etc.) from the output.\n")
+	b.WriteString("- details: Optional array of additional relevant information from the output.\n")
+	b.WriteString("- Be helpful and concise. Focus on what the user asked, not on describing commands.\n")
+	b.WriteString("- If the user asked 'what is my IP?', respond with 'Your IP address is X.X.X.X' - not 'The command ran successfully'.\n")
+	b.WriteString("- If something failed, explain what went wrong and suggest a fix.\n\n")
 
-	if input.Context != "" {
-		b.WriteString("User context:\n")
-		b.WriteString(truncate(input.Context, 800))
-		b.WriteString("\n\n")
-	}
 	if input.Prompt != "" {
-		b.WriteString("Original prompt:\n")
+		b.WriteString("USER'S ORIGINAL QUESTION:\n")
 		b.WriteString(truncate(input.Prompt, 800))
 		b.WriteString("\n\n")
 	}
+	if input.Context != "" {
+		b.WriteString("Additional context:\n")
+		b.WriteString(truncate(input.Context, 800))
+		b.WriteString("\n\n")
+	}
 
-	b.WriteString("Execution results:\n")
+	b.WriteString("COMMAND EXECUTION RESULTS:\n")
 	for i, cmd := range input.Commands {
 		cmdLine := strings.Join(cmd.Command, " ")
 		b.WriteString(fmt.Sprintf("%d) Command: %s\n", i+1, cmdLine))
 		if cmd.Output != "" {
-			b.WriteString("Output: ")
-			b.WriteString(truncate(cmd.Output, 1200))
+			b.WriteString("Output:\n")
+			b.WriteString(truncate(cmd.Output, 1500))
 			b.WriteString("\n")
 		}
 		if cmd.Error != "" {
@@ -80,6 +83,7 @@ func buildSummaryPrompt(input SummaryInput) string {
 		b.WriteString("\n")
 	}
 
+	b.WriteString("\nNow answer the user's question based on the command output above.")
 	return b.String()
 }
 

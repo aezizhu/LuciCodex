@@ -3,6 +3,7 @@ package auth
 import (
     "encoding/json"
     "errors"
+    "fmt"
     "os"
     "path/filepath"
     "sync"
@@ -66,7 +67,10 @@ func (s *Store) Save() error {
     if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
         return err
     }
-    b, _ := json.MarshalIndent(s.tokens, "", "  ")
+    b, err := json.MarshalIndent(s.tokens, "", "  ")
+    if err != nil {
+        return fmt.Errorf("marshal tokens: %w", err)
+    }
     f, err := os.OpenFile(p, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
     if err != nil {
         return err
