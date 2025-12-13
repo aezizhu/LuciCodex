@@ -4,7 +4,7 @@ set -euo pipefail
 # Build multi-arch binaries and package .ipk for lucicodex and luci-app-lucicodex
 # Requires: go, tar, ar (binutils)
 
-VERSION=${VERSION:-"0.6.2"}
+VERSION=${VERSION:-"0.6.8"}
 OUT=${OUT:-"dist"}
 ARCHES=(amd64 arm64 arm mipsle mips)
 GOARM_DEFAULT=7
@@ -30,12 +30,15 @@ mkdir -p "$OUT"
 build_bin() {
   local arch="$1"
   local outbin
+  # CGO_ENABLED=0 for static linking (smaller, more portable)
+  # -s -w strips debug symbols
+  # -trimpath removes build paths
   if [[ "$arch" == "arm" ]]; then
-    GOOS=linux GOARCH=arm GOARM=${GOARM:-$GOARM_DEFAULT} \
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=${GOARM:-$GOARM_DEFAULT} \
       go build -trimpath -ldflags "-s -w" -o "$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}" ./cmd/lucicodex
     outbin="$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}"
   else
-    GOOS=linux GOARCH="$arch" \
+    CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
       go build -trimpath -ldflags "-s -w" -o "$OUT/lucicodex-linux-${arch}" ./cmd/lucicodex
     outbin="$OUT/lucicodex-linux-${arch}"
   fi

@@ -1302,14 +1302,38 @@
 
         function finalizeLiveConsole(id, success) {
             const console = liveConsoles[id];
-            if (!console) return;
+            if (!console) return '';
             const status = document.createElement('div');
             status.className = success ? 'live-status success' : 'live-status error';
             status.textContent = success ? 'Completed' : 'Finished with errors';
             const header = console.el.querySelector('.live-console-header');
             if (header) header.appendChild(status);
             scrollToBottom();
-            return console.buffer || '';
+            const buffer = console.buffer || '';
+            // Cleanup to free memory
+            delete liveConsoles[id];
+            return buffer;
+        }
+
+        // Memory management constants
+        const MAX_MESSAGES_PER_SESSION = 50;
+        const MAX_OUTPUT_LENGTH = 50000; // 50KB max output per command
+
+        function truncateOutput(text, maxLen = MAX_OUTPUT_LENGTH) {
+            if (!text || text.length <= maxLen) return text;
+            return text.slice(0, maxLen) + '\n\n... [Output truncated - ' + (text.length - maxLen) + ' bytes omitted]';
+        }
+
+        function cleanupOldMessages() {
+            // Keep only last MAX_MESSAGES_PER_SESSION messages
+            if (state.currentMessages.length > MAX_MESSAGES_PER_SESSION) {
+                state.currentMessages = state.currentMessages.slice(-MAX_MESSAGES_PER_SESSION);
+                // Also cleanup DOM - remove old message nodes
+                const container = document.getElementById('chatMessages');
+                while (container.children.length > MAX_MESSAGES_PER_SESSION) {
+                    container.removeChild(container.firstChild);
+                }
+            }
         }
 
         // --- Page Init ---
@@ -1611,7 +1635,7 @@
                         console.warn('Summarization failed', e);
                     }
 
-                    // Format output
+                    // Format output (with truncation for memory efficiency)
                     let output = '';
                     const items = execResponse.result?.items || execResponse.result?.Items;
                     if (items && items.length > 0) {
@@ -1619,7 +1643,7 @@
                             .map((item, idx) => {
                                 const cmd = item.command || item.Command || [];
                                 let itemOutput = `[Command ${idx + 1}] ${Array.isArray(cmd) ? cmd.join(' ') : cmd}\n`;
-                                const out = item.output || item.Output || '';
+                                const out = truncateOutput(item.output || item.Output || '');
                                 if (out && out.trim()) {
                                     itemOutput += out.trim();
                                 } else {
@@ -1633,13 +1657,14 @@
                             })
                             .join('\n\n');
                     } else if (execResponse.output) {
-                        output = execResponse.output;
+                        output = truncateOutput(execResponse.output);
                     } else if (execResponse.result) {
-                        output = JSON.stringify(execResponse.result, null, 2);
+                        output = truncateOutput(JSON.stringify(execResponse.result, null, 2));
                     } else {
                         output = 'Command executed successfully (no output)';
                     }
                     addResultBlock(output, true, summaryPayload?.summary, summaryPayload?.details);
+                    cleanupOldMessages();
                 } else {
                     addResultBlock(execResponse.error || 'Execution failed', false, null, null);
                     if (execResponse.output) {

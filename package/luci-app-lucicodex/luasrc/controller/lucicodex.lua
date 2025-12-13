@@ -254,6 +254,7 @@ function action_execute()
     -- Fallback: If commands are provided directly, execute them via shell
     if data.commands and #data.commands > 0 then
         local io = require "io"
+        local MAX_OUTPUT = 50000 -- 50KB max output per command for memory efficiency
         local items = {}
         for i, cmd in ipairs(data.commands) do
             local cmdstr = cmd
@@ -271,7 +272,12 @@ function action_execute()
 
             if cmdstr ~= "" then
                 local handle = io.popen(cmdstr .. " 2>&1")
-                local output = handle:read("*a") or ""
+                local output = handle:read(MAX_OUTPUT) or ""  -- Read only up to MAX_OUTPUT bytes
+                -- Drain any remaining output to prevent broken pipe
+                if handle:read(1) then
+                    output = output .. "\n... [Output truncated]"
+                    while handle:read(4096) do end
+                end
                 local ok, _, code = handle:close()
 
                 local item = {
