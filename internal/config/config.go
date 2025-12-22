@@ -56,7 +56,7 @@ func defaultConfig() Config {
 		OpenAIEndpoint:    "https://api.openai.com/v1",
 		OpenAIModel:       "gpt-5-mini",
 		AnthropicEndpoint: "https://api.anthropic.com/v1",
-		AnthropicModel:    "claude-3-haiku-20240307",
+		AnthropicModel:    "claude-haiku-4-5-20251001",
 		// No default allowlist - user approval is the safety mechanism
 		// No default denylist - trust users to review and approve commands
 		Allowlist:      []string{},
@@ -252,7 +252,7 @@ func (cfg *Config) ApplyProviderSettings() {
 		if cfg.AnthropicModel != "" {
 			cfg.Model = cfg.AnthropicModel
 		} else if cfg.Model == "" || cfg.Model == "gemini-2.5-pro" {
-			cfg.Model = "claude-3-haiku-20240307"
+			cfg.Model = "claude-haiku-4-5-20251001"
 		}
 		if cfg.AnthropicEndpoint != "" {
 			cfg.Endpoint = cfg.AnthropicEndpoint

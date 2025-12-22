@@ -337,7 +337,7 @@ func TestApplyProviderSettings(t *testing.T) {
 			cfg: Config{
 				Provider: "anthropic",
 			},
-			wantModel:    "claude-3-haiku-20240307",
+			wantModel:    "claude-haiku-4-5-20251001",
 			wantEndpoint: "https://api.anthropic.com/v1",
 		},
 		{

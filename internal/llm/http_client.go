@@ -12,6 +12,12 @@ import (
 func newHTTPClient(cfg config.Config, timeout time.Duration) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Proxy = proxyFunc(cfg)
+	// Optimize for embedded routers with limited resources
+	transport.MaxIdleConns = 10
+	transport.MaxIdleConnsPerHost = 5
+	transport.IdleConnTimeout = 60 * time.Second
+	transport.DisableCompression = false // Enable compression for bandwidth savings
+	transport.ForceAttemptHTTP2 = false  // HTTP/1.1 is more reliable on embedded systems
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: transport,

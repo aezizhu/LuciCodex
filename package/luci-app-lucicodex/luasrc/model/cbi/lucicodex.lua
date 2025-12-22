@@ -153,7 +153,7 @@ o.datatype = "uinteger"
 o.placeholder = "60"
 o.default = "60"
 o.rmempty = true
-o.description = translate("Seconds to wait for each command to complete before timing out. Default: 30")
+o.description = translate("Seconds to wait for each command to complete before timing out. Default: 60")
 
 o = s:option(Value, "max_commands", translate("Maximum Commands"))
 o.datatype = "uinteger"

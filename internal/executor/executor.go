@@ -30,6 +30,15 @@ type Results struct {
 	Failed int
 }
 
+// stringBuilderPool reuses string builders to reduce allocations during streaming
+var stringBuilderPool = sync.Pool{
+	New: func() interface{} {
+		b := &strings.Builder{}
+		b.Grow(4096) // Pre-allocate for typical command output
+		return b
+	},
+}
+
 // For testing, allow overriding command execution
 type execFn func(ctx context.Context, argv []string) (string, error)
 
@@ -152,8 +161,12 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 		return r
 	}
 
-	// Collect output while streaming
-	var outputBuf strings.Builder
+	// Collect output while streaming (protected by mutex for concurrent access)
+	// Use pooled builder to reduce allocations
+	outputBuf := stringBuilderPool.Get().(*strings.Builder)
+	outputBuf.Reset()
+	defer stringBuilderPool.Put(outputBuf)
+	var outputMu sync.Mutex
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -163,7 +176,9 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
+			outputMu.Lock()
 			outputBuf.WriteString(line + "\n")
+			outputMu.Unlock()
 			fmt.Fprintf(w, "  %s\n", line)
 		}
 	}()
@@ -174,7 +189,9 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
+			outputMu.Lock()
 			outputBuf.WriteString(line + "\n")
+			outputMu.Unlock()
 			fmt.Fprintf(w, "  \033[33m%s\033[0m\n", line) // Yellow for stderr
 		}
 	}()
@@ -241,15 +258,35 @@ func minimalEnv() []string {
 
 // FormatCommand returns a shell-like string for logging only (no execution).
 func FormatCommand(argv []string) string {
-	q := make([]string, 0, len(argv))
+	if len(argv) == 0 {
+		return ""
+	}
+	// Fast path: if no quoting needed, avoid allocations
+	needsQuoting := false
+	totalLen := len(argv) - 1 // spaces between args
 	for _, a := range argv {
-		if strings.ContainsAny(a, " 	\n'") {
-			q = append(q, fmt.Sprintf("%q", a))
-		} else {
-			q = append(q, a)
+		totalLen += len(a)
+		if strings.ContainsAny(a, " \t\n'") {
+			needsQuoting = true
 		}
 	}
-	return strings.Join(q, " ")
+	if !needsQuoting {
+		return strings.Join(argv, " ")
+	}
+	// Slow path: quote arguments that need it
+	var b strings.Builder
+	b.Grow(totalLen + 20) // Extra space for quotes
+	for i, a := range argv {
+		if i > 0 {
+			b.WriteByte(' ')
+		}
+		if strings.ContainsAny(a, " \t\n'") {
+			b.WriteString(fmt.Sprintf("%q", a))
+		} else {
+			b.WriteString(a)
+		}
+	}
+	return b.String()
 }
 
 // AutoRetry attempts to fix each failing command up to MaxRetries using the provided planner.

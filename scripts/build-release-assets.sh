@@ -4,7 +4,7 @@ set -euo pipefail
 # Build multi-arch binaries and package .ipk for lucicodex and luci-app-lucicodex
 # Requires: go, tar, ar (binutils)
 
-VERSION=${VERSION:-"0.6.8"}
+VERSION=${VERSION:-"0.6.9"}
 OUT=${OUT:-"dist"}
 ARCHES=(amd64 arm64 arm mipsle mips)
 GOARM_DEFAULT=7
@@ -143,7 +143,6 @@ ipk_pack_luci() {
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/home.htm "$work/data/usr/lib/lua/luci/view/lucicodex/home.htm"
   install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/run.htm"
   install -m0644 package/luci-app-lucicodex/luasrc/view/cbi/lucicodex.htm "$work/data/usr/lib/lua/luci/view/cbi/lucicodex.htm" 2>/dev/null || true
-  install -m0644 package/luci-app-lucicodex/luasrc/view/lucicodex/modern_run.htm "$work/data/usr/lib/lua/luci/view/lucicodex/modern_run.htm" 2>/dev/null || true
   
   # Copy root directory contents (init scripts, ACLs, uci-defaults)
   if [ -d "package/luci-app-lucicodex/root" ]; then

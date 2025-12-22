@@ -81,18 +81,15 @@ local function call_daemon(endpoint, payload)
     f:close()
     
     -- Use curl to talk to daemon (timeout 300s)
-    -- Capture stderr to debug connection issues
-    local cmd = string.format("curl -v -s -m 300 -X POST -H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s 2>/tmp/lucicodex_curl.err", tmpfile, endpoint)
+    -- Use -sS for silent but show errors
+    local cmd = string.format("curl -sS -m 300 -X POST -H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s 2>&1", tmpfile, endpoint)
     local handle = io.popen(cmd)
     local result = handle:read("*a")
     handle:close()
     os.remove(tmpfile)
-    
+
     if not result or result == "" then
-        local f = io.open("/tmp/lucicodex_curl.err", "r")
-        local err_msg = f and f:read("*a") or "unknown error"
-        if f then f:close() end
-        return nil, "daemon unreachable: " .. err_msg
+        return nil, "daemon unreachable: empty response"
     end
     
     local decoded = json.parse(result)
@@ -251,50 +248,98 @@ function action_execute()
         return
     end
 
-    -- Fallback: If commands are provided directly, execute them via shell
+    -- Fallback: If commands are provided directly, execute them safely via nixio.exec (no shell)
     if data.commands and #data.commands > 0 then
-        local io = require "io"
         local MAX_OUTPUT = 50000 -- 50KB max output per command for memory efficiency
         local items = {}
         for i, cmd in ipairs(data.commands) do
-            local cmdstr = cmd
+            -- Build argv array from command
+            local argv = {}
             if type(cmd) == "table" and cmd.command then
                 if type(cmd.command) == "table" then
-                    cmdstr = table.concat(cmd.command, " ")
+                    argv = cmd.command
                 else
-                    cmdstr = cmd.command
+                    -- Parse string into argv (simple whitespace split)
+                    for word in tostring(cmd.command):gmatch("%S+") do
+                        table.insert(argv, word)
+                    end
+                end
+            elseif type(cmd) == "string" then
+                for word in cmd:gmatch("%S+") do
+                    table.insert(argv, word)
                 end
             end
-            if type(cmdstr) ~= "string" then
-                cmdstr = tostring(cmdstr or "")
-            end
-            cmdstr = cmdstr:gsub("^%s+", ""):gsub("%s+$", "")
 
-            if cmdstr ~= "" then
-                local handle = io.popen(cmdstr .. " 2>&1")
-                local output = handle:read(MAX_OUTPUT) or ""  -- Read only up to MAX_OUTPUT bytes
-                -- Drain any remaining output to prevent broken pipe
-                if handle:read(1) then
-                    output = output .. "\n... [Output truncated]"
-                    while handle:read(4096) do end
-                end
-                local ok, _, code = handle:close()
+            local item = {
+                Index = i - 1,
+                Command = argv,
+                Output = "",
+                Err = nil
+            }
 
-                local item = {
-                    Index = i - 1,
-                    Command = {},
-                    Output = output,
-                    Err = nil
-                }
-                -- Split command into array
-                for word in cmdstr:gmatch("%S+") do
-                    table.insert(item.Command, word)
+            if #argv > 0 then
+                -- Execute using nixio.fork/exec (no shell injection)
+                local stdout_r, stdout_w = nixio.pipe()
+                local stderr_r, stderr_w = nixio.pipe()
+                local pid = nixio.fork()
+
+                if pid == 0 then
+                    -- Child process
+                    stdout_r:close()
+                    stderr_r:close()
+                    nixio.dup(stdout_w, nixio.stdout)
+                    nixio.dup(stderr_w, nixio.stderr)
+                    stdout_w:close()
+                    stderr_w:close()
+                    nixio.exec(unpack(argv))
+                    nixio.exit(127)
                 end
-                if code and code ~= 0 then
-                    item.Err = "exit code " .. tostring(code)
+
+                stdout_w:close()
+                stderr_w:close()
+
+                -- Read output with size limit
+                local output_parts = {}
+                local total_read = 0
+                local truncated = false
+
+                -- Read stdout
+                while total_read < MAX_OUTPUT do
+                    local chunk = stdout_r:read(4096)
+                    if not chunk or #chunk == 0 then break end
+                    total_read = total_read + #chunk
+                    if total_read > MAX_OUTPUT then
+                        truncated = true
+                        break
+                    end
+                    table.insert(output_parts, chunk)
                 end
-                table.insert(items, item)
+                stdout_r:close()
+
+                -- Read stderr
+                while total_read < MAX_OUTPUT do
+                    local chunk = stderr_r:read(4096)
+                    if not chunk or #chunk == 0 then break end
+                    total_read = total_read + #chunk
+                    if total_read > MAX_OUTPUT then
+                        truncated = true
+                        break
+                    end
+                    table.insert(output_parts, chunk)
+                end
+                stderr_r:close()
+
+                local _, status, code = nixio.waitpid(pid)
+                item.Output = table.concat(output_parts)
+                if truncated then
+                    item.Output = item.Output .. "\n... [Output truncated]"
+                end
+                if status ~= "exited" or (code and code ~= 0) then
+                    item.Err = "exit code " .. tostring(code or "?")
+                end
             end
+
+            table.insert(items, item)
         end
 
         http.prepare_content("application/json")
@@ -366,7 +411,7 @@ function action_execute()
     http.write_json({ error = "execution failed", details = { backend_error = errors, backend_output = output } })
 end
 
--- Stream approved commands directly to the shell with chunked output.
+-- Stream approved commands with chunked output (no shell, direct exec).
 -- Keeps memory use low by writing as data arrives.
 function action_execute_stream()
     local http = require "luci.http"
@@ -396,8 +441,9 @@ function action_execute_stream()
         http.flush()
     end
 
-    local function run_one(cmdstr)
-        flush(string.format("\n>>> %s\n", cmdstr))
+    -- Execute command as argv array (no shell injection)
+    local function run_one(argv)
+        flush(string.format("\n>>> %s\n", table.concat(argv, " ")))
 
         local r, w = nixio.pipe()
         local pid = nixio.fork()
@@ -406,7 +452,7 @@ function action_execute_stream()
             nixio.dup(w, nixio.stdout)
             nixio.dup(w, nixio.stderr)
             w:close()
-            nixio.exec("/bin/sh", "-c", cmdstr)
+            nixio.exec(unpack(argv))
             nixio.exit(127)
         end
 
@@ -425,16 +471,24 @@ function action_execute_stream()
     end
 
     for _, c in ipairs(cmds) do
-        local cmdstr = c
+        -- Build argv array from command
+        local argv = {}
         if type(c) == "table" and c.command then
-            cmdstr = table.concat(c.command, " ")
+            if type(c.command) == "table" then
+                argv = c.command
+            else
+                for word in tostring(c.command):gmatch("%S+") do
+                    table.insert(argv, word)
+                end
+            end
+        elseif type(c) == "string" then
+            for word in c:gmatch("%S+") do
+                table.insert(argv, word)
+            end
         end
-        if type(cmdstr) ~= "string" then
-            cmdstr = tostring(cmdstr or "")
-        end
-        cmdstr = cmdstr:gsub("^%s+", ""):gsub("%s+$", "")
-        if cmdstr ~= "" then
-            run_one(cmdstr)
+
+        if #argv > 0 then
+            run_one(argv)
         end
     end
 end

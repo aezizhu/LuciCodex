@@ -64,7 +64,7 @@ func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gemini-1.5-flash"
+		model = "gemini-2.5-flash"
 	}
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.cfg.Endpoint, model, c.cfg.APIKey)
 
@@ -123,7 +123,7 @@ func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []
 	}
 	model := c.cfg.Model
 	if model == "" {
-		model = "gemini-1.5-flash"
+		model = "gemini-2.5-flash"
 	}
 	url := fmt.Sprintf("%s/models/%s:generateContent?key=%s", c.cfg.Endpoint, model, c.cfg.APIKey)
 

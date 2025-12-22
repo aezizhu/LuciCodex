@@ -106,13 +106,12 @@ func (r *REPL) executePrompt(ctx context.Context, prompt string, output io.Write
 
 	// Build instruction with facts
 	instruction := prompts.GenerateSurvivalPrompt(r.cfg.MaxCommands)
-	if true { // facts enabled by default in REPL
-		factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
-		defer cancel()
-		facts := openwrt.CollectFacts(factsCtx)
-		if facts != "" {
-			instruction += "\n\nEnvironment facts (read-only):\n" + facts
-		}
+	// Collect environment facts for better context
+	factsCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	facts := openwrt.CollectFacts(factsCtx)
+	cancel()
+	if facts != "" {
+		instruction += "\n\nEnvironment facts (read-only):\n" + facts
 	}
 
 	fullPrompt := instruction + "\n\nUser request: " + prompt

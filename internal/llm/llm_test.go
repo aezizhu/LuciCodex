@@ -296,8 +296,8 @@ func TestGeminiClient_GeneratePlan_DefaultModel(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !contains(r.URL.String(), "gemini-1.5-flash") {
-			t.Error("expected default model 'gemini-1.5-flash' in URL")
+		if !contains(r.URL.String(), "gemini-2.5-flash") {
+			t.Error("expected default model 'gemini-2.5-flash' in URL")
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(mockResponse)
