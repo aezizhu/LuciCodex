@@ -39,7 +39,7 @@ if ! uci -q get lucicodex.main >/dev/null 2>&1; then
 		set lucicodex.main='settings'
 		set lucicodex.main.provider='${OLD_PROVIDER:-gemini}'
 		set lucicodex.main.key='${OLD_KEY:-}'
-		set lucicodex.main.model='${OLD_MODEL:-gemini-2.5-flash}'
+		set lucicodex.main.model='${OLD_MODEL:-gemini-3-flash}'
 		set lucicodex.main.endpoint='${OLD_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta}'
 		set lucicodex.main.openai_key='${OLD_OPENAI:-}'
 		set lucicodex.main.openai_model='${OLD_OPENAI_MODEL:-}'

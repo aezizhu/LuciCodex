@@ -11,7 +11,7 @@ if [ -z "${GEMINI_API_KEY:-}" ]; then
   exit 1
 fi
 
-MODEL=${MODEL:-gemini-2.5-flash}
+MODEL=${MODEL:-gemini-3-flash}
 ENDPOINT=${ENDPOINT:-https://generativelanguage.googleapis.com/v1beta}
 PROMPT=${1:-"Say hello as JSON"}
 

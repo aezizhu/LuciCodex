@@ -32,7 +32,7 @@ local function ensure_section()
     else
         cursor:set(conf, name, type)
         cursor:set(conf, name, "provider", "gemini")
-        cursor:set(conf, name, "model", "gemini-2.5-flash")
+        cursor:set(conf, name, "model", "gemini-3-flash")
         cursor:set(conf, name, "endpoint", "https://generativelanguage.googleapis.com/v1beta")
         cursor:set(conf, name, "dry_run", "1")
         cursor:set(conf, name, "confirm_each", "0")
@@ -174,9 +174,9 @@ s.description = translate("Custom model and endpoint settings. Leave empty to us
 
 -- Gemini Advanced
 o = s:option(Value, "model", translate("Gemini Model"))
-o.placeholder = "gemini-2.5-flash"
+o.placeholder = "gemini-3-flash"
 o.rmempty = true
-o.description = translate("Default: gemini-2.5-flash")
+o.description = translate("Default: gemini-3-flash")
 
 o = s:option(Value, "endpoint", translate("Gemini API Endpoint"))
 o.placeholder = "https://generativelanguage.googleapis.com/v1beta"
