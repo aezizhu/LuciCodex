@@ -2,9 +2,14 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"sync"
 	"time"
 
 	"github.com/aezizhu/LuciCodex/internal/config"
@@ -16,26 +21,137 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/policy"
 )
 
+// TokenFile is the path where the authentication token is stored
+const TokenFile = "/tmp/.lucicodex.token"
+
+// rateLimiter implements a simple token bucket rate limiter
+type rateLimiter struct {
+	mu       sync.Mutex
+	tokens   int
+	max      int
+	refill   int
+	lastTime time.Time
+}
+
+func newRateLimiter(max, refillPerSecond int) *rateLimiter {
+	return &rateLimiter{
+		tokens:   max,
+		max:      max,
+		refill:   refillPerSecond,
+		lastTime: time.Now(),
+	}
+}
+
+func (rl *rateLimiter) allow() bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+
+	// Refill tokens based on elapsed time
+	now := time.Now()
+	elapsed := now.Sub(rl.lastTime).Seconds()
+	rl.tokens += int(elapsed * float64(rl.refill))
+	if rl.tokens > rl.max {
+		rl.tokens = rl.max
+	}
+	rl.lastTime = now
+
+	if rl.tokens > 0 {
+		rl.tokens--
+		return true
+	}
+	return false
+}
+
 type Server struct {
-	cfg config.Config
-	mux *http.ServeMux
+	cfg     config.Config
+	mux     *http.ServeMux
+	token   string       // Authentication token
+	limiter *rateLimiter // Rate limiter
+}
+
+// generateToken creates a cryptographically secure random token
+func generateToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
 }
 
 func New(cfg config.Config) *Server {
-	s := &Server{
-		cfg: cfg,
-		mux: http.NewServeMux(),
+	// Generate authentication token
+	token, err := generateToken()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to generate auth token: %v\n", err)
+		token = "" // Disable auth if token generation fails
 	}
-	s.mux.HandleFunc("/v1/plan", s.handlePlan)
-	s.mux.HandleFunc("/v1/execute", s.handleExecute)
-	s.mux.HandleFunc("/v1/summarize", s.handleSummarize)
-	s.mux.HandleFunc("/health", s.handleHealth)
+
+	// Write token to file for LuCI to read
+	if token != "" {
+		if err := os.WriteFile(TokenFile, []byte(token), 0600); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to write token file: %v\n", err)
+		}
+	}
+
+	s := &Server{
+		cfg:     cfg,
+		mux:     http.NewServeMux(),
+		token:   token,
+		limiter: newRateLimiter(30, 2), // 30 requests burst, 2 per second refill
+	}
+
+	// Wrap handlers with middleware
+	s.mux.HandleFunc("/v1/plan", s.withMiddleware(s.handlePlan))
+	s.mux.HandleFunc("/v1/execute", s.withMiddleware(s.handleExecute))
+	s.mux.HandleFunc("/v1/summarize", s.withMiddleware(s.handleSummarize))
+	s.mux.HandleFunc("/health", s.handleHealth) // Health check doesn't need auth
 	return s
+}
+
+// withMiddleware wraps a handler with authentication and rate limiting
+func (s *Server) withMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Rate limiting
+		if !s.limiter.allow() {
+			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+
+		// Authentication (if token is configured)
+		if s.token != "" {
+			authToken := r.Header.Get("X-Auth-Token")
+			if authToken == "" {
+				// Also check Authorization header for Bearer token
+				authHeader := r.Header.Get("Authorization")
+				if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+					authToken = authHeader[7:]
+				}
+			}
+
+			// Use constant-time comparison to prevent timing attacks
+			if subtle.ConstantTimeCompare([]byte(authToken), []byte(s.token)) != 1 {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+		}
+
+		handler(w, r)
+	}
+}
+
+// GetToken returns the server's authentication token
+func (s *Server) GetToken() string {
+	return s.token
 }
 
 func (s *Server) Start(port int) error {
 	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	fmt.Printf("LuciCodex Daemon listening on %s\n", addr)
+	if s.token != "" {
+		fmt.Printf("Auth token written to %s\n", TokenFile)
+	} else {
+		fmt.Println("Warning: Running without authentication")
+	}
 	return http.ListenAndServe(addr, s.mux)
 }
 

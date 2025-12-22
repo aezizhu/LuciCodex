@@ -35,6 +35,7 @@ func TestServer_Plan_InvalidMethod(t *testing.T) {
 	s := New(cfg)
 
 	req, _ := http.NewRequest("GET", "/v1/plan", nil)
+	req.Header.Set("X-Auth-Token", s.GetToken())
 	rr := httptest.NewRecorder()
 
 	s.mux.ServeHTTP(rr, req)
@@ -50,6 +51,7 @@ func TestServer_Plan_EmptyBody(t *testing.T) {
 	s := New(cfg)
 
 	req, _ := http.NewRequest("POST", "/v1/plan", bytes.NewReader([]byte{}))
+	req.Header.Set("X-Auth-Token", s.GetToken())
 	rr := httptest.NewRecorder()
 
 	s.mux.ServeHTTP(rr, req)
@@ -66,6 +68,7 @@ func TestServer_Plan_MissingPrompt(t *testing.T) {
 
 	body := []byte(`{"model": "test"}`)
 	req, _ := http.NewRequest("POST", "/v1/plan", bytes.NewReader(body))
+	req.Header.Set("X-Auth-Token", s.GetToken())
 	rr := httptest.NewRecorder()
 
 	s.mux.ServeHTTP(rr, req)
@@ -73,5 +76,21 @@ func TestServer_Plan_MissingPrompt(t *testing.T) {
 	if status := rr.Code; status != http.StatusBadRequest {
 		t.Errorf("handler returned wrong status code: got %v want %v",
 			status, http.StatusBadRequest)
+	}
+}
+
+func TestServer_Unauthorized(t *testing.T) {
+	cfg := config.Config{}
+	s := New(cfg)
+
+	// Request without auth token
+	req, _ := http.NewRequest("POST", "/v1/plan", bytes.NewReader([]byte(`{}`)))
+	rr := httptest.NewRecorder()
+
+	s.mux.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusUnauthorized {
+		t.Errorf("handler returned wrong status code: got %v want %v",
+			status, http.StatusUnauthorized)
 	}
 }

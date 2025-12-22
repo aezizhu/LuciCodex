@@ -820,10 +820,21 @@ async function loadProviders() {
         const d = await r.json();
         const sel = document.getElementById('provider');
         if (d.configured?.length) {
-            sel.innerHTML = d.configured.map(p =>
-                `<option value="${p}">${{gemini:'Google Gemini',openai:'OpenAI',anthropic:'Anthropic'}[p]||p}</option>`
-            ).join('');
-            S.provider = d.default || d.configured[0];
+            // Clear existing options
+            sel.innerHTML = '';
+            // Validate and create options safely
+            const validProviders = ['gemini', 'openai', 'anthropic'];
+            const labels = {gemini:'Google Gemini',openai:'OpenAI',anthropic:'Anthropic'};
+            d.configured.forEach(p => {
+                // Only allow known provider values to prevent XSS
+                if (validProviders.includes(p)) {
+                    const opt = document.createElement('option');
+                    opt.value = p;
+                    opt.textContent = labels[p] || p;
+                    sel.appendChild(opt);
+                }
+            });
+            S.provider = validProviders.includes(d.default) ? d.default : (d.configured[0] || 'gemini');
             sel.value = S.provider;
         }
     } catch(e) { console.warn('Failed to load providers', e); }
@@ -1236,6 +1247,8 @@ function saveSession() {
 }
 
 function loadSession(id) {
+    // Validate session ID format
+    if (!/^sess_\d+$/.test(id)) return;
     const sess = S.history.find(h => h.id === id);
     if (!sess) return;
 
@@ -1319,16 +1332,33 @@ function renderResultDirect(items, success, summary) {
 
 function renderHistory() {
     const el = document.getElementById('historyList');
-    el.innerHTML = S.history.map(h => `
-        <li class="history-item ${h.id === S.sessionId ? 'active' : ''}" onclick="loadSession('${h.id}')">
-            <span>${esc(h.title)}</span>
-            <button class="delete-btn" onclick="deleteSession('${h.id}', event)">×</button>
-        </li>
-    `).join('');
+    el.innerHTML = '';
+    S.history.forEach(h => {
+        // Validate session ID format (sess_timestamp)
+        if (!/^sess_\d+$/.test(h.id)) return;
+
+        const li = document.createElement('li');
+        li.className = 'history-item' + (h.id === S.sessionId ? ' active' : '');
+        li.addEventListener('click', () => loadSession(h.id));
+
+        const span = document.createElement('span');
+        span.textContent = h.title || 'Chat';
+
+        const btn = document.createElement('button');
+        btn.className = 'delete-btn';
+        btn.textContent = '×';
+        btn.addEventListener('click', (e) => deleteSession(h.id, e));
+
+        li.appendChild(span);
+        li.appendChild(btn);
+        el.appendChild(li);
+    });
 }
 
 function deleteSession(id, e) {
     e.stopPropagation();
+    // Validate session ID format
+    if (!/^sess_\d+$/.test(id)) return;
     if (!confirm('Delete this chat?')) return;
     S.history = S.history.filter(h => h.id !== id);
     localStorage.setItem('lc_history', JSON.stringify(S.history));

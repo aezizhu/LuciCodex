@@ -17,12 +17,22 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/policy"
 )
 
+// Output size limits to prevent unbounded memory growth
+const (
+	MaxOutputSize     = 512 * 1024 // 512KB per command output
+	MaxTotalOutputLen = 2 * 1024 * 1024 // 2MB total for all commands
+)
+
+// ErrOutputTruncated indicates command output was truncated due to size limits
+var ErrOutputTruncated = errors.New("output truncated: exceeded maximum size limit")
+
 type Result struct {
-	Index   int
-	Command []string
-	Output  string
-	Err     error
-	Elapsed time.Duration
+	Index     int
+	Command   []string
+	Output    string
+	Err       error
+	Elapsed   time.Duration
+	Truncated bool // True if output was truncated due to size limits
 }
 
 type Results struct {
@@ -55,6 +65,11 @@ func defaultRunCommand(ctx context.Context, argv []string) (string, error) {
 	cmd.Env = minimalEnv()
 
 	out, err := cmd.CombinedOutput()
+	// Truncate output if it exceeds the limit
+	if len(out) > MaxOutputSize {
+		truncated := out[:MaxOutputSize]
+		return string(truncated) + "\n... [output truncated] ...", err
+	}
 	return string(out), err
 }
 
@@ -172,31 +187,52 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 	defer stringBuilderPool.Put(outputBuf)
 	var outputMu sync.Mutex
 	var wg sync.WaitGroup
+	var truncated bool
 	wg.Add(2)
 
-	// Stream stdout
+	// Stream stdout with size limit
 	go func() {
 		defer wg.Done()
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
 			outputMu.Lock()
-			outputBuf.WriteString(line + "\n")
+			if outputBuf.Len() < MaxOutputSize {
+				outputBuf.WriteString(line + "\n")
+			} else if !truncated {
+				truncated = true
+				outputBuf.WriteString("\n... [output truncated] ...\n")
+			}
 			outputMu.Unlock()
 			fmt.Fprintf(w, "  %s\n", line)
 		}
+		if err := scanner.Err(); err != nil {
+			outputMu.Lock()
+			outputBuf.WriteString(fmt.Sprintf("\n[scanner error: %v]\n", err))
+			outputMu.Unlock()
+		}
 	}()
 
-	// Stream stderr
+	// Stream stderr with size limit
 	go func() {
 		defer wg.Done()
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
 			outputMu.Lock()
-			outputBuf.WriteString(line + "\n")
+			if outputBuf.Len() < MaxOutputSize {
+				outputBuf.WriteString(line + "\n")
+			} else if !truncated {
+				truncated = true
+				outputBuf.WriteString("\n... [output truncated] ...\n")
+			}
 			outputMu.Unlock()
 			fmt.Fprintf(w, "  \033[33m%s\033[0m\n", line) // Yellow for stderr
+		}
+		if err := scanner.Err(); err != nil {
+			outputMu.Lock()
+			outputBuf.WriteString(fmt.Sprintf("\n[scanner error: %v]\n", err))
+			outputMu.Unlock()
 		}
 	}()
 
@@ -205,6 +241,7 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 	r.Output = outputBuf.String()
 	r.Err = err
 	r.Elapsed = time.Since(start)
+	r.Truncated = truncated
 
 	// Show completion status
 	if r.Err != nil {

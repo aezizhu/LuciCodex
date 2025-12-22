@@ -2,11 +2,23 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+)
+
+// Validation errors
+var (
+	ErrInvalidProvider    = errors.New("invalid provider: must be 'gemini', 'openai', or 'anthropic'")
+	ErrInvalidTimeout     = errors.New("invalid timeout: must be between 1 and 600 seconds")
+	ErrInvalidMaxCommands = errors.New("invalid max_commands: must be between 1 and 100")
+	ErrInvalidMaxRetries  = errors.New("invalid max_retries: must be between 0 and 10")
+	ErrInvalidEndpoint    = errors.New("invalid endpoint: must be a valid URL")
 )
 
 type Config struct {
@@ -267,6 +279,53 @@ func (cfg *Config) ApplyProviderSettings() {
 			cfg.Endpoint = "https://generativelanguage.googleapis.com/v1beta"
 		}
 	}
+}
+
+// Validate checks configuration values and returns an error if any are invalid.
+func (cfg *Config) Validate() error {
+	// Validate provider
+	switch cfg.Provider {
+	case "gemini", "openai", "anthropic":
+		// Valid
+	default:
+		return fmt.Errorf("%w: got '%s'", ErrInvalidProvider, cfg.Provider)
+	}
+
+	// Validate timeout
+	if cfg.TimeoutSeconds < 1 || cfg.TimeoutSeconds > 600 {
+		return fmt.Errorf("%w: got %d", ErrInvalidTimeout, cfg.TimeoutSeconds)
+	}
+
+	// Validate max commands
+	if cfg.MaxCommands < 1 || cfg.MaxCommands > 100 {
+		return fmt.Errorf("%w: got %d", ErrInvalidMaxCommands, cfg.MaxCommands)
+	}
+
+	// Validate max retries
+	if cfg.MaxRetries < 0 || cfg.MaxRetries > 10 {
+		return fmt.Errorf("%w: got %d", ErrInvalidMaxRetries, cfg.MaxRetries)
+	}
+
+	// Validate endpoint URL
+	if cfg.Endpoint != "" {
+		if _, err := url.ParseRequestURI(cfg.Endpoint); err != nil {
+			return fmt.Errorf("%w: %v", ErrInvalidEndpoint, err)
+		}
+	}
+
+	// Validate provider-specific endpoints
+	if cfg.OpenAIEndpoint != "" {
+		if _, err := url.ParseRequestURI(cfg.OpenAIEndpoint); err != nil {
+			return fmt.Errorf("invalid openai_endpoint: %v", err)
+		}
+	}
+	if cfg.AnthropicEndpoint != "" {
+		if _, err := url.ParseRequestURI(cfg.AnthropicEndpoint); err != nil {
+			return fmt.Errorf("invalid anthropic_endpoint: %v", err)
+		}
+	}
+
+	return nil
 }
 
 var fileExists = func(p string) bool {

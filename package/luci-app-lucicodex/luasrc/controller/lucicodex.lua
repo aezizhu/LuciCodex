@@ -1,5 +1,47 @@
 module("luci.controller.lucicodex", package.seeall)
 
+-- Parse a command string into an argv array, handling quotes properly
+-- Supports: single quotes, double quotes, and escape sequences
+local function parse_command(cmd)
+    if type(cmd) ~= "string" then return {} end
+
+    local argv = {}
+    local current = ""
+    local in_single_quote = false
+    local in_double_quote = false
+    local escaped = false
+    local i = 1
+
+    while i <= #cmd do
+        local c = cmd:sub(i, i)
+
+        if escaped then
+            current = current .. c
+            escaped = false
+        elseif c == "\\" and not in_single_quote then
+            escaped = true
+        elseif c == "'" and not in_double_quote then
+            in_single_quote = not in_single_quote
+        elseif c == '"' and not in_single_quote then
+            in_double_quote = not in_double_quote
+        elseif (c == " " or c == "\t") and not in_single_quote and not in_double_quote then
+            if #current > 0 then
+                table.insert(argv, current)
+                current = ""
+            end
+        else
+            current = current .. c
+        end
+        i = i + 1
+    end
+
+    if #current > 0 then
+        table.insert(argv, current)
+    end
+
+    return argv
+end
+
 function index()
     entry({"admin", "system", "lucicodex"}, firstchild(), _("LuciCodex"), 60).dependent = false
     entry({"admin", "system", "lucicodex", "overview"}, template("lucicodex/home"), _("Overview"), 1)
@@ -54,6 +96,18 @@ local function get_api_keys()
     return keys
 end
 
+-- Helper to read auth token from daemon
+local function get_auth_token()
+    local io = require "io"
+    local f = io.open("/tmp/.lucicodex.token", "r")
+    if f then
+        local token = f:read("*l") or ""
+        f:close()
+        return token
+    end
+    return ""
+end
+
 -- Helper to call local daemon
 local function call_daemon(endpoint, payload)
     local json = require "luci.jsonc"
@@ -67,22 +121,29 @@ local function call_daemon(endpoint, payload)
             f:close()
         end
     end
-    
+
     log_debug("Calling daemon: " .. endpoint)
-    
+
     -- Prepare JSON body
     local body = json.stringify(payload)
-    
+
     -- Write body to temp file to avoid shell escaping issues
     local tmpfile = os.tmpname()
     local f = io.open(tmpfile, "w")
     if not f then return nil, "failed to create temp file" end
     f:write(body)
     f:close()
-    
+
+    -- Get auth token for daemon authentication
+    local auth_token = get_auth_token()
+    local auth_header = ""
+    if auth_token ~= "" then
+        auth_header = string.format("-H 'X-Auth-Token: %s' ", auth_token)
+    end
+
     -- Use curl to talk to daemon (timeout 300s)
     -- Use -sS for silent but show errors
-    local cmd = string.format("curl -sS -m 300 -X POST -H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s 2>&1", tmpfile, endpoint)
+    local cmd = string.format("curl -sS -m 300 -X POST %s-H 'Content-Type: application/json' --data-binary @%s http://127.0.0.1:9999%s 2>&1", auth_header, tmpfile, endpoint)
     local handle = io.popen(cmd)
     local result = handle:read("*a")
     handle:close()
@@ -91,12 +152,18 @@ local function call_daemon(endpoint, payload)
     if not result or result == "" then
         return nil, "daemon unreachable: empty response"
     end
-    
+
+    -- Check for auth failure
+    if result:find("Unauthorized") then
+        log_debug("Daemon returned Unauthorized - token may be stale")
+        return nil, "daemon authentication failed"
+    end
+
     local decoded = json.parse(result)
     if not decoded then
         return nil, "invalid json from daemon"
     end
-    
+
     return decoded, nil
 end
 
@@ -288,15 +355,11 @@ function action_execute()
                 if type(cmd.command) == "table" then
                     argv = cmd.command
                 else
-                    -- Parse string into argv (simple whitespace split)
-                    for word in tostring(cmd.command):gmatch("%S+") do
-                        table.insert(argv, word)
-                    end
+                    -- Parse string into argv, handling quotes properly
+                    argv = parse_command(tostring(cmd.command))
                 end
             elseif type(cmd) == "string" then
-                for word in cmd:gmatch("%S+") do
-                    table.insert(argv, word)
-                end
+                argv = parse_command(cmd)
             end
 
             local item = {
@@ -506,14 +569,11 @@ function action_execute_stream()
             if type(c.command) == "table" then
                 argv = c.command
             else
-                for word in tostring(c.command):gmatch("%S+") do
-                    table.insert(argv, word)
-                end
+                -- Parse string into argv, handling quotes properly
+                argv = parse_command(tostring(c.command))
             end
         elseif type(c) == "string" then
-            for word in c:gmatch("%S+") do
-                table.insert(argv, word)
-            end
+            argv = parse_command(c)
         end
 
         if #argv > 0 then

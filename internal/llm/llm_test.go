@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -109,7 +110,7 @@ func TestGeminiClient_GeneratePlan_MissingAPIKey(t *testing.T) {
 		t.Error("expected error for missing API key")
 	}
 	testutil.AssertError(t, err)
-	testutil.AssertContains(t, err.Error(), "missing Gemini API key")
+	testutil.AssertContains(t, err.Error(), "missing API key")
 }
 
 func TestGeminiClient_GenerateErrorFix(t *testing.T) {
@@ -190,8 +191,8 @@ func TestGeminiClient_GeneratePlan_EmptyResponse(t *testing.T) {
 	if err == nil {
 		t.Error("expected error for empty response")
 	}
-	if err.Error() != "empty response" {
-		t.Errorf("expected 'empty response' error, got %q", err.Error())
+	if !strings.Contains(err.Error(), "empty response") {
+		t.Errorf("expected 'empty response' in error, got %q", err.Error())
 	}
 }
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,7 +59,7 @@ type generateContentResponse struct {
 func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Plan, error) {
 	var zero plan.Plan
 	if c.cfg.APIKey == "" {
-		return zero, errors.New("missing Gemini API key - configure it in LuCI or set GEMINI_API_KEY environment variable")
+		return zero, NewAPIError("gemini", 0, "missing API key - configure in LuCI or set GEMINI_API_KEY", ErrNoAPIKey)
 	}
 	model := c.cfg.Model
 	if model == "" {
@@ -77,36 +76,39 @@ func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	b, err := json.Marshal(reqBody)
 	if err != nil {
-		return zero, fmt.Errorf("marshal request: %w", err)
+		return zero, NewAPIError("gemini", 0, "failed to marshal request", err)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
-		return zero, err
+		return zero, NewAPIError("gemini", 0, "failed to create request", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return zero, err
+		if ctx.Err() != nil {
+			return zero, NewAPIError("gemini", 0, "request cancelled", ErrContextCancelled)
+		}
+		return zero, NewAPIError("gemini", 0, "request failed", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(resp.Body)
-		return zero, fmt.Errorf("gemini http %d: %s", resp.StatusCode, string(data))
+		return zero, NewAPIError("gemini", resp.StatusCode, string(data), ErrRequestFailed)
 	}
 
 	var gcr generateContentResponse
 	if err := json.NewDecoder(resp.Body).Decode(&gcr); err != nil {
-		return zero, err
+		return zero, NewParseError("gemini", "response decoding", "", err)
 	}
 	if len(gcr.Candidates) == 0 || len(gcr.Candidates[0].Content.Parts) == 0 {
-		return zero, errors.New("empty response")
+		return zero, NewAPIError("gemini", 0, "empty response from API", ErrInvalidResponse)
 	}
 	text := gcr.Candidates[0].Content.Parts[0].Text
 	p, err := plan.TryUnmarshalPlan(text)
 	if err != nil {
-		return zero, fmt.Errorf("failed to parse plan: %w", err)
+		return zero, NewParseError("gemini", "plan extraction", text, err)
 	}
 	return p, nil
 }
@@ -119,7 +121,7 @@ func (c *GeminiClient) GenerateErrorFix(ctx context.Context, originalCommand str
 // Summarize returns summary/details using the active Gemini model.
 func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []string, error) {
 	if c.cfg.APIKey == "" {
-		return "", nil, errors.New("missing Gemini API key - configure it in LuCI or set GEMINI_API_KEY environment variable")
+		return "", nil, NewAPIError("gemini", 0, "missing API key - configure in LuCI or set GEMINI_API_KEY", ErrNoAPIKey)
 	}
 	model := c.cfg.Model
 	if model == "" {
@@ -136,31 +138,34 @@ func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []
 	}
 	b, err := json.Marshal(reqBody)
 	if err != nil {
-		return "", nil, fmt.Errorf("marshal request: %w", err)
+		return "", nil, NewAPIError("gemini", 0, "failed to marshal request", err)
 	}
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
 	if err != nil {
-		return "", nil, err
+		return "", nil, NewAPIError("gemini", 0, "failed to create request", err)
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
-		return "", nil, err
+		if ctx.Err() != nil {
+			return "", nil, NewAPIError("gemini", 0, "request cancelled", ErrContextCancelled)
+		}
+		return "", nil, NewAPIError("gemini", 0, "request failed", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(resp.Body)
-		return "", nil, fmt.Errorf("gemini http %d: %s", resp.StatusCode, string(data))
+		return "", nil, NewAPIError("gemini", resp.StatusCode, string(data), ErrRequestFailed)
 	}
 
 	var gcr generateContentResponse
 	if err := json.NewDecoder(resp.Body).Decode(&gcr); err != nil {
-		return "", nil, err
+		return "", nil, NewParseError("gemini", "response decoding", "", err)
 	}
 	if len(gcr.Candidates) == 0 || len(gcr.Candidates[0].Content.Parts) == 0 {
-		return "", nil, errors.New("empty response")
+		return "", nil, NewAPIError("gemini", 0, "empty response from API", ErrInvalidResponse)
 	}
 	text := gcr.Candidates[0].Content.Parts[0].Text
 	summary, details := parseSummary(text)
