@@ -64,4 +64,10 @@ fi
 # Set proper permissions on config file (readable by uhttpd/luci)
 chmod 644 /etc/config/lucicodex 2>/dev/null || true
 
+# Enable and start the lucicodex daemon service
+if [ -x /etc/init.d/lucicodex ]; then
+	/etc/init.d/lucicodex enable 2>/dev/null || true
+	/etc/init.d/lucicodex start 2>/dev/null || true
+fi
+
 exit 0

@@ -98,35 +98,41 @@ s.description = translate("Enter your API keys below. Keys are stored securely a
 -- Gemini
 o = s:option(Value, "key", translate("Gemini API Key"))
 o.password = true
-o.rmempty = true
+o.rmempty = false  -- CRITICAL: Prevent existing keys from being deleted on form submit
 o.description = translate("Free tier available • Get key: makersuite.google.com/app/apikey")
 o.write = function(self, section, value)
     if value and value ~= "" then
         Value.write(self, section, value)
     end
+    -- If empty, do nothing - preserve existing key
 end
+o.remove = function() end  -- Prevent removal of existing key
 
 -- OpenAI
 o = s:option(Value, "openai_key", translate("OpenAI API Key"))
 o.password = true
-o.rmempty = true
+o.rmempty = false  -- CRITICAL: Prevent existing keys from being deleted on form submit
 o.description = translate("Paid API • Get key: platform.openai.com/api-keys")
 o.write = function(self, section, value)
     if value and value ~= "" then
         Value.write(self, section, value)
     end
+    -- If empty, do nothing - preserve existing key
 end
+o.remove = function() end  -- Prevent removal of existing key
 
 -- Anthropic
 o = s:option(Value, "anthropic_key", translate("Anthropic API Key"))
 o.password = true
-o.rmempty = true
+o.rmempty = false  -- CRITICAL: Prevent existing keys from being deleted on form submit
 o.description = translate("Paid API • Get key: console.anthropic.com")
 o.write = function(self, section, value)
     if value and value ~= "" then
         Value.write(self, section, value)
     end
+    -- If empty, do nothing - preserve existing key
 end
+o.remove = function() end  -- Prevent removal of existing key
 
 --[[
 ================================================================================

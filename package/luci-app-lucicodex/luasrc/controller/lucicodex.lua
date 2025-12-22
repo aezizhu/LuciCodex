@@ -104,24 +104,53 @@ function action_plan()
     local http = require "luci.http"
     local json = require "luci.jsonc"
     local nixio = require "nixio"
-    
+
     if http.getenv("REQUEST_METHOD") ~= "POST" then
         http.status(405, "Method Not Allowed")
         http.write_json({ error = "POST required" })
         return
     end
-    
+
     local body = http.content()
     local data = json.parse(body)
-    
+
     if not data or not data.prompt or data.prompt == "" then
         http.status(400, "Bad Request")
         http.write_json({ error = "missing prompt" })
         return
     end
-    
-    -- Try Daemon First (Maximum Speed)
+
+    -- Get API keys and validate provider has a key
     local keys = get_api_keys()
+    local provider = data.provider or "gemini"
+
+    -- Check if the selected provider has an API key configured
+    local provider_key = nil
+    local provider_name = nil
+    if provider == "gemini" then
+        provider_key = keys.gemini
+        provider_name = "Gemini"
+    elseif provider == "openai" then
+        provider_key = keys.openai
+        provider_name = "OpenAI"
+    elseif provider == "anthropic" then
+        provider_key = keys.anthropic
+        provider_name = "Anthropic"
+    end
+
+    if not provider_key or provider_key == "" then
+        http.status(400, "Bad Request")
+        http.write_json({
+            error = "Missing " .. provider_name .. " API key",
+            details = {
+                backend_error = "No API key configured for provider: " .. provider .. ". Please go to Configuration and enter your API key.",
+                provider = provider
+            }
+        })
+        return
+    end
+
+    -- Try Daemon First (Maximum Speed)
     local payload = {
         prompt = data.prompt,
         provider = data.provider,
