@@ -192,7 +192,17 @@ func DirExists(path string) bool {
 	return err == nil && info.IsDir()
 }
 
+// ansiReplacer is pre-compiled for efficient ANSI code stripping
+var ansiReplacer = strings.NewReplacer(
+	"\033[0m", "",
+	"\033[31m", "",
+	"\033[32m", "",
+	"\033[33m", "",
+	"\033[34m", "",
+	"\033[1m", "",
+)
+
 // StripAnsi removes ANSI color codes from a string
 func StripAnsi(s string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(s, "\033[0m", ""), "\033[31m", ""), "\033[32m", ""), "\033[33m", ""), "\033[34m", ""), "\033[1m", "")
+	return ansiReplacer.Replace(s)
 }

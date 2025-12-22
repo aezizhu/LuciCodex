@@ -80,7 +80,9 @@ type FixPlanner interface {
 }
 
 func (e *Engine) RunPlan(ctx context.Context, p plan.Plan) Results {
-	results := Results{}
+	results := Results{
+		Items: make([]Result, 0, len(p.Commands)), // Pre-allocate for efficiency
+	}
 	for i, pc := range p.Commands {
 		r := e.runOne(ctx, i, pc)
 		if r.Err != nil {
@@ -96,7 +98,9 @@ func (e *Engine) RunPlan(ctx context.Context, p plan.Plan) Results {
 // The onOutput callback is called for each line of output.
 // The onComplete callback is called when a command finishes.
 func (e *Engine) RunPlanStreaming(ctx context.Context, p plan.Plan, w io.Writer) Results {
-	results := Results{}
+	results := Results{
+		Items: make([]Result, 0, len(p.Commands)), // Pre-allocate for efficiency
+	}
 	for i, pc := range p.Commands {
 		r := e.runOneStreaming(ctx, i, pc, w)
 		if r.Err != nil {

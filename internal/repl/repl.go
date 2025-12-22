@@ -31,14 +31,15 @@ type REPL struct {
 }
 
 func New(cfg config.Config, reader io.Reader, writer io.Writer) *REPL {
+	maxHist := 100
 	return &REPL{
 		cfg:          cfg,
 		provider:     llm.NewProvider(cfg),
 		policyEngine: policy.New(cfg),
 		execEngine:   executor.New(cfg),
 		logger:       logging.New(cfg.LogFile),
-		history:      make([]string, 0),
-		maxHistory:   100,
+		history:      make([]string, 0, maxHist), // Pre-allocate capacity
+		maxHistory:   maxHist,
 		reader:       bufio.NewReader(reader),
 		writer:       writer,
 	}
