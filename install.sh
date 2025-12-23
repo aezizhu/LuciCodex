@@ -1,14 +1,13 @@
 #!/bin/sh
 
 # LuciCodex Installer
-# Usage: wget -O - https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
+# Usage: wget -qO- https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="v0.6.2"
+VERSION="0.7.0"
 REPO="aezizhu/LuciCodex"
-URL="https://github.com/${REPO}/releases/download/${VERSION}/luci-app-lucicodex.ipk"
 
 echo "========================================"
-echo "      LuciCodex Installer ${VERSION}"
+echo "      LuciCodex Installer v${VERSION}"
 echo "========================================"
 
 # Check for opkg
@@ -17,77 +16,106 @@ if ! command -v opkg >/dev/null 2>&1; then
     exit 1
 fi
 
-echo "[1/4] Updating package lists..."
+echo "[1/5] Updating package lists..."
 opkg update >/dev/null 2>&1
 
-echo "[2/4] Installing dependencies..."
+echo "[2/5] Installing dependencies..."
 opkg install luci-base luci-compat ca-bundle curl >/dev/null 2>&1
 
-echo "[3/4] Downloading and installing LuciCodex..."
+echo "[3/5] Detecting architecture..."
 cd /tmp
 
-# Detect architecture
-ARCH_IPK=""
-if opkg print-architecture | grep -q "x86_64"; then ARCH_IPK="amd64"; fi
-if opkg print-architecture | grep -q "aarch64"; then ARCH_IPK="arm64"; fi
-if opkg print-architecture | grep -q "arm_cortex-a7"; then ARCH_IPK="arm"; fi
-if opkg print-architecture | grep -q "mips_24kc"; then ARCH_IPK="mips"; fi
-if opkg print-architecture | grep -q "mipsel_24kc"; then ARCH_IPK="mipsle"; fi
+# Detect architecture from opkg - use exact OpenWrt arch names
+ARCH=""
+for arch in aarch64 arm_cortex-a7 arm_cortex-a9 mips_24kc mipsel_24kc x86_64; do
+    if opkg print-architecture | grep -q "$arch"; then
+        ARCH="$arch"
+        break
+    fi
+done
 
-if [ -z "$ARCH_IPK" ]; then
-    # Fallback to uname
+# Fallback to uname if opkg detection fails
+if [ -z "$ARCH" ]; then
     UARCH=$(uname -m)
     case "$UARCH" in
-        x86_64) ARCH_IPK="amd64" ;;
-        aarch64) ARCH_IPK="arm64" ;;
-        armv7*) ARCH_IPK="arm" ;;
-        mips) ARCH_IPK="mips" ;;
-        *) 
-            echo "Error: Could not detect architecture. Please install manually."
+        x86_64) ARCH="x86_64" ;;
+        aarch64) ARCH="aarch64" ;;
+        armv7*) ARCH="arm_cortex-a7" ;;
+        mips) ARCH="mips_24kc" ;;
+        mipsel) ARCH="mipsel_24kc" ;;
+        *)
+            echo "Error: Unsupported architecture: $UARCH"
+            echo "Supported: aarch64, arm_cortex-a7, mips_24kc, mipsel_24kc, x86_64"
             exit 1
             ;;
     esac
 fi
 
-echo "Detected architecture: $ARCH_IPK"
-BINARY_URL="https://github.com/${REPO}/releases/download/${VERSION}/lucicodex-${ARCH_IPK}.ipk"
+echo "    Architecture: $ARCH"
 
-# Install binary package first
-if wget -O lucicodex.ipk "$BINARY_URL"; then
-    opkg install lucicodex.ipk
+echo "[4/5] Downloading and installing packages..."
+
+# Package URLs (new naming format)
+BINARY_URL="https://github.com/${REPO}/releases/download/v${VERSION}/lucicodex_${VERSION}_${ARCH}.ipk"
+LUCI_URL="https://github.com/${REPO}/releases/download/v${VERSION}/luci-app-lucicodex_${VERSION}_all.ipk"
+
+# Download and install binary package
+echo "    Downloading lucicodex binary..."
+if wget -q -O lucicodex.ipk "$BINARY_URL"; then
+    opkg install --force-reinstall lucicodex.ipk 2>/dev/null
     rm -f lucicodex.ipk
 else
-    echo "Error: Failed to download binary package from $BINARY_URL"
+    echo "Error: Failed to download binary package"
+    echo "URL: $BINARY_URL"
+    echo ""
+    echo "Available architectures:"
+    echo "  - aarch64 (ARM64 routers like GL-BE3600)"
+    echo "  - arm_cortex-a7 (ARMv7 routers)"
+    echo "  - mips_24kc (MIPS routers)"
+    echo "  - mipsel_24kc (MIPS Little Endian)"
+    echo "  - x86_64 (x86 systems)"
     exit 1
 fi
 
-# Install LuCI app
-if wget -O luci-app-lucicodex.ipk "$URL"; then
-    opkg install luci-app-lucicodex.ipk
+# Download and install LuCI app
+echo "    Downloading LuCI interface..."
+if wget -q -O luci-app-lucicodex.ipk "$LUCI_URL"; then
+    opkg install --force-reinstall luci-app-lucicodex.ipk 2>/dev/null
     rm -f luci-app-lucicodex.ipk
     rm -rf /tmp/luci-modulecache/
 else
-    echo "Error: Failed to download package from $URL"
+    echo "Error: Failed to download LuCI package"
+    echo "URL: $LUCI_URL"
     exit 1
 fi
 
-echo "[4/4] Optimizing system configuration..."
-# Increase uhttpd timeouts to prevent 502 errors
+echo "[5/5] Configuring system..."
+
+# Increase uhttpd timeouts for LLM API calls
 uci set uhttpd.main.script_timeout='300'
 uci set uhttpd.main.network_timeout='300'
 uci commit uhttpd
-service uhttpd restart
+/etc/init.d/uhttpd restart >/dev/null 2>&1
 
-echo "[5/4] Starting LuciCodex Daemon..."
+# Enable and start daemon
 if [ -f /etc/init.d/lucicodex ]; then
     /etc/init.d/lucicodex enable
     /etc/init.d/lucicodex restart
 fi
 
+echo ""
 echo "========================================"
 echo "      Installation Complete!"
 echo "========================================"
-echo "1. Refresh your LuCI web interface."
-echo "2. Go to System > LuciCodex."
-echo "3. Configure your API key."
-echo "========================================"
+echo ""
+echo "Next steps:"
+echo "  1. Open LuCI web interface"
+echo "  2. Go to System -> LuciCodex"
+echo "  3. Add your API key (Gemini/OpenAI/Anthropic)"
+echo "  4. Start chatting with your router!"
+echo ""
+echo "Features in v${VERSION}:"
+echo "  - WebSocket streaming for real-time responses"
+echo "  - MCP protocol support for AI integrations"
+echo "  - Performance optimizations"
+echo ""
