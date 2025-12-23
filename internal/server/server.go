@@ -104,7 +104,9 @@ func New(cfg config.Config) *Server {
 	s.mux.HandleFunc("/v1/plan", s.withMiddleware(s.handlePlan))
 	s.mux.HandleFunc("/v1/execute", s.withMiddleware(s.handleExecute))
 	s.mux.HandleFunc("/v1/summarize", s.withMiddleware(s.handleSummarize))
-	s.mux.HandleFunc("/health", s.handleHealth) // Health check doesn't need auth
+	s.mux.HandleFunc("/v1/ws", s.handleWebSocket)       // WebSocket streaming endpoint
+	s.mux.HandleFunc("/v1/mcp", s.withMiddleware(s.handleMCP)) // MCP protocol endpoint
+	s.mux.HandleFunc("/health", s.handleHealth)         // Health check doesn't need auth
 	return s
 }
 

@@ -366,7 +366,7 @@ func TestDefaultRunCommand_RealExecution(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	output, err := defaultRunCommand(ctx, []string{"echo", "test"})
+	output, err := DefaultRunCommand(ctx, []string{"echo", "test"})
 
 	testutil.AssertNoError(t, err)
 	testutil.AssertContains(t, output, "test")
@@ -384,7 +384,7 @@ func TestDefaultRunCommand_Timeout(t *testing.T) {
 	defer cancel()
 
 	// This should timeout on most systems
-	_, err := defaultRunCommand(ctx, []string{"sleep", "10"})
+	_, err := DefaultRunCommand(ctx, []string{"sleep", "10"})
 
 	testutil.AssertError(t, err)
 }
@@ -396,7 +396,7 @@ func TestDefaultRunCommand_SingleArg(t *testing.T) {
 
 	ctx := context.Background()
 	// "date" is usually available and safe
-	output, err := defaultRunCommand(ctx, []string{"date"})
+	output, err := DefaultRunCommand(ctx, []string{"date"})
 
 	testutil.AssertNoError(t, err)
 	testutil.AssertTrue(t, len(output) > 0)

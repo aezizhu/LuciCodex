@@ -52,9 +52,11 @@ var stringBuilderPool = sync.Pool{
 // For testing, allow overriding command execution
 type execFn func(ctx context.Context, argv []string) (string, error)
 
-var runCommand execFn = defaultRunCommand
+var runCommand execFn = DefaultRunCommand
 
-func defaultRunCommand(ctx context.Context, argv []string) (string, error) {
+// DefaultRunCommand executes a command and returns its output.
+// Exported for use by other packages (e.g., MCP server).
+func DefaultRunCommand(ctx context.Context, argv []string) (string, error) {
 	var cmd *exec.Cmd
 	if len(argv) == 1 {
 		cmd = exec.CommandContext(ctx, argv[0])
