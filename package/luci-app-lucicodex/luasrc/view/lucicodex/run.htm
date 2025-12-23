@@ -1197,8 +1197,32 @@ function esc(s) {
 }
 
 // UI
-function showWelcome() { document.getElementById('welcome').style.display = 'flex'; }
-function hideWelcome() { document.getElementById('welcome').style.display = 'none'; }
+function showWelcome() {
+    var el = document.getElementById('welcome');
+    if (!el) {
+        // Recreate welcome element if it was cleared
+        el = document.createElement('div');
+        el.className = 'welcome';
+        el.id = 'welcome';
+        el.innerHTML = '<div class="welcome-icon">🤖</div>' +
+            '<h2>Welcome to LuciCodex</h2>' +
+            '<p>Your AI-powered router assistant. Ask me anything about managing your OpenWrt device.</p>' +
+            '<div class="suggestions">' +
+            '<button class="suggestion" onclick="suggest(\'Show my connected devices\')">📱 Connected devices</button>' +
+            '<button class="suggestion" onclick="suggest(\'Check system resource usage\')">📊 System resources</button>' +
+            '<button class="suggestion" onclick="suggest(\'Update all packages\')">📦 Update packages</button>' +
+            '<button class="suggestion" onclick="suggest(\'Create a guest WiFi network\')">📶 Guest WiFi</button>' +
+            '<button class="suggestion" onclick="suggest(\'List firewall rules\')">🔥 Firewall rules</button>' +
+            '<button class="suggestion" onclick="suggest(\'Show network interfaces\')">🌐 Network info</button>' +
+            '</div>';
+        document.getElementById('messages').appendChild(el);
+    }
+    el.style.display = 'flex';
+}
+function hideWelcome() {
+    var el = document.getElementById('welcome');
+    if (el) el.style.display = 'none';
+}
 
 function setStatus(type, text) {
     var el = document.getElementById('status');
