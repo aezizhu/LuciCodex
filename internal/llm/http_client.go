@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"strings"
@@ -18,6 +19,10 @@ func newHTTPClient(cfg config.Config, timeout time.Duration) *http.Client {
 	transport.IdleConnTimeout = 60 * time.Second
 	transport.DisableCompression = false // Enable compression for bandwidth savings
 	transport.ForceAttemptHTTP2 = false  // HTTP/1.1 is more reliable on embedded systems
+	// CRITICAL: Disable HTTP/2 ALPN negotiation completely
+	// Setting TLSNextProto to empty map prevents TLS from advertising HTTP/2 support
+	// This fixes "malformed HTTP response" errors with some API providers (OpenAI)
+	transport.TLSNextProto = make(map[string]func(authority string, c *tls.Conn) http.RoundTripper)
 	return &http.Client{
 		Timeout:   timeout,
 		Transport: transport,

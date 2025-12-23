@@ -12,8 +12,30 @@ local function get_config(option)
 end
 
 -- Handle form submission
+local conf = "lucicodex"
+local form_submitted = false
+
+-- Handle API key removal
+if http.formvalue("remove_gemini") then
+    uci:delete(conf, "main", "key")
+    uci:commit(conf)
+    form_submitted = true
+end
+
+if http.formvalue("remove_openai") then
+    uci:delete(conf, "main", "openai_key")
+    uci:commit(conf)
+    form_submitted = true
+end
+
+if http.formvalue("remove_anthropic") then
+    uci:delete(conf, "main", "anthropic_key")
+    uci:commit(conf)
+    form_submitted = true
+end
+
 if http.formvalue("save") then
-    local conf = "lucicodex"
+    form_submitted = true
 
     -- Ensure section exists
     local exist = uci:get(conf, "main")
@@ -80,6 +102,11 @@ if http.formvalue("save") then
     if anthropic_endpoint then uci:set(conf, "main", "anthropic_endpoint", anthropic_endpoint) end
 
     uci:commit(conf)
+end
+
+-- Refresh cursor to get updated values after any form processing
+if form_submitted then
+    uci = require "luci.model.uci".cursor()
 end
 
 -- Load current values
@@ -412,17 +439,31 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
     background: var(--bg-elevated);
     color: var(--text-primary);
 }
+
+.btn-remove {
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--error);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    margin-left: 12px;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: rgba(239,68,68,0.25);
+    border-color: var(--error);
+}
 </style>
 
 <script>
-function toggleKey(btn, keyId) {
-    const input = document.getElementById(keyId);
-    if (input.type === 'password') {
-        input.type = 'text';
-        btn.textContent = 'Hide';
-    } else {
-        input.type = 'password';
-        btn.textContent = 'Show';
+function toggleKeyInput(btn, keyId) {
+    var input = document.getElementById(keyId);
+    if (input) {
+        input.focus();
+        input.select();
     }
 }
 </script>
@@ -434,7 +475,7 @@ function toggleKey(btn, keyId) {
             <p>Configure your AI-powered router assistant. Set up API keys and safety preferences below.</p>
         </div>
 
-        <% if http.formvalue("save") then %>
+        <% if form_submitted then %>
         <div class="success-msg">Settings saved successfully!</div>
         <% end %>
 
@@ -469,11 +510,12 @@ function toggleKey(btn, keyId) {
                     <% if has_gemini then %>
                     <div class="key-display">
                         <span class="key-value"><%=gemini_masked%></span>
+                        <button type="submit" name="remove_gemini" value="1" class="btn-remove">Remove</button>
                     </div>
                     <% end %>
                     <div class="input-with-toggle">
-                        <input type="password" name="key" id="gemini_key" class="form-input" placeholder="<%=has_gemini and "Enter new key to replace" or "Enter API key"%>">
-                        <button type="button" class="btn-show" onclick="toggleKey(this, 'gemini_key')">Show</button>
+                        <input type="text" name="key" id="gemini_key" class="form-input" placeholder="<%=has_gemini and "Enter new key to replace" or "Paste your Gemini API key here"%>" autocomplete="off">
+                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'gemini_key')"><%=has_gemini and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Free tier available. Get key: makersuite.google.com/app/apikey</p>
                 </div>
@@ -488,11 +530,12 @@ function toggleKey(btn, keyId) {
                     <% if has_openai then %>
                     <div class="key-display">
                         <span class="key-value"><%=openai_masked%></span>
+                        <button type="submit" name="remove_openai" value="1" class="btn-remove">Remove</button>
                     </div>
                     <% end %>
                     <div class="input-with-toggle">
-                        <input type="password" name="openai_key" id="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to replace" or "Enter API key"%>">
-                        <button type="button" class="btn-show" onclick="toggleKey(this, 'openai_key')">Show</button>
+                        <input type="text" name="openai_key" id="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to replace" or "Paste your OpenAI API key here"%>" autocomplete="off">
+                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'openai_key')"><%=has_openai and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Paid API. Get key: platform.openai.com/api-keys</p>
                 </div>
@@ -507,11 +550,12 @@ function toggleKey(btn, keyId) {
                     <% if has_anthropic then %>
                     <div class="key-display">
                         <span class="key-value"><%=anthropic_masked%></span>
+                        <button type="submit" name="remove_anthropic" value="1" class="btn-remove">Remove</button>
                     </div>
                     <% end %>
                     <div class="input-with-toggle">
-                        <input type="password" name="anthropic_key" id="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to replace" or "Enter API key"%>">
-                        <button type="button" class="btn-show" onclick="toggleKey(this, 'anthropic_key')">Show</button>
+                        <input type="text" name="anthropic_key" id="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to replace" or "Paste your Anthropic API key here"%>" autocomplete="off">
+                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'anthropic_key')"><%=has_anthropic and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Paid API. Get key: console.anthropic.com</p>
                 </div>
