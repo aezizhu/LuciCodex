@@ -3,7 +3,7 @@
 # LuciCodex Installer
 # Usage: wget -qO- https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="0.7.5"
+VERSION="0.7.6"
 REPO="aezizhu/LuciCodex"
 
 echo "========================================"
@@ -82,7 +82,6 @@ echo "    Downloading LuCI interface..."
 if wget -q -O luci-app-lucicodex.ipk "$LUCI_URL"; then
     opkg install --force-reinstall luci-app-lucicodex.ipk 2>/dev/null
     rm -f luci-app-lucicodex.ipk
-    rm -rf /tmp/luci-modulecache/
 else
     echo "Error: Failed to download LuCI package"
     echo "URL: $LUCI_URL"
@@ -95,6 +94,12 @@ echo "[5/5] Configuring system..."
 uci set uhttpd.main.script_timeout='300'
 uci set uhttpd.main.network_timeout='300'
 uci commit uhttpd
+
+# CRITICAL: Clear ALL LuCI caches to ensure new controller routes are registered
+rm -rf /tmp/luci-modulecache/
+rm -rf /tmp/luci-indexcache*
+rm -rf /tmp/luci-sessions/
+
 /etc/init.d/uhttpd restart >/dev/null 2>&1
 
 # Enable and start daemon
