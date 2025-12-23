@@ -3,7 +3,7 @@
 # LuciCodex Installer
 # Usage: wget -qO- https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="0.7.9"
+VERSION="0.7.10"
 REPO="aezizhu/LuciCodex"
 
 echo "========================================"
@@ -120,7 +120,7 @@ echo "  3. Add your API key (Gemini/OpenAI/Anthropic)"
 echo "  4. Start chatting with your router!"
 echo ""
 echo "Features in v${VERSION}:"
-echo "  - WebSocket streaming for real-time responses"
-echo "  - MCP protocol support for AI integrations"
-echo "  - Performance optimizations"
+echo "  - Real-time terminal streaming with live output"
+echo "  - AI Summary with loading indicator and retry"
+echo "  - Improved multi-query handling"
 echo ""

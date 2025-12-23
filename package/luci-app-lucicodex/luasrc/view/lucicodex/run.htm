@@ -559,6 +559,21 @@
 
 .terminal-status.success { background: rgba(34,197,94,0.2); color: var(--success); }
 .terminal-status.error { background: rgba(239,68,68,0.2); color: var(--error); }
+.terminal-status.running { background: rgba(59,130,246,0.2); color: var(--accent); animation: pulse 1.5s infinite; }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.terminal.streaming .terminal-body {
+    min-height: 60px;
+}
+
+.term-err {
+    color: var(--error);
+    font-style: italic;
+}
 
 .terminal-body {
     padding: 16px;
@@ -831,8 +846,39 @@ var API = {
     plan: '<%=url("admin/system/lucicodex/plan")%>',
     execute: '<%=url("admin/system/lucicodex/execute")%>',
     summarize: '<%=url("admin/system/lucicodex/summarize")%>',
-    providers: '<%=url("admin/system/lucicodex/providers")%>'
+    providers: '<%=url("admin/system/lucicodex/providers")%>',
+    ws: (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/cgi-bin/luci/admin/system/lucicodex/ws'
 };
+
+// WebSocket connection
+var ws = null;
+var wsReconnectTimer = null;
+
+function connectWebSocket() {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
+
+    try {
+        ws = new WebSocket(API.ws);
+
+        ws.onopen = function() {
+            console.log('[LuciCodex] WebSocket connected');
+        };
+
+        ws.onclose = function() {
+            console.log('[LuciCodex] WebSocket closed');
+            ws = null;
+            // Try reconnect after 5 seconds
+            if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+            wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+        };
+
+        ws.onerror = function(e) {
+            console.warn('[LuciCodex] WebSocket error:', e);
+        };
+    } catch(e) {
+        console.warn('[LuciCodex] WebSocket not available:', e);
+    }
+}
 
 // Init
 document.addEventListener('DOMContentLoaded', function() {
@@ -840,6 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[LuciCodex] API URLs:', API);
     try {
         loadState();
+        connectWebSocket(); // Connect WebSocket for streaming
         loadProviders().then(function() {
             newChat(false);
             console.log('[LuciCodex] Initialization complete');
@@ -1051,6 +1098,127 @@ function execute(prompt, cmds) {
 
     removeApproval();
     setBusy(true);
+
+    // Try WebSocket streaming first, fallback to HTTP
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        executeStreaming(prompt, formattedCmds);
+    } else {
+        executeHttp(prompt, formattedCmds);
+    }
+}
+
+// Streaming execution via WebSocket
+function executeStreaming(prompt, formattedCmds) {
+    // Create streaming terminal UI
+    var terminalId = 'stream-terminal-' + Date.now();
+    var div = document.createElement('div');
+    div.className = 'message ai';
+    div.id = terminalId;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ai">' +
+        '<div class="terminal streaming">' +
+        '<div class="terminal-header"><span>Terminal</span>' +
+        '<span class="terminal-status running">Running...</span></div>' +
+        '<div class="terminal-body" id="' + terminalId + '-body"></div></div>' +
+        '</div></div>';
+    document.getElementById('messages').appendChild(div);
+    scroll();
+
+    var termBody = document.getElementById(terminalId + '-body');
+    var results = [];
+    var currentCmdIdx = -1;
+
+    // WebSocket message handler for this execution
+    function handleMessage(event) {
+        var data;
+        try { data = JSON.parse(event.data); } catch(e) { return; }
+
+        switch(data.type) {
+            case 'exec_start':
+                console.log('[LuciCodex] Execution started, ' + data.data + ' commands');
+                break;
+
+            case 'exec_cmd':
+                currentCmdIdx = data.index;
+                var cmdHtml = '<div class="term-cmd">$ ' + esc(data.command) + '</div>';
+                cmdHtml += '<div class="term-out" id="' + terminalId + '-out-' + data.index + '"></div>';
+                termBody.innerHTML += cmdHtml;
+                scroll();
+                break;
+
+            case 'exec_output':
+                var outEl = document.getElementById(terminalId + '-out-' + data.index);
+                if (outEl) {
+                    outEl.innerHTML += esc(data.data) + '\n';
+                    scroll();
+                }
+                break;
+
+            case 'exec_result':
+                var result = data.data;
+                results.push({
+                    command: formattedCmds[data.index] ? formattedCmds[data.index].command : [],
+                    output: result.output || '',
+                    success: result.success
+                });
+                // Update output if not already streamed
+                var outEl2 = document.getElementById(terminalId + '-out-' + data.index);
+                if (outEl2 && !outEl2.innerHTML.trim() && result.output) {
+                    outEl2.innerHTML = esc(result.output);
+                }
+                break;
+
+            case 'done':
+                ws.removeEventListener('message', handleMessage);
+                // Update terminal status
+                var statusEl = div.querySelector('.terminal-status');
+                if (statusEl) {
+                    statusEl.className = 'terminal-status success';
+                    statusEl.textContent = 'Done';
+                }
+                div.querySelector('.terminal').classList.remove('streaming');
+
+                // Save to state
+                S.messages.push({ role: 'ai', type: 'result', items: results, success: true, ts: Date.now() });
+                setBusy(false);
+                saveSession();
+
+                // Try to get summary
+                fetchSummary(prompt, results);
+                break;
+
+            case 'error':
+                ws.removeEventListener('message', handleMessage);
+                var statusEl2 = div.querySelector('.terminal-status');
+                if (statusEl2) {
+                    statusEl2.className = 'terminal-status error';
+                    statusEl2.textContent = 'Error';
+                }
+                termBody.innerHTML += '<div class="term-err">' + esc(data.error || 'Unknown error') + '</div>';
+                setBusy(false);
+                saveSession();
+                break;
+        }
+    }
+
+    ws.addEventListener('message', handleMessage);
+
+    // Send execute request
+    ws.send(JSON.stringify({
+        type: 'execute',
+        payload: {
+            prompt: prompt,
+            provider: S.provider,
+            model: S.model,
+            commands: formattedCmds,
+            dry_run: false,
+            timeout: 120
+        }
+    }));
+}
+
+// Fallback HTTP execution
+function executeHttp(prompt, formattedCmds) {
     addTyping();
 
     api(API.execute, {
@@ -1068,38 +1236,13 @@ function execute(prompt, cmds) {
             var result = r.result || {};
             var items = result.items || result.Items || [];
 
-            // Show results immediately (don't wait for summary)
+            // Show results immediately
             renderResult(items, true, null);
             setBusy(false);
             saveSession();
 
-            // Try to get summary in background (optional enhancement)
-            var summaryCommands = [];
-            for (var k = 0; k < items.length; k++) {
-                var item = items[k];
-                summaryCommands.push({
-                    command: item.command || item.Command || [],
-                    output: (item.output || item.Output || '').toString(),
-                    error: (item.error || item.Error || '').toString()
-                });
-            }
-
-            api(API.summarize, {
-                prompt: prompt,
-                provider: S.provider,
-                model: S.model,
-                commands: summaryCommands
-            })
-            .then(function(sr) {
-                if (sr.ok && sr.summary) {
-                    // Add summary to the last result message
-                    addSummaryToLastResult({ text: sr.summary, details: sr.details });
-                    saveSession();
-                }
-            })
-            .catch(function(e) {
-                console.warn('[LuciCodex] Summary skipped (optional):', e.message);
-            });
+            // Try to get summary in background
+            fetchSummary(prompt, items);
         } else {
             addMsg('ai', 'Execution failed: ' + (r.error || 'Unknown error'));
             setBusy(false);
@@ -1112,6 +1255,157 @@ function execute(prompt, cmds) {
         setBusy(false);
         saveSession();
     });
+}
+
+// Fetch summary in background - each summary gets a unique ID to avoid conflicts
+var summaryCounter = 0;
+
+function fetchSummary(prompt, items) {
+    var summaryCommands = [];
+    for (var k = 0; k < items.length; k++) {
+        var item = items[k];
+        summaryCommands.push({
+            command: item.command || item.Command || [],
+            output: (item.output || item.Output || '').toString(),
+            error: (item.error || item.Error || '').toString()
+        });
+    }
+
+    // Generate unique ID for this summary request
+    var summaryId = 'summary-' + (++summaryCounter) + '-' + Date.now();
+
+    // Show loading placeholder with unique ID
+    addSummaryPlaceholder(prompt, items, summaryId);
+
+    api(API.summarize, {
+        prompt: prompt,
+        provider: S.provider,
+        model: S.model,
+        commands: summaryCommands
+    })
+    .then(function(sr) {
+        console.log('[LuciCodex] Summary response for ' + summaryId + ':', sr);
+        if (sr.ok && sr.summary) {
+            console.log('[LuciCodex] Displaying summary:', sr.summary.substring(0, 100));
+            replaceSummaryPlaceholder(summaryId, { text: sr.summary, details: sr.details });
+            saveSession();
+        } else {
+            console.log('[LuciCodex] No summary in response');
+            showSummaryError(summaryId, prompt, items, 'No summary returned');
+        }
+    })
+    .catch(function(e) {
+        console.warn('[LuciCodex] Summary failed for ' + summaryId + ':', e.message);
+        showSummaryError(summaryId, prompt, items, e.message);
+    });
+}
+
+function addSummaryPlaceholder(prompt, items, summaryId) {
+    // Find the last terminal and add loading placeholder
+    var terminals = document.querySelectorAll('.terminal');
+    if (!terminals.length) {
+        console.warn('[LuciCodex] No terminal found for summary placeholder');
+        return;
+    }
+
+    var lastTerminal = terminals[terminals.length - 1];
+    var bubble = lastTerminal.closest('.bubble');
+    if (!bubble) {
+        console.warn('[LuciCodex] No bubble found for summary placeholder');
+        return;
+    }
+
+    // Remove any existing summary in this bubble only
+    var existing = bubble.querySelector('.ai-summary');
+    if (existing) existing.remove();
+
+    var placeholder = document.createElement('div');
+    placeholder.className = 'ai-summary ai-summary-loading';
+    placeholder.id = summaryId;
+    placeholder.innerHTML = '<div class="ai-summary-title">AI Summary</div>' +
+        '<div class="ai-summary-text">' +
+        '<div class="typing"><span></span><span></span><span></span></div>' +
+        '<span style="color:var(--text-muted);margin-left:8px;">Generating summary...</span>' +
+        '</div>';
+    placeholder.setAttribute('data-prompt', prompt);
+    placeholder.setAttribute('data-items', JSON.stringify(items));
+
+    bubble.appendChild(placeholder);
+    console.log('[LuciCodex] Added summary placeholder:', summaryId);
+    scroll();
+}
+
+function replaceSummaryPlaceholder(summaryId, summary) {
+    var placeholder = document.getElementById(summaryId);
+    if (!placeholder) {
+        console.warn('[LuciCodex] Summary placeholder not found:', summaryId);
+        // Fallback to regular add
+        addSummaryToLastResult(summary);
+        return;
+    }
+
+    // Build summary HTML
+    var detailsHtml = '';
+    if (summary.details && summary.details.length) {
+        var detailItems = [];
+        for (var j = 0; j < summary.details.length; j++) {
+            detailItems.push('<li>' + esc(summary.details[j]) + '</li>');
+        }
+        detailsHtml = '<ul style="margin-top:8px;padding-left:20px;color:var(--text-secondary);">' + detailItems.join('') + '</ul>';
+    }
+
+    placeholder.className = 'ai-summary';
+    placeholder.innerHTML = '<div class="ai-summary-title">AI Summary</div>' +
+        '<div class="ai-summary-text">' + esc(summary.text) + detailsHtml + '</div>';
+    placeholder.removeAttribute('data-prompt');
+    placeholder.removeAttribute('data-items');
+
+    console.log('[LuciCodex] Replaced summary placeholder:', summaryId);
+    scroll();
+
+    // Update state
+    for (var i = S.messages.length - 1; i >= 0; i--) {
+        if (S.messages[i].type === 'result') {
+            S.messages[i].summary = summary;
+            break;
+        }
+    }
+}
+
+function showSummaryError(summaryId, prompt, items, errorMsg) {
+    var placeholder = document.getElementById(summaryId);
+    if (!placeholder) {
+        console.warn('[LuciCodex] Summary placeholder not found for error:', summaryId);
+        return;
+    }
+
+    placeholder.className = 'ai-summary ai-summary-error';
+    placeholder.innerHTML = '<div class="ai-summary-title">AI Summary</div>' +
+        '<div class="ai-summary-text" style="color:var(--text-muted);">' +
+        'Summary unavailable' + (errorMsg ? ' (' + esc(errorMsg.substring(0, 50)) + ')' : '') +
+        '<button class="btn-retry-summary" onclick="retrySummary(this)" style="margin-left:12px;padding:4px 12px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;">Retry</button>' +
+        '</div>';
+    placeholder.setAttribute('data-prompt', prompt);
+    placeholder.setAttribute('data-items', JSON.stringify(items));
+}
+
+function retrySummary(btn) {
+    var summaryEl = btn.closest('.ai-summary');
+    if (!summaryEl) return;
+
+    var prompt = summaryEl.getAttribute('data-prompt');
+    var items;
+    try {
+        items = JSON.parse(summaryEl.getAttribute('data-items'));
+    } catch(e) {
+        items = [];
+    }
+
+    if (!prompt || !items.length) return;
+
+    // Re-trigger fetch (will create new placeholder)
+    summaryEl.remove();
+    fetchSummary(prompt, items);
 }
 
 function approve() {

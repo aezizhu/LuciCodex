@@ -4,7 +4,7 @@
 .DEFAULT_GOAL := help
 
 # Version info
-PKG_VERSION:=0.7.9
+PKG_VERSION:=0.7.10
 BINARY_NAME = lucicodex
 BUILD_DIR = dist
 COVERAGE_FILE = coverage.out
