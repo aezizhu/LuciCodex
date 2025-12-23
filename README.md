@@ -205,6 +205,18 @@ This is the easiest way to use LuciCodex, especially if you're not comfortable w
 4. Review the commands that LuciCodex suggests
 5. If they look correct, click **Execute Commands**
 
+<p align="center">
+  <img src="assets/screenshot-plan.png" alt="LuciCodex Execution Plan" width="600">
+  <br>
+  <em>Review the AI-generated execution plan before running commands</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshot-result.png" alt="LuciCodex Terminal Output with AI Summary" width="600">
+  <br>
+  <em>See real-time terminal output with AI-powered summary</em>
+</p>
+
 **That's it!** You're now using natural language to control your router.
 
 ### Method 2: Command Line (SSH)
