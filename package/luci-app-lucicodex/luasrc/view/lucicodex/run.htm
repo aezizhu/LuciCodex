@@ -1068,7 +1068,12 @@ function execute(prompt, cmds) {
             var result = r.result || {};
             var items = result.items || result.Items || [];
 
-            // Try to get summary
+            // Show results immediately (don't wait for summary)
+            renderResult(items, true, null);
+            setBusy(false);
+            saveSession();
+
+            // Try to get summary in background (optional enhancement)
             var summaryCommands = [];
             for (var k = 0; k < items.length; k++) {
                 var item = items[k];
@@ -1086,17 +1091,14 @@ function execute(prompt, cmds) {
                 commands: summaryCommands
             })
             .then(function(sr) {
-                var summary = null;
-                if (sr.ok) summary = { text: sr.summary, details: sr.details };
-                renderResult(items, true, summary);
-                setBusy(false);
-                saveSession();
+                if (sr.ok && sr.summary) {
+                    // Add summary to the last result message
+                    addSummaryToLastResult({ text: sr.summary, details: sr.details });
+                    saveSession();
+                }
             })
             .catch(function(e) {
-                console.warn('Summary failed', e);
-                renderResult(items, true, null);
-                setBusy(false);
-                saveSession();
+                console.warn('[LuciCodex] Summary skipped (optional):', e.message);
             });
         } else {
             addMsg('ai', 'Execution failed: ' + (r.error || 'Unknown error'));
@@ -1369,6 +1371,43 @@ function renderResult(items, success, summary) {
         '</div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
+}
+
+function addSummaryToLastResult(summary) {
+    // Find the last terminal element and add summary after it
+    var terminals = document.querySelectorAll('.terminal');
+    if (!terminals.length) return;
+
+    var lastTerminal = terminals[terminals.length - 1];
+    var bubble = lastTerminal.closest('.bubble');
+    if (!bubble) return;
+
+    // Check if summary already exists
+    if (bubble.querySelector('.ai-summary')) return;
+
+    // Build summary HTML
+    var detailsHtml = '';
+    if (summary.details && summary.details.length) {
+        var detailItems = [];
+        for (var j = 0; j < summary.details.length; j++) {
+            detailItems.push('<li>' + esc(summary.details[j]) + '</li>');
+        }
+        detailsHtml = '<ul style="margin-top:8px;padding-left:20px;color:var(--text-secondary);">' + detailItems.join('') + '</ul>';
+    }
+    var summaryEl = document.createElement('div');
+    summaryEl.className = 'ai-summary';
+    summaryEl.innerHTML = '<div class="ai-summary-title">AI Summary</div><div class="ai-summary-text">' + esc(summary.text) + detailsHtml + '</div>';
+
+    bubble.appendChild(summaryEl);
+    scroll();
+
+    // Update state for session persistence
+    for (var i = S.messages.length - 1; i >= 0; i--) {
+        if (S.messages[i].type === 'result') {
+            S.messages[i].summary = summary;
+            break;
+        }
+    }
 }
 
 function parseText(text) {
