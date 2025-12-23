@@ -2,6 +2,7 @@ package llm
 
 import (
 	"crypto/tls"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -9,6 +10,16 @@ import (
 
 	"github.com/aezizhu/LuciCodex/internal/config"
 )
+
+// maxErrorBodySize limits error response reads to prevent memory exhaustion
+const maxErrorBodySize = 4096
+
+// readErrorBody reads up to maxErrorBodySize bytes from the response body
+// to prevent memory exhaustion from large error responses on embedded systems.
+func readErrorBody(body io.Reader) []byte {
+	data, _ := io.ReadAll(io.LimitReader(body, maxErrorBodySize))
+	return data
+}
 
 func newHTTPClient(cfg config.Config, timeout time.Duration) *http.Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()

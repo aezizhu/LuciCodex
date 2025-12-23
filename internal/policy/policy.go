@@ -17,14 +17,21 @@ type Engine struct {
 
 func New(cfg config.Config) *Engine {
 	e := &Engine{cfg: cfg}
-	for _, p := range cfg.Allowlist {
-		if re, err := regexp.Compile(p); err == nil {
-			e.allowREs = append(e.allowREs, re)
+	// Pre-allocate slices to avoid repeated allocations during append
+	if len(cfg.Allowlist) > 0 {
+		e.allowREs = make([]*regexp.Regexp, 0, len(cfg.Allowlist))
+		for _, p := range cfg.Allowlist {
+			if re, err := regexp.Compile(p); err == nil {
+				e.allowREs = append(e.allowREs, re)
+			}
 		}
 	}
-	for _, p := range cfg.Denylist {
-		if re, err := regexp.Compile(p); err == nil {
-			e.denyREs = append(e.denyREs, re)
+	if len(cfg.Denylist) > 0 {
+		e.denyREs = make([]*regexp.Regexp, 0, len(cfg.Denylist))
+		for _, p := range cfg.Denylist {
+			if re, err := regexp.Compile(p); err == nil {
+				e.denyREs = append(e.denyREs, re)
+			}
 		}
 	}
 	return e

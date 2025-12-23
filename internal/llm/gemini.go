@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -94,7 +93,7 @@ func (c *GeminiClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return zero, NewAPIError("gemini", resp.StatusCode, string(data), ErrRequestFailed)
 	}
 
@@ -156,7 +155,7 @@ func (c *GeminiClient) Summarize(ctx context.Context, prompt string) (string, []
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return "", nil, NewAPIError("gemini", resp.StatusCode, string(data), ErrRequestFailed)
 	}
 

@@ -152,7 +152,15 @@ func (s *Server) Start(port int) error {
 	} else {
 		fmt.Println("Warning: Running without authentication")
 	}
-	return http.ListenAndServe(addr, s.mux)
+	// Configure HTTP server with timeouts to prevent resource exhaustion
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      s.mux,
+		ReadTimeout:  10 * time.Second,  // Time to read request headers + body
+		WriteTimeout: 60 * time.Second,  // Time to write response (LLM calls can be slow)
+		IdleTimeout:  120 * time.Second, // Keep-alive timeout
+	}
+	return srv.ListenAndServe()
 }
 
 type PlanRequest struct {

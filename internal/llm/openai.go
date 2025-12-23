@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -90,7 +89,7 @@ func (c *OpenAIClient) GeneratePlan(ctx context.Context, prompt string) (plan.Pl
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return zero, fmt.Errorf("openai http %d: %s", resp.StatusCode, string(data))
 	}
 	var or openaiResp
@@ -150,7 +149,7 @@ func (c *OpenAIClient) Summarize(ctx context.Context, prompt string) (string, []
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return "", nil, fmt.Errorf("openai http %d: %s", resp.StatusCode, string(data))
 	}
 

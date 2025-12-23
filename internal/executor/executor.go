@@ -198,7 +198,8 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 			line := scanner.Text()
 			outputMu.Lock()
 			if outputBuf.Len() < MaxOutputSize {
-				outputBuf.WriteString(line + "\n")
+				outputBuf.WriteString(line)
+				outputBuf.WriteByte('\n')
 			} else if !truncated {
 				truncated = true
 				outputBuf.WriteString("\n... [output truncated] ...\n")
@@ -221,7 +222,8 @@ func (e *Engine) runOneStreaming(ctx context.Context, index int, pc plan.Planned
 			line := scanner.Text()
 			outputMu.Lock()
 			if outputBuf.Len() < MaxOutputSize {
-				outputBuf.WriteString(line + "\n")
+				outputBuf.WriteString(line)
+				outputBuf.WriteByte('\n')
 			} else if !truncated {
 				truncated = true
 				outputBuf.WriteString("\n... [output truncated] ...\n")
@@ -289,12 +291,19 @@ func (e *Engine) runOne(ctx context.Context, index int, pc plan.PlannedCommand) 
 	return r
 }
 
+// pathEnvPrefix is pre-allocated to avoid string concatenation in hot path
+const pathEnvPrefix = "PATH="
+
 func minimalEnv() []string {
 	path := os.Getenv("PATH")
 	if path == "" {
 		path = "/usr/sbin:/usr/bin:/sbin:/bin"
 	}
-	return []string{"PATH=" + path}
+	// Pre-allocate buffer for PATH=<value> to avoid concatenation
+	buf := make([]byte, 0, len(pathEnvPrefix)+len(path))
+	buf = append(buf, pathEnvPrefix...)
+	buf = append(buf, path...)
+	return []string{string(buf)}
 }
 
 // FormatCommand returns a shell-like string for logging only (no execution).

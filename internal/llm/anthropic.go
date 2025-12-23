@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -82,7 +81,7 @@ func (c *AnthropicClient) GeneratePlan(ctx context.Context, prompt string) (plan
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return zero, fmt.Errorf("anthropic http %d: %s", resp.StatusCode, string(data))
 	}
 	var ar anthropicResp
@@ -135,7 +134,7 @@ func (c *AnthropicClient) Summarize(ctx context.Context, prompt string) (string,
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		data, _ := io.ReadAll(resp.Body)
+		data := readErrorBody(resp.Body)
 		return "", nil, fmt.Errorf("anthropic http %d: %s", resp.StatusCode, string(data))
 	}
 	var ar anthropicResp
