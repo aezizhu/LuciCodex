@@ -35,11 +35,11 @@ build_bin() {
   # -trimpath removes build paths
   if [[ "$arch" == "arm" ]]; then
     CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=${GOARM:-$GOARM_DEFAULT} \
-      go build -trimpath -ldflags "-s -w" -o "$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}" ./cmd/lucicodex
+      go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}" ./cmd/lucicodex
     outbin="$OUT/lucicodex-linux-${arch}v${GOARM:-$GOARM_DEFAULT}"
   else
     CGO_ENABLED=0 GOOS=linux GOARCH="$arch" \
-      go build -trimpath -ldflags "-s -w" -o "$OUT/lucicodex-linux-${arch}" ./cmd/lucicodex
+      go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "$OUT/lucicodex-linux-${arch}" ./cmd/lucicodex
     outbin="$OUT/lucicodex-linux-${arch}"
   fi
   echo "$outbin"
