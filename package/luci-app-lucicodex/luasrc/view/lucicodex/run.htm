@@ -919,8 +919,9 @@ function saveState() {
 }
 
 // Actions
-function newChat(confirm = true) {
-    if (confirm && S.messages.length > 0 && !window.confirm('Start new chat?')) return;
+function newChat(shouldConfirm) {
+    if (typeof shouldConfirm === 'undefined') shouldConfirm = true;
+    if (shouldConfirm && S.messages.length > 0 && !window.confirm('Start new chat?')) return;
     S.sessionId = 'sess_' + Date.now();
     S.messages = [];
     S.plan = null;
