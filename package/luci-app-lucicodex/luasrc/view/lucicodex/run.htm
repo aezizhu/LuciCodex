@@ -848,41 +848,46 @@ document.addEventListener('DOMContentLoaded', function() {
 // Debug: log when script loads
 console.log('[LuciCodex] Script loaded');
 
-async function loadProviders() {
+function loadProviders() {
     console.log('[LuciCodex] Loading providers...');
-    try {
-        const r = await fetch(API.providers, { credentials: 'same-origin' });
-        console.log('[LuciCodex] Providers response status:', r.status);
-        if (!r.ok) {
-            console.warn('[LuciCodex] Providers endpoint not OK:', r.status);
-            return;
-        }
-        const text = await r.text();
-        console.log('[LuciCodex] Providers response:', text.substring(0, 200));
-        const d = JSON.parse(text);
-        const sel = document.getElementById('provider');
-        if (d.configured && d.configured.length) {
-            // Clear existing options
-            sel.innerHTML = '';
-            // Validate and create options safely
-            const validProviders = ['gemini', 'openai', 'anthropic'];
-            const labels = {gemini:'Google Gemini',openai:'OpenAI',anthropic:'Anthropic'};
-            d.configured.forEach(function(p) {
-                // Only allow known provider values to prevent XSS
-                if (validProviders.indexOf(p) !== -1) {
-                    const opt = document.createElement('option');
-                    opt.value = p;
-                    opt.textContent = labels[p] || p;
-                    sel.appendChild(opt);
+    return fetch(API.providers, { credentials: 'same-origin' })
+        .then(function(r) {
+            console.log('[LuciCodex] Providers response status:', r.status);
+            if (!r.ok) {
+                console.warn('[LuciCodex] Providers endpoint not OK:', r.status);
+                return null;
+            }
+            return r.text();
+        })
+        .then(function(text) {
+            if (!text) return;
+            console.log('[LuciCodex] Providers response:', text.substring(0, 200));
+            var d = JSON.parse(text);
+            var sel = document.getElementById('provider');
+            if (d.configured && d.configured.length) {
+                // Clear existing options
+                sel.innerHTML = '';
+                // Validate and create options safely
+                var validProviders = ['gemini', 'openai', 'anthropic'];
+                var labels = {gemini:'Google Gemini',openai:'OpenAI',anthropic:'Anthropic'};
+                for (var i = 0; i < d.configured.length; i++) {
+                    var p = d.configured[i];
+                    // Only allow known provider values to prevent XSS
+                    if (validProviders.indexOf(p) !== -1) {
+                        var opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = labels[p] || p;
+                        sel.appendChild(opt);
+                    }
                 }
-            });
-            S.provider = validProviders.indexOf(d.default) !== -1 ? d.default : (d.configured[0] || 'gemini');
-            sel.value = S.provider;
-        }
-        console.log('[LuciCodex] Providers loaded, active:', S.provider);
-    } catch(e) {
-        console.warn('[LuciCodex] Failed to load providers:', e);
-    }
+                S.provider = validProviders.indexOf(d.default) !== -1 ? d.default : (d.configured[0] || 'gemini');
+                sel.value = S.provider;
+            }
+            console.log('[LuciCodex] Providers loaded, active:', S.provider);
+        })
+        .catch(function(e) {
+            console.warn('[LuciCodex] Failed to load providers:', e);
+        });
 }
 
 function loadState() {
@@ -891,7 +896,10 @@ function loadState() {
     S.provider = localStorage.getItem('lc_provider') || 'gemini';
     S.model = localStorage.getItem('lc_model') || '';
 
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === S.mode));
+    var btns = document.querySelectorAll('.mode-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.toggle('active', btns[i].dataset.mode === S.mode);
+    }
     document.getElementById('provider').value = S.provider;
     document.getElementById('model').value = S.model;
     renderHistory();
@@ -916,7 +924,10 @@ function newChat(confirm = true) {
 
 function setMode(m) {
     S.mode = m;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+    var btns = document.querySelectorAll('.mode-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.toggle('active', btns[i].dataset.mode === m);
+    }
     saveState();
 }
 
@@ -950,14 +961,14 @@ function autoGrow(el) {
 }
 
 // Core
-async function send() {
+function send() {
     console.log('[LuciCodex] send() called');
     if (S.busy) {
         console.log('[LuciCodex] busy, skipping');
         return;
     }
-    const input = document.getElementById('input');
-    const text = input.value.trim();
+    var input = document.getElementById('input');
+    var text = input.value.trim();
     if (!text) {
         console.log('[LuciCodex] empty input, skipping');
         return;
@@ -970,7 +981,7 @@ async function send() {
 
     addMsg('user', text);
 
-    if (S.mode === 'auto' && !confirm('⚠️ Auto mode: Commands will execute immediately. Continue?')) {
+    if (S.mode === 'auto' && !confirm('Auto mode: Commands will execute immediately. Continue?')) {
         setStatus('ready', 'Ready');
         return;
     }
@@ -978,89 +989,131 @@ async function send() {
     setBusy(true);
     addTyping();
 
-    try {
-        console.log('[LuciCodex] Calling plan API...');
-        const r = await api(API.plan, { prompt: text, provider: S.provider, model: S.model });
-        console.log('[LuciCodex] Plan API response:', r);
-        removeTyping();
+    console.log('[LuciCodex] Calling plan API...');
+    api(API.plan, { prompt: text, provider: S.provider, model: S.model })
+        .then(function(r) {
+            console.log('[LuciCodex] Plan API response:', r);
+            removeTyping();
 
-        if (!r.ok) throw new Error(r.error || 'Failed to generate plan');
+            if (!r.ok) throw new Error(r.error || 'Failed to generate plan');
 
-        const cmds = normCmds(r.plan);
-        S.plan = { ...r.plan, commands: cmds };
+            var cmds = normCmds(r.plan);
+            // Create new plan object with commands
+            S.plan = {};
+            for (var key in r.plan) {
+                if (r.plan.hasOwnProperty(key)) S.plan[key] = r.plan[key];
+            }
+            S.plan.commands = cmds;
 
-        if (cmds.length === 0) {
-            addMsg('ai', r.plan.summary || 'No commands needed for this request.');
-        } else {
-            renderPlan(S.plan);
-            if (S.mode === 'auto') await execute(text);
-        }
-    } catch(e) {
-        console.error('[LuciCodex] Error in send():', e);
-        removeTyping();
-        addError(e.message, e.details);
-    } finally {
-        setBusy(false);
-        saveSession();
-    }
+            if (cmds.length === 0) {
+                addMsg('ai', r.plan.summary || 'No commands needed for this request.');
+            } else {
+                renderPlan(S.plan);
+                if (S.mode === 'auto') execute(text);
+            }
+            setBusy(false);
+            saveSession();
+        })
+        .catch(function(e) {
+            console.error('[LuciCodex] Error in send():', e);
+            removeTyping();
+            addError(e.message, e.details);
+            setBusy(false);
+            saveSession();
+        });
 }
 
-async function execute(prompt, cmds) {
-    const commands = cmds || getSelectedCmds();
+function execute(prompt, cmds) {
+    var commands = cmds || getSelectedCmds();
     if (!commands.length) {
         addMsg('ai', 'No commands selected.');
         return;
+    }
+
+    // Format commands for API
+    var formattedCmds = [];
+    for (var i = 0; i < commands.length; i++) {
+        var parts = commands[i].split(/\s+/);
+        var filtered = [];
+        for (var j = 0; j < parts.length; j++) {
+            if (parts[j]) filtered.push(parts[j]);
+        }
+        formattedCmds.push({ command: filtered });
     }
 
     removeApproval();
     setBusy(true);
     addTyping();
 
-    try {
-        const r = await api(API.execute, {
-            prompt,
-            provider: S.provider,
-            model: S.model,
-            dry_run: false,
-            timeout: 120,
-            commands: commands.map(c => ({ command: c.split(/\s+/).filter(Boolean) }))
-        });
-
+    api(API.execute, {
+        prompt: prompt,
+        provider: S.provider,
+        model: S.model,
+        dry_run: false,
+        timeout: 120,
+        commands: formattedCmds
+    })
+    .then(function(r) {
         removeTyping();
 
         if (r.ok) {
-            const items = r.result?.items || r.result?.Items || [];
-            let summary = null;
+            var result = r.result || {};
+            var items = result.items || result.Items || [];
 
-            try {
-                const sr = await api(API.summarize, {
-                    prompt,
-                    provider: S.provider,
-                    model: S.model,
-                    commands: items.map(i => ({
-                        command: i.command || i.Command || [],
-                        output: (i.output || i.Output || '').toString(),
-                        error: (i.error || i.Error || '').toString()
-                    }))
+            // Try to get summary
+            var summaryCommands = [];
+            for (var k = 0; k < items.length; k++) {
+                var item = items[k];
+                summaryCommands.push({
+                    command: item.command || item.Command || [],
+                    output: (item.output || item.Output || '').toString(),
+                    error: (item.error || item.Error || '').toString()
                 });
-                if (sr.ok) summary = { text: sr.summary, details: sr.details };
-            } catch(e) { console.warn('Summary failed', e); }
+            }
 
-            renderResult(items, true, summary);
+            api(API.summarize, {
+                prompt: prompt,
+                provider: S.provider,
+                model: S.model,
+                commands: summaryCommands
+            })
+            .then(function(sr) {
+                var summary = null;
+                if (sr.ok) summary = { text: sr.summary, details: sr.details };
+                renderResult(items, true, summary);
+                setBusy(false);
+                saveSession();
+            })
+            .catch(function(e) {
+                console.warn('Summary failed', e);
+                renderResult(items, true, null);
+                setBusy(false);
+                saveSession();
+            });
         } else {
-            addMsg('ai', `Execution failed: ${r.error || 'Unknown error'}`);
+            addMsg('ai', 'Execution failed: ' + (r.error || 'Unknown error'));
+            setBusy(false);
+            saveSession();
         }
-    } catch(e) {
+    })
+    .catch(function(e) {
         removeTyping();
         addError(e.message);
-    } finally {
         setBusy(false);
         saveSession();
-    }
+    });
 }
 
 function approve() {
-    const prompt = S.messages.slice().reverse().find(m => m.role === 'user')?.text;
+    var reversed = S.messages.slice().reverse();
+    var userMsg = null;
+    for (var i = 0; i < reversed.length; i++) {
+        if (reversed[i].role === 'user') {
+            userMsg = reversed[i];
+            break;
+        }
+    }
+    var prompt = userMsg ? userMsg.text : null;
     if (prompt) execute(prompt);
 }
 
@@ -1070,21 +1123,24 @@ function reject() {
 }
 
 // API
-async function api(url, data) {
+function api(url, data) {
     console.log('[LuciCodex] API call:', url, data);
-    try {
-        const r = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-            credentials: 'same-origin'  // Include cookies for LuCI session
-        });
+    var responseStatus;
+    return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'same-origin'  // Include cookies for LuCI session
+    })
+    .then(function(r) {
+        responseStatus = r.status;
         console.log('[LuciCodex] Response status:', r.status);
-
-        const text = await r.text();
+        return r.text();
+    })
+    .then(function(text) {
         console.log('[LuciCodex] Response text:', text.substring(0, 500));
 
-        let json;
+        var json;
         try {
             json = JSON.parse(text);
         } catch (parseErr) {
@@ -1092,32 +1148,39 @@ async function api(url, data) {
             throw new Error('Invalid response from server. Check if daemon is running.');
         }
 
-        if (!r.ok) {
-            const e = new Error(json.error || `Request failed (${r.status})`);
+        if (responseStatus < 200 || responseStatus >= 300) {
+            var e = new Error(json.error || 'Request failed (' + responseStatus + ')');
             e.details = json.details;
             throw e;
         }
         return json;
-    } catch (fetchErr) {
+    })
+    .catch(function(fetchErr) {
         console.error('[LuciCodex] Fetch error:', fetchErr);
         throw fetchErr;
-    }
+    });
 }
 
 // Helpers
 function normCmds(plan) {
-    if (!plan?.commands) return [];
+    if (!plan || !plan.commands) return [];
     if (Array.isArray(plan.commands)) return plan.commands;
-    return Object.values(plan.commands).filter(Boolean);
+    var vals = [];
+    var keys = Object.keys(plan.commands);
+    for (var i = 0; i < keys.length; i++) {
+        if (plan.commands[keys[i]]) vals.push(plan.commands[keys[i]]);
+    }
+    return vals;
 }
 
 function getSelectedCmds() {
-    const cmds = [];
-    document.querySelectorAll('.plan-cmd').forEach(el => {
-        const cb = el.querySelector('input[type="checkbox"]');
-        const code = el.querySelector('.plan-cmd-code');
-        if (cb?.checked && code) cmds.push(code.textContent.trim());
-    });
+    var cmds = [];
+    var els = document.querySelectorAll('.plan-cmd');
+    for (var i = 0; i < els.length; i++) {
+        var cb = els[i].querySelector('input[type="checkbox"]');
+        var code = els[i].querySelector('.plan-cmd-code');
+        if (cb && cb.checked && code) cmds.push(code.textContent.trim());
+    }
     return cmds;
 }
 
@@ -1149,144 +1212,136 @@ function scroll() {
 }
 
 function addMsg(role, text) {
-    S.messages.push({ role, text, ts: Date.now() });
+    S.messages.push({ role: role, text: text, ts: Date.now() });
 
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ' + role;
 
-    const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    const avatar = role === 'user' ? 'U' : getIcon(S.provider);
+    var time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    var avatar = role === 'user' ? 'U' : getIcon(S.provider);
+    var sender = role === 'user' ? 'You' : 'AI';
 
-    div.innerHTML = `
-        <div class="avatar ${role}">${avatar}</div>
-        <div class="bubble-wrap">
-            <div class="meta">${role === 'user' ? 'You' : 'AI'} • ${time}</div>
-            <div class="bubble ${role}">${parseText(text)}</div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ' + role + '">' + avatar + '</div>' +
+        '<div class="bubble-wrap">' +
+        '<div class="meta">' + sender + ' - ' + time + '</div>' +
+        '<div class="bubble ' + role + '">' + parseText(text) + '</div>' +
+        '</div>';
 
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function addError(msg, details) {
-    let html = `<strong>Error:</strong> ${esc(msg)}`;
-    if (details?.backend_error) {
-        html += `<br><br><code style="font-size:0.8rem;color:var(--text-muted);">${esc(details.backend_error)}</code>`;
+    var html = '<strong>Error:</strong> ' + esc(msg);
+    if (details && details.backend_error) {
+        html += '<br><br><code style="font-size:0.8rem;color:var(--text-muted);">' + esc(details.backend_error) + '</code>';
     }
 
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ai';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="bubble ai error">${html}</div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ai error">' + html + '</div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function addTyping() {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ai';
     div.id = 'typing';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="bubble ai">
-                <div class="typing"><span></span><span></span><span></span></div>
-            </div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ai">' +
+        '<div class="typing"><span></span><span></span><span></span></div>' +
+        '</div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function removeTyping() {
-    document.getElementById('typing')?.remove();
+    var el = document.getElementById('typing');
+    if (el) el.remove();
 }
 
 function removeApproval() {
-    document.querySelectorAll('.plan-actions').forEach(el => el.remove());
+    var els = document.querySelectorAll('.plan-actions');
+    for (var i = 0; i < els.length; i++) {
+        els[i].remove();
+    }
 }
 
 function renderPlan(plan) {
-    S.messages.push({ role: 'ai', type: 'plan', plan, ts: Date.now() });
+    S.messages.push({ role: 'ai', type: 'plan', plan: plan, ts: Date.now() });
 
-    const cmds = plan.commands.map((c, i) => {
-        const cmd = Array.isArray(c.command) ? c.command.join(' ') : (c.command || '');
-        const desc = c.description || `Command ${i + 1}`;
-        return `
-            <li class="plan-cmd">
-                <input type="checkbox" checked>
-                <div class="plan-cmd-content">
-                    <div class="plan-cmd-desc">${esc(desc)}</div>
-                    <div class="plan-cmd-code">${esc(cmd)}</div>
-                </div>
-            </li>
-        `;
-    }).join('');
+    var cmdsHtml = [];
+    for (var i = 0; i < plan.commands.length; i++) {
+        var c = plan.commands[i];
+        var cmd = Array.isArray(c.command) ? c.command.join(' ') : (c.command || '');
+        var desc = c.description || ('Command ' + (i + 1));
+        cmdsHtml.push('<li class="plan-cmd"><input type="checkbox" checked><div class="plan-cmd-content"><div class="plan-cmd-desc">' + esc(desc) + '</div><div class="plan-cmd-code">' + esc(cmd) + '</div></div></li>');
+    }
+    var cmds = cmdsHtml.join('');
+    var summaryHtml = plan.summary ? '<div class="plan-summary">' + esc(plan.summary) + '</div>' : '';
 
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ai';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="plan-card">
-                <div class="plan-header">📋 Execution Plan</div>
-                ${plan.summary ? `<div class="plan-summary">${esc(plan.summary)}</div>` : ''}
-                <ul class="plan-commands">${cmds}</ul>
-                <div class="plan-actions">
-                    <button class="btn-exec approve" onclick="approve()">✓ Execute</button>
-                    <button class="btn-exec reject" onclick="reject()">✗ Cancel</button>
-                </div>
-            </div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap">' +
+        '<div class="plan-card">' +
+        '<div class="plan-header">Execution Plan</div>' +
+        summaryHtml +
+        '<ul class="plan-commands">' + cmds + '</ul>' +
+        '<div class="plan-actions">' +
+        '<button class="btn-exec approve" onclick="approve()">Execute</button>' +
+        '<button class="btn-exec reject" onclick="reject()">Cancel</button>' +
+        '</div></div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function renderResult(items, success, summary) {
-    S.messages.push({ role: 'ai', type: 'result', items, success, summary, ts: Date.now() });
+    S.messages.push({ role: 'ai', type: 'result', items: items, success: success, summary: summary, ts: Date.now() });
 
-    const output = items.map(i => {
-        const cmd = Array.isArray(i.command || i.Command) ? (i.command || i.Command).join(' ') : (i.command || i.Command || '');
-        const out = (i.output || i.Output || '').trim() || '(no output)';
-        const err = i.error || i.Error || '';
-        return `<div class="term-cmd">$ ${esc(cmd)}</div><div class="term-out">${esc(out)}${err ? '\nError: ' + esc(err) : ''}</div>`;
-    }).join('');
+    var outputParts = [];
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var cmdArr = item.command || item.Command;
+        var cmd = Array.isArray(cmdArr) ? cmdArr.join(' ') : (cmdArr || '');
+        var out = (item.output || item.Output || '').trim() || '(no output)';
+        var err = item.error || item.Error || '';
+        outputParts.push('<div class="term-cmd">$ ' + esc(cmd) + '</div><div class="term-out">' + esc(out) + (err ? '\nError: ' + esc(err) : '') + '</div>');
+    }
+    var output = outputParts.join('');
 
-    const div = document.createElement('div');
+    var summaryHtml = '';
+    if (summary) {
+        var detailsHtml = '';
+        if (summary.details && summary.details.length) {
+            var detailItems = [];
+            for (var j = 0; j < summary.details.length; j++) {
+                detailItems.push('<li>' + esc(summary.details[j]) + '</li>');
+            }
+            detailsHtml = '<ul style="margin-top:8px;padding-left:20px;color:var(--text-secondary);">' + detailItems.join('') + '</ul>';
+        }
+        summaryHtml = '<div class="ai-summary"><div class="ai-summary-title">AI Summary</div><div class="ai-summary-text">' + esc(summary.text) + detailsHtml + '</div></div>';
+    }
+
+    var div = document.createElement('div');
     div.className = 'message ai';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="bubble ai">
-                <div class="terminal">
-                    <div class="terminal-header">
-                        <span>Terminal</span>
-                        <span class="terminal-status ${success ? 'success' : 'error'}">${success ? '✓ Done' : '✗ Error'}</span>
-                    </div>
-                    <div class="terminal-body">${output}</div>
-                </div>
-                ${summary ? `
-                <div class="ai-summary">
-                    <div class="ai-summary-title">AI Summary</div>
-                    <div class="ai-summary-text">${esc(summary.text)}${summary.details?.length ? '<ul style="margin-top:8px;padding-left:20px;color:var(--text-secondary);">' + summary.details.map(d => `<li>${esc(d)}</li>`).join('') + '</ul>' : ''}</div>
-                </div>
-                ` : ''}
-            </div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ai">' +
+        '<div class="terminal">' +
+        '<div class="terminal-header"><span>Terminal</span>' +
+        '<span class="terminal-status ' + (success ? 'success' : 'error') + '">' + (success ? 'Done' : 'Error') + '</span></div>' +
+        '<div class="terminal-body">' + output + '</div></div>' +
+        summaryHtml +
+        '</div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function parseText(text) {
     if (!text) return '';
-    let h = esc(text);
+    var h = esc(text);
     h = h.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     h = h.replace(/`(.*?)`/g, '<code>$1</code>');
     h = h.replace(/\n/g, '<br>');
@@ -1294,7 +1349,7 @@ function parseText(text) {
 }
 
 function getIcon(p) {
-    const icons = {
+    var icons = {
         gemini: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
         openai: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3"/></svg>',
         anthropic: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 22h20L12 2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
@@ -1306,11 +1361,24 @@ function getIcon(p) {
 function saveSession() {
     if (S.messages.length < 2) return;
 
-    const title = S.messages.find(m => m.role === 'user')?.text || 'Chat';
-    const short = title.length > 25 ? title.slice(0, 25) + '...' : title;
+    var userMsg = null;
+    for (var i = 0; i < S.messages.length; i++) {
+        if (S.messages[i].role === 'user') {
+            userMsg = S.messages[i];
+            break;
+        }
+    }
+    var title = (userMsg && userMsg.text) ? userMsg.text : 'Chat';
+    var short = title.length > 25 ? title.slice(0, 25) + '...' : title;
 
-    const sess = { id: S.sessionId, title: short, ts: Date.now(), messages: S.messages };
-    const idx = S.history.findIndex(h => h.id === sess.id);
+    var sess = { id: S.sessionId, title: short, ts: Date.now(), messages: S.messages };
+    var idx = -1;
+    for (var j = 0; j < S.history.length; j++) {
+        if (S.history[j].id === sess.id) {
+            idx = j;
+            break;
+        }
+    }
 
     if (idx >= 0) S.history[idx] = sess;
     else S.history.unshift(sess);
@@ -1324,7 +1392,13 @@ function saveSession() {
 function loadSession(id) {
     // Validate session ID format
     if (!/^sess_\d+$/.test(id)) return;
-    const sess = S.history.find(h => h.id === id);
+    var sess = null;
+    for (var i = 0; i < S.history.length; i++) {
+        if (S.history[i].id === id) {
+            sess = S.history[i];
+            break;
+        }
+    }
     if (!sess) return;
 
     S.sessionId = sess.id;
@@ -1333,7 +1407,8 @@ function loadSession(id) {
     document.getElementById('messages').innerHTML = '';
     hideWelcome();
 
-    sess.messages.forEach(m => {
+    for (var j = 0; j < sess.messages.length; j++) {
+        var m = sess.messages[j];
         if (m.role === 'user') {
             addMsgDirect('user', m.text);
         } else if (m.type === 'plan') {
@@ -1343,91 +1418,90 @@ function loadSession(id) {
         } else {
             addMsgDirect('ai', m.text);
         }
-    });
+    }
 
     renderHistory();
 }
 
 function addMsgDirect(role, text) {
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ' + role;
-    div.innerHTML = `
-        <div class="avatar ${role}">${role === 'user' ? 'U' : getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="bubble ${role}">${parseText(text)}</div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ' + role + '">' + (role === 'user' ? 'U' : getIcon(S.provider)) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ' + role + '">' + parseText(text) + '</div></div>';
     document.getElementById('messages').appendChild(div);
 }
 
 function renderPlanDirect(plan) {
-    const cmds = plan.commands.map(c => {
-        const cmd = Array.isArray(c.command) ? c.command.join(' ') : (c.command || '');
-        return `<li style="padding:8px 0;border-bottom:1px solid var(--border);"><code style="color:var(--success);">${esc(cmd)}</code></li>`;
-    }).join('');
+    var cmdsHtml = [];
+    for (var i = 0; i < plan.commands.length; i++) {
+        var c = plan.commands[i];
+        var cmd = Array.isArray(c.command) ? c.command.join(' ') : (c.command || '');
+        cmdsHtml.push('<li style="padding:8px 0;border-bottom:1px solid var(--border);"><code style="color:var(--success);">' + esc(cmd) + '</code></li>');
+    }
+    var cmds = cmdsHtml.join('');
+    var summaryHtml = plan.summary ? '<div class="plan-summary">' + esc(plan.summary) + '</div>' : '';
 
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ai';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="plan-card">
-                <div class="plan-header">📋 Plan</div>
-                ${plan.summary ? `<div class="plan-summary">${esc(plan.summary)}</div>` : ''}
-                <ul class="plan-commands" style="list-style:none;">${cmds}</ul>
-            </div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="plan-card">' +
+        '<div class="plan-header">Plan</div>' +
+        summaryHtml +
+        '<ul class="plan-commands" style="list-style:none;">' + cmds + '</ul>' +
+        '</div></div>';
     document.getElementById('messages').appendChild(div);
 }
 
 function renderResultDirect(items, success, summary) {
-    const output = items.map(i => {
-        const cmd = Array.isArray(i.command || i.Command) ? (i.command || i.Command).join(' ') : '';
-        const out = (i.output || i.Output || '').trim() || '(no output)';
-        return `<div class="term-cmd">$ ${esc(cmd)}</div><div class="term-out">${esc(out)}</div>`;
-    }).join('');
+    var outputParts = [];
+    for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var cmdArr = item.command || item.Command;
+        var cmd = Array.isArray(cmdArr) ? cmdArr.join(' ') : '';
+        var out = (item.output || item.Output || '').trim() || '(no output)';
+        outputParts.push('<div class="term-cmd">$ ' + esc(cmd) + '</div><div class="term-out">' + esc(out) + '</div>');
+    }
+    var output = outputParts.join('');
+    var summaryHtml = summary ? '<div class="ai-summary"><div class="ai-summary-title">Summary</div><div class="ai-summary-text">' + esc(summary.text) + '</div></div>' : '';
 
-    const div = document.createElement('div');
+    var div = document.createElement('div');
     div.className = 'message ai';
-    div.innerHTML = `
-        <div class="avatar ai">${getIcon(S.provider)}</div>
-        <div class="bubble-wrap">
-            <div class="bubble ai">
-                <div class="terminal">
-                    <div class="terminal-header"><span>Terminal</span><span class="terminal-status ${success?'success':'error'}">${success?'✓':'✗'}</span></div>
-                    <div class="terminal-body">${output}</div>
-                </div>
-                ${summary ? `<div class="ai-summary"><div class="ai-summary-title">Summary</div><div class="ai-summary-text">${esc(summary.text)}</div></div>` : ''}
-            </div>
-        </div>
-    `;
+    div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
+        '<div class="bubble-wrap"><div class="bubble ai">' +
+        '<div class="terminal">' +
+        '<div class="terminal-header"><span>Terminal</span><span class="terminal-status ' + (success ? 'success' : 'error') + '">' + (success ? 'Done' : 'Error') + '</span></div>' +
+        '<div class="terminal-body">' + output + '</div></div>' +
+        summaryHtml +
+        '</div></div>';
     document.getElementById('messages').appendChild(div);
 }
 
 function renderHistory() {
-    const el = document.getElementById('historyList');
+    var el = document.getElementById('historyList');
     el.innerHTML = '';
-    S.history.forEach(h => {
+    for (var i = 0; i < S.history.length; i++) {
+        var h = S.history[i];
         // Validate session ID format (sess_timestamp)
-        if (!/^sess_\d+$/.test(h.id)) return;
+        if (!/^sess_\d+$/.test(h.id)) continue;
 
-        const li = document.createElement('li');
+        var li = document.createElement('li');
         li.className = 'history-item' + (h.id === S.sessionId ? ' active' : '');
-        li.addEventListener('click', () => loadSession(h.id));
+        li.setAttribute('data-id', h.id);
+        li.onclick = function() { loadSession(this.getAttribute('data-id')); };
 
-        const span = document.createElement('span');
+        var span = document.createElement('span');
         span.textContent = h.title || 'Chat';
 
-        const btn = document.createElement('button');
+        var btn = document.createElement('button');
         btn.className = 'delete-btn';
-        btn.textContent = '×';
-        btn.addEventListener('click', (e) => deleteSession(h.id, e));
+        btn.textContent = String.fromCharCode(215);
+        btn.setAttribute('data-id', h.id);
+        btn.onclick = function(e) { deleteSession(this.getAttribute('data-id'), e); };
 
         li.appendChild(span);
         li.appendChild(btn);
         el.appendChild(li);
-    });
+    }
 }
 
 function deleteSession(id, e) {
@@ -1435,7 +1509,11 @@ function deleteSession(id, e) {
     // Validate session ID format
     if (!/^sess_\d+$/.test(id)) return;
     if (!confirm('Delete this chat?')) return;
-    S.history = S.history.filter(h => h.id !== id);
+    var newHistory = [];
+    for (var i = 0; i < S.history.length; i++) {
+        if (S.history[i].id !== id) newHistory.push(S.history[i]);
+    }
+    S.history = newHistory;
     localStorage.setItem('lc_history', JSON.stringify(S.history));
     if (id === S.sessionId) newChat(false);
     else renderHistory();
