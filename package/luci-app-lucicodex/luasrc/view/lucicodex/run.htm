@@ -809,7 +809,7 @@
 
 <script>
 // State
-const S = {
+var S = {
     mode: 'manual',
     provider: 'gemini',
     model: '',
@@ -820,7 +820,7 @@ const S = {
     busy: false
 };
 
-const API = {
+var API = {
     plan: '<%=url("admin/system/lucicodex/plan")%>',
     execute: '<%=url("admin/system/lucicodex/execute")%>',
     summarize: '<%=url("admin/system/lucicodex/summarize")%>',
@@ -1194,7 +1194,7 @@ function showWelcome() { document.getElementById('welcome').style.display = 'fle
 function hideWelcome() { document.getElementById('welcome').style.display = 'none'; }
 
 function setStatus(type, text) {
-    const el = document.getElementById('status');
+    var el = document.getElementById('status');
     el.className = 'status-pill ' + type;
     document.getElementById('statusText').textContent = text;
 }

@@ -459,11 +459,32 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
 </style>
 
 <script>
-function toggleKeyInput(btn, keyId) {
+function findParentForm(el) {
+    while (el && el.tagName !== 'FORM') {
+        el = el.parentNode;
+    }
+    return el;
+}
+
+function saveKey(btn, keyId) {
     var input = document.getElementById(keyId);
-    if (input) {
-        input.focus();
-        input.select();
+    if (input && input.value.trim() !== '') {
+        // Submit the form to save the key
+        var form = findParentForm(btn);
+        if (form) {
+            // Create a hidden input for save action
+            var saveInput = document.createElement('input');
+            saveInput.type = 'hidden';
+            saveInput.name = 'save';
+            saveInput.value = '1';
+            form.appendChild(saveInput);
+            form.submit();
+        }
+    } else {
+        // Focus input if empty
+        if (input) {
+            input.focus();
+        }
     }
 }
 </script>
@@ -515,7 +536,7 @@ function toggleKeyInput(btn, keyId) {
                     <% end %>
                     <div class="input-with-toggle">
                         <input type="text" name="key" id="gemini_key" class="form-input" placeholder="<%=has_gemini and "Enter new key to replace" or "Paste your Gemini API key here"%>" autocomplete="off">
-                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'gemini_key')"><%=has_gemini and "Update" or "Add"%></button>
+                        <button type="button" class="btn-show" onclick="saveKey(this, 'gemini_key')"><%=has_gemini and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Free tier available. Get key: makersuite.google.com/app/apikey</p>
                 </div>
@@ -535,7 +556,7 @@ function toggleKeyInput(btn, keyId) {
                     <% end %>
                     <div class="input-with-toggle">
                         <input type="text" name="openai_key" id="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to replace" or "Paste your OpenAI API key here"%>" autocomplete="off">
-                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'openai_key')"><%=has_openai and "Update" or "Add"%></button>
+                        <button type="button" class="btn-show" onclick="saveKey(this, 'openai_key')"><%=has_openai and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Paid API. Get key: platform.openai.com/api-keys</p>
                 </div>
@@ -555,7 +576,7 @@ function toggleKeyInput(btn, keyId) {
                     <% end %>
                     <div class="input-with-toggle">
                         <input type="text" name="anthropic_key" id="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to replace" or "Paste your Anthropic API key here"%>" autocomplete="off">
-                        <button type="button" class="btn-show" onclick="toggleKeyInput(this, 'anthropic_key')"><%=has_anthropic and "Update" or "Add"%></button>
+                        <button type="button" class="btn-show" onclick="saveKey(this, 'anthropic_key')"><%=has_anthropic and "Update" or "Add"%></button>
                     </div>
                     <p class="form-hint">Paid API. Get key: console.anthropic.com</p>
                 </div>
