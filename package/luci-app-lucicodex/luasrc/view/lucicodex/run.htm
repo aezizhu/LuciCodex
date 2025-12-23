@@ -26,17 +26,22 @@
     --font-mono: "SF Mono", "Fira Code", monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Scope styles to chat container only - don't override LuCI header */
+.chat-container, .chat-container * { box-sizing: border-box; }
 
-body {
-    font-family: var(--font);
+/* Page wrapper for dark background */
+.lucicodex-page {
     background: var(--bg-primary);
-    color: var(--text-primary);
-    -webkit-font-smoothing: antialiased;
+    min-height: calc(100vh - 120px);
+    padding: 0;
+    margin: -20px -20px 0 -20px;
 }
 
 /* Main Layout */
 .chat-container {
+    font-family: var(--font);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
     display: flex;
     height: calc(100vh - 120px);
     max-width: 1400px;
@@ -704,6 +709,7 @@ body {
 }
 </style>
 
+<div class="lucicodex-page">
 <div class="chat-container">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -906,11 +912,19 @@ function autoGrow(el) {
 
 // Core
 async function send() {
-    if (S.busy) return;
+    console.log('[LuciCodex] send() called');
+    if (S.busy) {
+        console.log('[LuciCodex] busy, skipping');
+        return;
+    }
     const input = document.getElementById('input');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text) {
+        console.log('[LuciCodex] empty input, skipping');
+        return;
+    }
 
+    console.log('[LuciCodex] Sending prompt:', text);
     input.value = '';
     autoGrow(input);
     hideWelcome();
@@ -926,7 +940,9 @@ async function send() {
     addTyping();
 
     try {
+        console.log('[LuciCodex] Calling plan API...');
         const r = await api(API.plan, { prompt: text, provider: S.provider, model: S.model });
+        console.log('[LuciCodex] Plan API response:', r);
         removeTyping();
 
         if (!r.ok) throw new Error(r.error || 'Failed to generate plan');
@@ -941,6 +957,7 @@ async function send() {
             if (S.mode === 'auto') await execute(text);
         }
     } catch(e) {
+        console.error('[LuciCodex] Error in send():', e);
         removeTyping();
         addError(e.message, e.details);
     } finally {
@@ -1015,18 +1032,37 @@ function reject() {
 
 // API
 async function api(url, data) {
-    const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    const json = await r.json();
-    if (!r.ok) {
-        const e = new Error(json.error || `Request failed (${r.status})`);
-        e.details = json.details;
-        throw e;
+    console.log('[LuciCodex] API call:', url, data);
+    try {
+        const r = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            credentials: 'same-origin'  // Include cookies for LuCI session
+        });
+        console.log('[LuciCodex] Response status:', r.status);
+
+        const text = await r.text();
+        console.log('[LuciCodex] Response text:', text.substring(0, 500));
+
+        let json;
+        try {
+            json = JSON.parse(text);
+        } catch (parseErr) {
+            console.error('[LuciCodex] JSON parse error:', parseErr);
+            throw new Error('Invalid response from server. Check if daemon is running.');
+        }
+
+        if (!r.ok) {
+            const e = new Error(json.error || `Request failed (${r.status})`);
+            e.details = json.details;
+            throw e;
+        }
+        return json;
+    } catch (fetchErr) {
+        console.error('[LuciCodex] Fetch error:', fetchErr);
+        throw fetchErr;
     }
-    return json;
 }
 
 // Helpers
@@ -1373,5 +1409,6 @@ function clearHistory() {
     newChat(false);
 }
 </script>
+</div>
 
 <%+footer%>

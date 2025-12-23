@@ -1,0 +1,476 @@
+<%+header%>
+<%
+local uci = require "luci.model.uci".cursor()
+local http = require "luci.http"
+
+local function get_config(option)
+    local val = uci:get("lucicodex", "main", option)
+    if not val or val == "" then
+        val = uci:get("lucicodex", "@settings[0]", option)
+    end
+    return val or ""
+end
+
+-- Handle form submission
+if http.formvalue("save") then
+    local conf = "lucicodex"
+
+    -- Ensure section exists
+    local exist = uci:get(conf, "main")
+    if not exist then
+        uci:set(conf, "main", "settings")
+    end
+
+    -- Provider
+    local provider = http.formvalue("provider")
+    if provider and (provider == "gemini" or provider == "openai" or provider == "anthropic") then
+        uci:set(conf, "main", "provider", provider)
+    end
+
+    -- API Keys (only update if non-empty)
+    local gemini_key = http.formvalue("key")
+    if gemini_key and gemini_key ~= "" then
+        uci:set(conf, "main", "key", gemini_key)
+    end
+
+    local openai_key = http.formvalue("openai_key")
+    if openai_key and openai_key ~= "" then
+        uci:set(conf, "main", "openai_key", openai_key)
+    end
+
+    local anthropic_key = http.formvalue("anthropic_key")
+    if anthropic_key and anthropic_key ~= "" then
+        uci:set(conf, "main", "anthropic_key", anthropic_key)
+    end
+
+    -- Safety settings
+    local dry_run = http.formvalue("dry_run")
+    uci:set(conf, "main", "dry_run", dry_run and "1" or "0")
+
+    local confirm_each = http.formvalue("confirm_each")
+    uci:set(conf, "main", "confirm_each", confirm_each and "1" or "0")
+
+    local timeout = http.formvalue("timeout")
+    if timeout and tonumber(timeout) then
+        uci:set(conf, "main", "timeout", timeout)
+    end
+
+    local max_commands = http.formvalue("max_commands")
+    if max_commands and tonumber(max_commands) then
+        uci:set(conf, "main", "max_commands", max_commands)
+    end
+
+    -- Advanced settings
+    local model = http.formvalue("model")
+    if model then uci:set(conf, "main", "model", model) end
+
+    local endpoint = http.formvalue("endpoint")
+    if endpoint then uci:set(conf, "main", "endpoint", endpoint) end
+
+    local openai_model = http.formvalue("openai_model")
+    if openai_model then uci:set(conf, "main", "openai_model", openai_model) end
+
+    local openai_endpoint = http.formvalue("openai_endpoint")
+    if openai_endpoint then uci:set(conf, "main", "openai_endpoint", openai_endpoint) end
+
+    local anthropic_model = http.formvalue("anthropic_model")
+    if anthropic_model then uci:set(conf, "main", "anthropic_model", anthropic_model) end
+
+    local anthropic_endpoint = http.formvalue("anthropic_endpoint")
+    if anthropic_endpoint then uci:set(conf, "main", "anthropic_endpoint", anthropic_endpoint) end
+
+    uci:commit(conf)
+end
+
+-- Load current values
+local provider = get_config("provider") or "gemini"
+local has_gemini = (get_config("key") or "") ~= ""
+local has_openai = (get_config("openai_key") or "") ~= ""
+local has_anthropic = (get_config("anthropic_key") or "") ~= ""
+local dry_run = get_config("dry_run") ~= "0"
+local confirm_each = get_config("confirm_each") == "1"
+local timeout = get_config("timeout") or "60"
+local max_commands = get_config("max_commands") or "10"
+local model = get_config("model") or ""
+local endpoint = get_config("endpoint") or ""
+local openai_model = get_config("openai_model") or ""
+local openai_endpoint = get_config("openai_endpoint") or ""
+local anthropic_model = get_config("anthropic_model") or ""
+local anthropic_endpoint = get_config("anthropic_endpoint") or ""
+%>
+
+<style>
+:root {
+    --bg-primary: #0a0a0b;
+    --bg-secondary: #111113;
+    --bg-tertiary: #18181b;
+    --bg-elevated: #1f1f23;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --success: #22c55e;
+    --error: #ef4444;
+    --border: rgba(255,255,255,0.08);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.config-page {
+    background: var(--bg-primary);
+    min-height: calc(100vh - 120px);
+    padding: 32px 24px;
+    margin: -20px -20px 0 -20px;
+    font-family: var(--font);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+}
+
+.config-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.config-header {
+    margin-bottom: 32px;
+}
+
+.config-header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    background: linear-gradient(180deg, #fff 0%, #a1a1aa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.config-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin: 0;
+}
+
+.config-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-desc {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0 0 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.form-hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: var(--font);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-select:focus {
+    border-color: var(--accent);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.form-select option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.form-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+}
+
+.form-checkbox-content {
+    flex: 1;
+}
+
+.form-checkbox-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.form-checkbox-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.key-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+}
+
+.key-status.configured {
+    background: rgba(34,197,94,0.15);
+    color: var(--success);
+}
+
+.key-status.missing {
+    background: rgba(239,68,68,0.15);
+    color: var(--error);
+}
+
+.btn-save {
+    padding: 14px 32px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn-save:hover {
+    background: var(--accent-hover);
+}
+
+.btn-save:active {
+    transform: scale(0.98);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .config-page {
+        padding: 20px 16px;
+    }
+}
+
+.success-msg {
+    background: rgba(34,197,94,0.15);
+    border: 1px solid rgba(34,197,94,0.3);
+    color: var(--success);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+    font-size: 0.9rem;
+}
+</style>
+
+<div class="config-page">
+    <div class="config-container">
+        <div class="config-header">
+            <h1>LuciCodex Configuration</h1>
+            <p>Configure your AI-powered router assistant. Set up API keys and safety preferences below.</p>
+        </div>
+
+        <% if http.formvalue("save") then %>
+        <div class="success-msg">Settings saved successfully!</div>
+        <% end %>
+
+        <form method="post" action="">
+            <!-- Provider Selection -->
+            <div class="config-section">
+                <h2 class="section-title">AI Provider</h2>
+                <p class="section-desc">Choose which AI service powers LuciCodex. Make sure to configure the corresponding API key.</p>
+
+                <div class="form-group">
+                    <label class="form-label">Active Provider</label>
+                    <select name="provider" class="form-select">
+                        <option value="gemini" <%=provider == "gemini" and "selected" or ""%>>Google Gemini <%=has_gemini and "(Configured)" or ""%></option>
+                        <option value="openai" <%=provider == "openai" and "selected" or ""%>>OpenAI (GPT-5) <%=has_openai and "(Configured)" or ""%></option>
+                        <option value="anthropic" <%=provider == "anthropic" and "selected" or ""%>>Anthropic (Claude) <%=has_anthropic and "(Configured)" or ""%></option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- API Keys -->
+            <div class="config-section">
+                <h2 class="section-title">API Keys</h2>
+                <p class="section-desc">Enter your API keys below. Keys are stored securely and never transmitted except to the provider. Leave a field empty to keep its existing value.</p>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Gemini API Key
+                        <span class="key-status <%=has_gemini and "configured" or "missing"%>">
+                            <%=has_gemini and "Configured" or "Not set"%>
+                        </span>
+                    </label>
+                    <input type="password" name="key" class="form-input" placeholder="<%=has_gemini and "Enter new key to change" or "Enter API key"%>">
+                    <p class="form-hint">Free tier available. Get key: makersuite.google.com/app/apikey</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        OpenAI API Key
+                        <span class="key-status <%=has_openai and "configured" or "missing"%>">
+                            <%=has_openai and "Configured" or "Not set"%>
+                        </span>
+                    </label>
+                    <input type="password" name="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to change" or "Enter API key"%>">
+                    <p class="form-hint">Paid API. Get key: platform.openai.com/api-keys</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        Anthropic API Key
+                        <span class="key-status <%=has_anthropic and "configured" or "missing"%>">
+                            <%=has_anthropic and "Configured" or "Not set"%>
+                        </span>
+                    </label>
+                    <input type="password" name="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to change" or "Enter API key"%>">
+                    <p class="form-hint">Paid API. Get key: console.anthropic.com</p>
+                </div>
+            </div>
+
+            <!-- Safety Settings -->
+            <div class="config-section">
+                <h2 class="section-title">Safety Settings</h2>
+                <p class="section-desc">Control how LuciCodex executes commands on your router. We recommend keeping Dry Run enabled until you're comfortable with the tool.</p>
+
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" name="dry_run" <%=dry_run and "checked" or ""%>>
+                        <div class="form-checkbox-content">
+                            <div class="form-checkbox-label">Dry Run Mode</div>
+                            <div class="form-checkbox-desc">RECOMMENDED: When enabled, commands are displayed but not executed automatically. You must manually approve each command.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-checkbox">
+                        <input type="checkbox" name="confirm_each" <%=confirm_each and "checked" or ""%>>
+                        <div class="form-checkbox-content">
+                            <div class="form-checkbox-label">Confirm Each Command</div>
+                            <div class="form-checkbox-desc">Ask for confirmation before executing each individual command in a plan.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Command Timeout (seconds)</label>
+                        <input type="number" name="timeout" class="form-input" value="<%=timeout%>" placeholder="60" min="1" max="600">
+                        <p class="form-hint">Default: 60 seconds</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Maximum Commands</label>
+                        <input type="number" name="max_commands" class="form-input" value="<%=max_commands%>" placeholder="10" min="1" max="100">
+                        <p class="form-hint">Default: 10 commands per plan</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Settings -->
+            <div class="config-section">
+                <h2 class="section-title">Advanced Settings</h2>
+                <p class="section-desc">Custom model and endpoint settings. Leave empty to use defaults. Only change these if you know what you're doing.</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Gemini Model</label>
+                        <input type="text" name="model" class="form-input" value="<%=model%>" placeholder="gemini-3-flash">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gemini Endpoint</label>
+                        <input type="text" name="endpoint" class="form-input" value="<%=endpoint%>" placeholder="https://generativelanguage.googleapis.com/v1beta">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">OpenAI Model</label>
+                        <input type="text" name="openai_model" class="form-input" value="<%=openai_model%>" placeholder="gpt-5-mini">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">OpenAI Endpoint</label>
+                        <input type="text" name="openai_endpoint" class="form-input" value="<%=openai_endpoint%>" placeholder="https://api.openai.com/v1">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Anthropic Model</label>
+                        <input type="text" name="anthropic_model" class="form-input" value="<%=anthropic_model%>" placeholder="claude-haiku-4-5-20251001">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Anthropic Endpoint</label>
+                        <input type="text" name="anthropic_endpoint" class="form-input" value="<%=anthropic_endpoint%>" placeholder="https://api.anthropic.com/v1">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" name="save" value="1" class="btn-save">Save Configuration</button>
+        </form>
+    </div>
+</div>
+
+<%+footer%>
