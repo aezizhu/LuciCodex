@@ -32,9 +32,22 @@
 /* Page wrapper for dark background */
 .lucicodex-page {
     background: var(--bg-primary);
-    min-height: calc(100vh - 120px);
-    padding: 0;
-    margin: -20px -20px 0 -20px;
+    min-height: calc(100vh - 80px);
+    padding: 16px;
+    margin: -20px;
+    position: relative;
+}
+
+/* Extend background to cover any gaps */
+.lucicodex-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    z-index: -1;
 }
 
 /* Main Layout */
@@ -43,10 +56,12 @@
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     display: flex;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 140px);
     max-width: 1400px;
-    margin: 16px auto;
+    margin: 0 auto;
     background: var(--bg-secondary);
+    position: relative;
+    z-index: 1;
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
     overflow: hidden;
@@ -813,37 +828,61 @@ const API = {
 };
 
 // Init
-document.addEventListener('DOMContentLoaded', async () => {
-    loadState();
-    await loadProviders();
-    newChat(false);
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('[LuciCodex] DOM loaded, initializing...');
+    console.log('[LuciCodex] API URLs:', API);
+    try {
+        loadState();
+        loadProviders().then(function() {
+            newChat(false);
+            console.log('[LuciCodex] Initialization complete');
+        }).catch(function(e) {
+            console.error('[LuciCodex] Provider load error:', e);
+            newChat(false);
+        });
+    } catch(e) {
+        console.error('[LuciCodex] Init error:', e);
+    }
 });
 
+// Debug: log when script loads
+console.log('[LuciCodex] Script loaded');
+
 async function loadProviders() {
+    console.log('[LuciCodex] Loading providers...');
     try {
-        const r = await fetch(API.providers);
-        if (!r.ok) return;
-        const d = await r.json();
+        const r = await fetch(API.providers, { credentials: 'same-origin' });
+        console.log('[LuciCodex] Providers response status:', r.status);
+        if (!r.ok) {
+            console.warn('[LuciCodex] Providers endpoint not OK:', r.status);
+            return;
+        }
+        const text = await r.text();
+        console.log('[LuciCodex] Providers response:', text.substring(0, 200));
+        const d = JSON.parse(text);
         const sel = document.getElementById('provider');
-        if (d.configured?.length) {
+        if (d.configured && d.configured.length) {
             // Clear existing options
             sel.innerHTML = '';
             // Validate and create options safely
             const validProviders = ['gemini', 'openai', 'anthropic'];
             const labels = {gemini:'Google Gemini',openai:'OpenAI',anthropic:'Anthropic'};
-            d.configured.forEach(p => {
+            d.configured.forEach(function(p) {
                 // Only allow known provider values to prevent XSS
-                if (validProviders.includes(p)) {
+                if (validProviders.indexOf(p) !== -1) {
                     const opt = document.createElement('option');
                     opt.value = p;
                     opt.textContent = labels[p] || p;
                     sel.appendChild(opt);
                 }
             });
-            S.provider = validProviders.includes(d.default) ? d.default : (d.configured[0] || 'gemini');
+            S.provider = validProviders.indexOf(d.default) !== -1 ? d.default : (d.configured[0] || 'gemini');
             sel.value = S.provider;
         }
-    } catch(e) { console.warn('Failed to load providers', e); }
+        console.log('[LuciCodex] Providers loaded, active:', S.provider);
+    } catch(e) {
+        console.warn('[LuciCodex] Failed to load providers:', e);
+    }
 }
 
 function loadState() {

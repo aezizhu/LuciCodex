@@ -84,9 +84,22 @@ end
 
 -- Load current values
 local provider = get_config("provider") or "gemini"
-local has_gemini = (get_config("key") or "") ~= ""
-local has_openai = (get_config("openai_key") or "") ~= ""
-local has_anthropic = (get_config("anthropic_key") or "") ~= ""
+local gemini_key_val = get_config("key") or ""
+local openai_key_val = get_config("openai_key") or ""
+local anthropic_key_val = get_config("anthropic_key") or ""
+local has_gemini = gemini_key_val ~= ""
+local has_openai = openai_key_val ~= ""
+local has_anthropic = anthropic_key_val ~= ""
+
+-- Mask keys for display (show first 8 and last 4 chars)
+local function mask_key(key)
+    if not key or key == "" then return "" end
+    if #key <= 12 then return string.rep("*", #key) end
+    return key:sub(1, 8) .. string.rep("*", #key - 12) .. key:sub(-4)
+end
+local gemini_masked = mask_key(gemini_key_val)
+local openai_masked = mask_key(openai_key_val)
+local anthropic_masked = mask_key(anthropic_key_val)
 local dry_run = get_config("dry_run") ~= "0"
 local confirm_each = get_config("confirm_each") == "1"
 local timeout = get_config("timeout") or "60"
@@ -121,17 +134,32 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
 
 .config-page {
     background: var(--bg-primary);
-    min-height: calc(100vh - 120px);
+    min-height: calc(100vh - 80px);
     padding: 32px 24px;
-    margin: -20px -20px 0 -20px;
+    margin: -20px;
     font-family: var(--font);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    position: relative;
+}
+
+/* Extend background to cover any gaps */
+.config-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    z-index: -1;
 }
 
 .config-container {
     max-width: 800px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
 }
 
 .config-header {
@@ -321,7 +349,83 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
     margin-bottom: 24px;
     font-size: 0.9rem;
 }
+
+/* API Key display */
+.key-display {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.key-display .key-value {
+    flex: 1;
+    word-break: break-all;
+}
+
+.key-display .btn-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    margin-left: 12px;
+    transition: all 0.2s;
+}
+
+.key-display .btn-toggle:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.input-with-toggle {
+    display: flex;
+    gap: 8px;
+}
+
+.input-with-toggle .form-input {
+    flex: 1;
+}
+
+.input-with-toggle .btn-show {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.input-with-toggle .btn-show:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
 </style>
+
+<script>
+function toggleKey(btn, keyId) {
+    const input = document.getElementById(keyId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Show';
+    }
+}
+</script>
 
 <div class="config-page">
     <div class="config-container">
@@ -362,7 +466,15 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
                             <%=has_gemini and "Configured" or "Not set"%>
                         </span>
                     </label>
-                    <input type="password" name="key" class="form-input" placeholder="<%=has_gemini and "Enter new key to change" or "Enter API key"%>">
+                    <% if has_gemini then %>
+                    <div class="key-display">
+                        <span class="key-value"><%=gemini_masked%></span>
+                    </div>
+                    <% end %>
+                    <div class="input-with-toggle">
+                        <input type="password" name="key" id="gemini_key" class="form-input" placeholder="<%=has_gemini and "Enter new key to replace" or "Enter API key"%>">
+                        <button type="button" class="btn-show" onclick="toggleKey(this, 'gemini_key')">Show</button>
+                    </div>
                     <p class="form-hint">Free tier available. Get key: makersuite.google.com/app/apikey</p>
                 </div>
 
@@ -373,7 +485,15 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
                             <%=has_openai and "Configured" or "Not set"%>
                         </span>
                     </label>
-                    <input type="password" name="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to change" or "Enter API key"%>">
+                    <% if has_openai then %>
+                    <div class="key-display">
+                        <span class="key-value"><%=openai_masked%></span>
+                    </div>
+                    <% end %>
+                    <div class="input-with-toggle">
+                        <input type="password" name="openai_key" id="openai_key" class="form-input" placeholder="<%=has_openai and "Enter new key to replace" or "Enter API key"%>">
+                        <button type="button" class="btn-show" onclick="toggleKey(this, 'openai_key')">Show</button>
+                    </div>
                     <p class="form-hint">Paid API. Get key: platform.openai.com/api-keys</p>
                 </div>
 
@@ -384,7 +504,15 @@ local anthropic_endpoint = get_config("anthropic_endpoint") or ""
                             <%=has_anthropic and "Configured" or "Not set"%>
                         </span>
                     </label>
-                    <input type="password" name="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to change" or "Enter API key"%>">
+                    <% if has_anthropic then %>
+                    <div class="key-display">
+                        <span class="key-value"><%=anthropic_masked%></span>
+                    </div>
+                    <% end %>
+                    <div class="input-with-toggle">
+                        <input type="password" name="anthropic_key" id="anthropic_key" class="form-input" placeholder="<%=has_anthropic and "Enter new key to replace" or "Enter API key"%>">
+                        <button type="button" class="btn-show" onclick="toggleKey(this, 'anthropic_key')">Show</button>
+                    </div>
                     <p class="form-hint">Paid API. Get key: console.anthropic.com</p>
                 </div>
             </div>

@@ -57,16 +57,31 @@ end
     font-family: var(--font);
     background: var(--bg-primary);
     color: var(--text-primary);
-    margin: -20px -20px 0 -20px;
-    padding: 0;
-    min-height: calc(100vh - 120px);
+    position: relative;
+    margin: -20px;
+    padding: 20px;
+    min-height: calc(100vh - 80px);
     -webkit-font-smoothing: antialiased;
+}
+
+/* Extend background to cover any gaps */
+.lucicodex-home-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-primary);
+    z-index: -1;
 }
 
 .home-container {
     max-width: 900px;
     margin: 0 auto;
     padding: 48px 24px;
+    position: relative;
+    z-index: 1;
 }
 
 /* Hero */
