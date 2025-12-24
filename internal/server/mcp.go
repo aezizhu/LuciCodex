@@ -126,7 +126,7 @@ func (s *Server) mcpInitialize(params json.RawMessage) (interface{}, *MCPError) 
 		"protocolVersion": "2024-11-05",
 		"serverInfo": MCPServerInfo{
 			Name:    "lucicodex",
-			Version: "0.6.20",
+			Version: "1.0.0",
 			Capabilities: []string{
 				"tools",
 				"resources",

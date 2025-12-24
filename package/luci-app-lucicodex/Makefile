@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-lucicodex
-PKG_VERSION:=0.7.9
+PKG_VERSION:=1.0.0
 PKG_RELEASE:=1
 
 LUCI_TITLE:=LuciCodex - Natural Language CLI for OpenWrt (Web UI)

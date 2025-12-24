@@ -121,7 +121,7 @@ opkg install luci-app-lucicodex
 lucicodex -version
 ```
 
-你应该看到：`LuciCodex version 0.6.2`
+你应该看到：`LuciCodex version 1.0.0`
 
 ### 获取 API 密钥
 
