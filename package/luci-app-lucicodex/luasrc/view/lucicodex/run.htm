@@ -131,12 +131,12 @@
 .sidebar-select, .sidebar-input {
     width: 100%;
     padding: 10px 12px;
-    padding-right: 28px;
+    padding-right: 32px;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     outline: none;
     transition: border-color 0.2s;
     -webkit-appearance: none;
@@ -144,7 +144,10 @@
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23a1a1aa' d='M5 7L1 3h8z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 8px center;
+    background-position: right 10px center;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 .sidebar-select:focus, .sidebar-input:focus {
@@ -666,6 +669,63 @@
     line-height: 1.5;
 }
 
+/* Collapsible AI Messages */
+.bubble.collapsible {
+    position: relative;
+}
+
+.bubble.collapsible .bubble-content {
+    max-height: 200px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.bubble.collapsible.expanded .bubble-content {
+    max-height: none;
+}
+
+.bubble.collapsible:not(.expanded) .bubble-content::after {
+    content: '';
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(transparent, var(--bg-tertiary));
+    pointer-events: none;
+}
+
+.bubble-toggle {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    margin-top: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.bubble-toggle:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.bubble-toggle-icon {
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.3s;
+}
+
+.bubble.collapsible.expanded .bubble-toggle-icon {
+    transform: rotate(180deg);
+}
+
 /* Typing Indicator */
 .typing {
     display: flex;
@@ -895,30 +955,51 @@ var API = {
 // WebSocket connection
 var ws = null;
 var wsReconnectTimer = null;
+var wsReconnectAttempts = 0;
+var wsMaxReconnectAttempts = 3; // Stop trying after 3 failures
+var wsDisabled = false; // Disable WebSocket after max failures
 
 function connectWebSocket() {
+    // Don't try if disabled or already connected
+    if (wsDisabled) return;
     if (ws && ws.readyState === WebSocket.OPEN) return;
+
+    // Check if we've exceeded max attempts
+    if (wsReconnectAttempts >= wsMaxReconnectAttempts) {
+        console.log('[LuciCodex] WebSocket disabled - max reconnect attempts reached. Using HTTP fallback.');
+        wsDisabled = true;
+        return;
+    }
 
     try {
         ws = new WebSocket(API.ws);
 
         ws.onopen = function() {
             console.log('[LuciCodex] WebSocket connected');
+            wsReconnectAttempts = 0; // Reset on successful connection
         };
 
         ws.onclose = function() {
-            console.log('[LuciCodex] WebSocket closed');
             ws = null;
-            // Try reconnect after 5 seconds
-            if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-            wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+            wsReconnectAttempts++;
+            if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+                // Exponential backoff: 2s, 4s, 8s...
+                var delay = Math.min(2000 * Math.pow(2, wsReconnectAttempts - 1), 30000);
+                console.log('[LuciCodex] WebSocket closed, retry ' + wsReconnectAttempts + '/' + wsMaxReconnectAttempts + ' in ' + (delay/1000) + 's');
+                if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+                wsReconnectTimer = setTimeout(connectWebSocket, delay);
+            } else {
+                console.log('[LuciCodex] WebSocket disabled after ' + wsMaxReconnectAttempts + ' failed attempts. Using HTTP fallback.');
+                wsDisabled = true;
+            }
         };
 
         ws.onerror = function(e) {
-            console.warn('[LuciCodex] WebSocket error:', e);
+            // Don't log every error, just count failures
         };
     } catch(e) {
-        console.warn('[LuciCodex] WebSocket not available:', e);
+        console.log('[LuciCodex] WebSocket not supported, using HTTP fallback');
+        wsDisabled = true;
     }
 }
 
@@ -1143,7 +1224,7 @@ function execute(prompt, cmds) {
     setBusy(true);
 
     // Try WebSocket streaming first, fallback to HTTP
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if (!wsDisabled && ws && ws.readyState === WebSocket.OPEN) {
         executeStreaming(prompt, formattedCmds);
     } else {
         executeHttp(prompt, formattedCmds);
@@ -1488,11 +1569,33 @@ function api(url, data) {
     .then(function(text) {
         console.log('[LuciCodex] Response text:', text.substring(0, 500));
 
+        // Handle proxy/gateway errors
+        if (responseStatus === 502 || responseStatus === 504) {
+            throw new Error('Gateway timeout - the request took too long. Try a simpler query or check router connection.');
+        }
+        if (responseStatus === 503) {
+            throw new Error('Service unavailable - LuciCodex daemon may not be running.');
+        }
+        if (responseStatus === 504) {
+            throw new Error('Request timeout - try a simpler query.');
+        }
+
         var json;
         try {
             json = JSON.parse(text);
         } catch (parseErr) {
             console.error('[LuciCodex] JSON parse error:', parseErr);
+            // Check if it's an HTML error page
+            if (text.indexOf('<html') !== -1 || text.indexOf('<!DOCTYPE') !== -1) {
+                if (text.indexOf('502') !== -1) {
+                    throw new Error('Gateway timeout - command execution took too long. Try a simpler query.');
+                } else if (text.indexOf('504') !== -1) {
+                    throw new Error('Request timeout - try a simpler query.');
+                } else if (text.indexOf('503') !== -1) {
+                    throw new Error('Service unavailable - check if LuciCodex is running.');
+                }
+                throw new Error('Server returned an error page. Check router connection.');
+            }
             throw new Error('Invalid response from server. Check if daemon is running.');
         }
 
@@ -1600,6 +1703,17 @@ function addMsg(role, text) {
         '</div>';
 
     document.getElementById('messages').appendChild(div);
+
+    // Make AI messages collapsible if content is long
+    if (role === 'ai') {
+        setTimeout(function() {
+            var bubble = div.querySelector('.bubble.ai');
+            if (bubble && bubble.scrollHeight > 300) {
+                makeCollapsible(bubble, bubble.scrollHeight);
+            }
+        }, 100);
+    }
+
     scroll();
 }
 
@@ -1684,6 +1798,30 @@ function togglePlan(btn) {
         (isCollapsed ? 'Hide' : 'Show ' + cmdCount) + ' command' + (cmdCount > 1 ? 's' : '');
 }
 
+function toggleBubble(btn) {
+    var bubble = btn.closest('.bubble');
+    if (!bubble) return;
+
+    var isExpanded = bubble.classList.contains('expanded');
+    bubble.classList.toggle('expanded');
+
+    btn.innerHTML = '<span class="bubble-toggle-icon">▼</span>' +
+        (isExpanded ? 'Expand' : 'Collapse');
+}
+
+function makeCollapsible(bubble, contentHeight) {
+    // Only make collapsible if content is tall enough (> 200px)
+    if (contentHeight <= 200) return;
+
+    bubble.classList.add('collapsible');
+
+    // Wrap existing content
+    var content = bubble.innerHTML;
+    bubble.innerHTML = '<div class="bubble-content">' + content + '</div>' +
+        '<button class="bubble-toggle" onclick="toggleBubble(this)">' +
+        '<span class="bubble-toggle-icon">▼</span>Expand</button>';
+}
+
 function collapsePlan() {
     // Find all plan cards and collapse them after execution
     var planCards = document.querySelectorAll('.plan-card:not(.executed)');
@@ -1737,6 +1875,15 @@ function renderResult(items, success, summary) {
         '<div class="terminal-body">' + output + '</div></div>' +
         '</div></div>';
     document.getElementById('messages').appendChild(div);
+
+    // Make collapsible if content is long
+    setTimeout(function() {
+        var bubble = div.querySelector('.bubble.ai');
+        if (bubble && bubble.scrollHeight > 300) {
+            makeCollapsible(bubble, bubble.scrollHeight);
+        }
+    }, 100);
+
     scroll();
 }
 
