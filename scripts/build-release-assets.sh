@@ -4,7 +4,7 @@ set -euo pipefail
 # Build multi-arch binaries and package .ipk for lucicodex and luci-app-lucicodex
 # Requires: go, tar, ar (binutils)
 
-VERSION=${VERSION:-"0.7.12"}
+VERSION=${VERSION:-"0.7.13"}
 OUT=${OUT:-"dist"}
 ARCHES=(amd64 arm64 arm mipsle mips)
 GOARM_DEFAULT=7
