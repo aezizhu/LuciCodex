@@ -3,7 +3,7 @@
 # LuciCodex Installer
 # Usage: wget -qO- https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
 
-VERSION="0.8.0"
+VERSION="1.0.0"
 REPO="aezizhu/LuciCodex"
 
 echo "========================================"
