@@ -166,7 +166,7 @@ opkg install luci-app-lucicodex
 lucicodex -version
 ```
 
-You should see: `LuciCodex version 0.7.12`
+You should see: `LuciCodex version 0.8.0`
 
 ### Getting Your API Key
 
@@ -224,15 +224,21 @@ This is the easiest way to use LuciCodex, especially if you're not comfortable w
 5. If they look correct, click **Execute Commands**
 
 <p align="center">
-  <img src="assets/screenshot-plan.png" alt="LuciCodex Execution Plan" width="600">
+  <img src="assets/screenshot-plan.png" alt="LuciCodex Execution Plan" width="400">
   <br>
   <em>Review the AI-generated execution plan before running commands</em>
 </p>
 
 <p align="center">
-  <img src="assets/screenshot-result.png" alt="LuciCodex Terminal Output with AI Summary" width="600">
+  <img src="assets/screenshot-terminal.png" alt="LuciCodex Terminal Output" width="400">
   <br>
-  <em>See real-time terminal output with AI-powered summary</em>
+  <em>Real-time terminal output with expandable/collapsible sections</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshot-result.png" alt="LuciCodex AI Summary" width="400">
+  <br>
+  <em>AI-powered summary explains what the commands did</em>
 </p>
 
 **That's it!** You're now using natural language to control your router.
