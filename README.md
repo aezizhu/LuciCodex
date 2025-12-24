@@ -109,7 +109,25 @@ Before installing LuciCodex, you need:
 
 ### Installation on OpenWrt
 
-#### Step 1: Download the Package
+#### Quick Install (Recommended)
+
+SSH into your router and run this one-liner to automatically detect your architecture and install everything:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/aezizhu/LuciCodex/main/install.sh | sh
+```
+
+This script will:
+- Detect your router's CPU architecture
+- Download the correct backend binary
+- Install the LuCI web interface
+- Start the service automatically
+
+#### Manual Installation
+
+If you prefer to install manually, follow these steps:
+
+##### Step 1: Download the Package
 
 SSH into your router and download the LuCICodex package for your architecture:
 
@@ -129,26 +147,26 @@ wget https://github.com/aezizhu/LuciCodex/releases/latest/download/lucicodex-amd
 ```
 
 
-#### Step 2: Install the Package
+##### Step 2: Install the Package
 
 ```bash
 opkg update
 opkg install /tmp/lucicodex-*.ipk
 ```
 
-#### Step 3: Install the Web Interface (Optional but Recommended)
+##### Step 3: Install the Web Interface (Optional but Recommended)
 
 ```bash
 opkg install luci-app-lucicodex
 ```
 
-#### Step 4: Verify Installation
+##### Step 4: Verify Installation
 
 ```bash
 lucicodex -version
 ```
 
-You should see: `LuciCodex version 0.5.1`
+You should see: `LuciCodex version 0.7.12`
 
 ### Getting Your API Key
 
