@@ -1301,7 +1301,7 @@ function fetchSummary(prompt, items) {
 }
 
 function addSummaryPlaceholder(prompt, items, summaryId) {
-    // Find the last terminal and add loading placeholder
+    // Find the last terminal and add loading placeholder BEFORE it
     var terminals = document.querySelectorAll('.terminal');
     if (!terminals.length) {
         console.warn('[LuciCodex] No terminal found for summary placeholder');
@@ -1330,7 +1330,8 @@ function addSummaryPlaceholder(prompt, items, summaryId) {
     placeholder.setAttribute('data-prompt', prompt);
     placeholder.setAttribute('data-items', JSON.stringify(items));
 
-    bubble.appendChild(placeholder);
+    // Insert BEFORE terminal instead of after
+    bubble.insertBefore(placeholder, lastTerminal);
     console.log('[LuciCodex] Added summary placeholder:', summaryId);
     scroll();
 }
@@ -1657,18 +1658,18 @@ function renderResult(items, success, summary) {
     div.className = 'message ai';
     div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
         '<div class="bubble-wrap"><div class="bubble ai">' +
+        summaryHtml +
         '<div class="terminal">' +
         '<div class="terminal-header"><span>Terminal</span>' +
         '<span class="terminal-status ' + (success ? 'success' : 'error') + '">' + (success ? 'Done' : 'Error') + '</span></div>' +
         '<div class="terminal-body">' + output + '</div></div>' +
-        summaryHtml +
         '</div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
 }
 
 function addSummaryToLastResult(summary) {
-    // Find the last terminal element and add summary after it
+    // Find the last terminal element and add summary BEFORE it
     var terminals = document.querySelectorAll('.terminal');
     if (!terminals.length) return;
 
@@ -1692,7 +1693,8 @@ function addSummaryToLastResult(summary) {
     summaryEl.className = 'ai-summary';
     summaryEl.innerHTML = '<div class="ai-summary-title">AI Summary</div><div class="ai-summary-text">' + esc(summary.text) + detailsHtml + '</div>';
 
-    bubble.appendChild(summaryEl);
+    // Insert BEFORE terminal instead of after
+    bubble.insertBefore(summaryEl, lastTerminal);
     scroll();
 
     // Update state for session persistence
@@ -1827,16 +1829,16 @@ function renderResultDirect(items, success, summary) {
         outputParts.push('<div class="term-cmd">$ ' + esc(cmd) + '</div><div class="term-out">' + esc(out) + '</div>');
     }
     var output = outputParts.join('');
-    var summaryHtml = summary ? '<div class="ai-summary"><div class="ai-summary-title">Summary</div><div class="ai-summary-text">' + esc(summary.text) + '</div></div>' : '';
+    var summaryHtml = summary ? '<div class="ai-summary"><div class="ai-summary-title">AI Summary</div><div class="ai-summary-text">' + esc(summary.text) + '</div></div>' : '';
 
     var div = document.createElement('div');
     div.className = 'message ai';
     div.innerHTML = '<div class="avatar ai">' + getIcon(S.provider) + '</div>' +
         '<div class="bubble-wrap"><div class="bubble ai">' +
+        summaryHtml +
         '<div class="terminal">' +
         '<div class="terminal-header"><span>Terminal</span><span class="terminal-status ' + (success ? 'success' : 'error') + '">' + (success ? 'Done' : 'Error') + '</span></div>' +
         '<div class="terminal-body">' + output + '</div></div>' +
-        summaryHtml +
         '</div></div>';
     document.getElementById('messages').appendChild(div);
 }
