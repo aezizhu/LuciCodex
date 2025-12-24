@@ -103,7 +103,7 @@ Before installing LuciCodex, you need:
 
 | Provider | Models | Notes |
 |----------|--------|-------|
-| **Google Gemini** (Default) | `gemini-2.5-flash` | Free tier available |
+| **Google Gemini** (Default) | `gemini-3-flash` | Free tier available |
 | **OpenAI** | `gpt-5-mini`, `gpt-5`, etc. | Pay per use |
 | **Anthropic** | `claude-haiku-4-5-20251001`, etc. | Pay per use |
 
@@ -302,7 +302,7 @@ LuciCodex supports multiple AI providers. Here's how to choose:
 **API Settings:**
 - **Provider**: Choose your AI provider
 - **API Key**: Enter your key (stored securely)
-- **Model**: Leave empty for default, or specify (e.g., `gemini-2.5-flash`, `gpt-5-mini`, `claude-haiku-4-5-20251001`)
+- **Model**: Leave empty for default, or specify (e.g., `gemini-3-flash`, `gpt-5-mini`, `claude-haiku-4-5-20251001`)
 - **Endpoint**: Leave default unless using custom endpoint
 
 **Safety Settings:**
@@ -322,7 +322,7 @@ All settings are stored in `/etc/config/lucicodex` using OpenWrt's UCI system:
 # Configure Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='YOUR-GEMINI-KEY'
-uci set lucicodex.@api[0].model='gemini-2.5-flash'
+uci set lucicodex.@api[0].model='gemini-3-flash'
 
 # Configure OpenAI
 uci set lucicodex.@api[0].provider='openai'
@@ -605,7 +605,7 @@ Override settings with environment variables:
 ```bash
 export GEMINI_API_KEY='your-key'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-2.5-flash'
+export LUCICODEX_MODEL='gemini-3-flash'
 lucicodex "your command"
 ```
 

@@ -77,7 +77,7 @@
 2. 路由器有**互联网连接**
 3. 至少 **10MB 可用存储**空间
 4. 从以下服务商之一获取 **API 密钥**：
-   - Google Gemini（推荐新手使用 - 有免费额度，默认 `gemini-2.5-flash`）
+   - Google Gemini（推荐新手使用 - 有免费额度，默认 `gemini-3-flash`）
    - OpenAI（GPT-5/GPT-5-mini）
    - Anthropic（Claude 4.5）
 
@@ -239,7 +239,7 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 **API 设置：**
 - **服务商**：选择你的 AI 服务商
 - **API 密钥**：输入你的密钥（安全存储）
-- **模型**：保持空白使用默认值，或指定（如 `gemini-2.5-flash`、`gpt-5-mini`、`claude-haiku-4-5-20251001`）
+- **模型**：保持空白使用默认值，或指定（如 `gemini-3-flash`、`gpt-5-mini`、`claude-haiku-4-5-20251001`）
 - **端点**：除非使用自定义端点，否则保持默认
 
 **安全设置：**
@@ -259,7 +259,7 @@ LuciCodex 支持多个 AI 服务商。选择方法如下：
 # 配置 Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='你的-GEMINI-密钥'
-uci set lucicodex.@api[0].model='gemini-2.5-flash'
+uci set lucicodex.@api[0].model='gemini-3-flash'
 
 # 配置 OpenAI
 uci set lucicodex.@api[0].provider='openai'
@@ -516,7 +516,7 @@ lucicodex -config /etc/lucicodex/custom-config.json "你的命令"
 ```bash
 export GEMINI_API_KEY='你的密钥'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-2.5-flash'
+export LUCICODEX_MODEL='gemini-3-flash'
 lucicodex "你的命令"
 ```
 

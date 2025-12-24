@@ -77,7 +77,7 @@ Antes de instalar LuciCodex, necesitas:
 2. **Conexión a Internet** en tu router
 3. Al menos **10MB de espacio libre** de almacenamiento
 4. **Una clave API** de uno de estos proveedores:
-   - Google Gemini (recomendado para principiantes - plan gratuito disponible, usa `gemini-2.5-flash`)
+   - Google Gemini (recomendado para principiantes - plan gratuito disponible, usa `gemini-3-flash`)
    - OpenAI (GPT-5/GPT-5-mini)
    - Anthropic (Claude 4.5)
 
@@ -239,7 +239,7 @@ LuciCodex soporta múltiples proveedores de IA. Así es como elegir:
 **Configuración de API:**
 - **Proveedor**: Elige tu proveedor de IA
 - **Clave API**: Ingresa tu clave (almacenada de forma segura)
-- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-2.5-flash`, `gpt-5-mini`, `claude-haiku-4-5-20251001`)
+- **Modelo**: Deja vacío para usar el predeterminado, o especifica (ej., `gemini-3-flash`, `gpt-5-mini`, `claude-haiku-4-5-20251001`)
 - **Endpoint**: Deja el predeterminado a menos que uses un endpoint personalizado
 
 **Configuración de Seguridad:**
@@ -259,7 +259,7 @@ Todos los ajustes se almacenan en `/etc/config/lucicodex` usando el sistema UCI 
 # Configurar Gemini
 uci set lucicodex.@api[0].provider='gemini'
 uci set lucicodex.@api[0].key='TU-CLAVE-GEMINI'
-uci set lucicodex.@api[0].model='gemini-2.5-flash'
+uci set lucicodex.@api[0].model='gemini-3-flash'
 
 # Configurar OpenAI
 uci set lucicodex.@api[0].provider='openai'
@@ -516,7 +516,7 @@ Sobrescribe configuraciones con variables de entorno:
 ```bash
 export GEMINI_API_KEY='tu-clave'
 export LUCICODEX_PROVIDER='gemini'
-export LUCICODEX_MODEL='gemini-2.5-flash'
+export LUCICODEX_MODEL='gemini-3-flash'
 lucicodex "tu comando"
 ```
 
