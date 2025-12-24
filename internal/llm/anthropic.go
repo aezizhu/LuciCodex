@@ -22,8 +22,9 @@ type AnthropicClient struct {
 
 func NewAnthropicClient(cfg config.Config) *AnthropicClient {
 	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
-	if timeout == 0 {
-		timeout = 30 * time.Second
+	// Ensure minimum 60 seconds for Anthropic calls (complex prompts can take time)
+	if timeout < 60*time.Second {
+		timeout = 60 * time.Second
 	}
 	return &AnthropicClient{httpClient: newHTTPClient(cfg, timeout), cfg: cfg}
 }

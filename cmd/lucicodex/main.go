@@ -25,7 +25,7 @@ import (
 	"github.com/aezizhu/LuciCodex/internal/wizard"
 )
 
-var version = "0.7.0"
+var version = "0.7.13"
 
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
@@ -212,8 +212,17 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 	fullPrompt := instruction + "\n\nUser request: " + prompt
 
+	// Ensure minimum timeout for LLM calls (at least 60 seconds)
+	llmTimeout := cfg.TimeoutSeconds
+	if llmTimeout < 60 {
+		llmTimeout = 60
+	}
+	if !*jsonOutput {
+		fmt.Fprintf(stderr, "Using provider: %s, model: %s, timeout: %ds\n", cfg.Provider, cfg.Model, llmTimeout)
+	}
+
 	// Generate plan
-	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
+	planCtx, cancel := context.WithTimeout(ctx, time.Duration(llmTimeout)*time.Second)
 	defer cancel()
 
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)

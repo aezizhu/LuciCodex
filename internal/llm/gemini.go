@@ -20,8 +20,9 @@ type GeminiClient struct {
 
 func NewGeminiClient(cfg config.Config) *GeminiClient {
 	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
-	if timeout == 0 {
-		timeout = 30 * time.Second
+	// Ensure minimum 60 seconds for Gemini calls (complex prompts can take time)
+	if timeout < 60*time.Second {
+		timeout = 60 * time.Second
 	}
 	return &GeminiClient{
 		httpClient: newHTTPClient(cfg, timeout),
