@@ -159,7 +159,7 @@ func (s *Server) Start(port int) error {
 		Addr:         addr,
 		Handler:      s.mux,
 		ReadTimeout:  10 * time.Second,  // Time to read request headers + body
-		WriteTimeout: 60 * time.Second,  // Time to write response (LLM calls can be slow)
+		WriteTimeout: 120 * time.Second, // Time to write response (LLM calls can be slow)
 		IdleTimeout:  120 * time.Second, // Keep-alive timeout
 	}
 	return srv.ListenAndServe()
@@ -266,10 +266,15 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 	}
 	fullPrompt := instruction + "\n\nUser request: " + req.Prompt
 
-	// Generate plan
-	planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
+	// Generate plan with minimum 60 second timeout
+	llmTimeout := cfg.TimeoutSeconds
+	if llmTimeout < 60 {
+		llmTimeout = 60
+	}
+	planCtx, cancel := context.WithTimeout(ctx, time.Duration(llmTimeout)*time.Second)
 	defer cancel()
 
+	fmt.Printf("Calling LLM with timeout: %ds\n", llmTimeout)
 	p, err := llmProvider.GeneratePlan(planCtx, fullPrompt)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -351,11 +356,15 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 		}
 		fullPrompt := instruction + "\n\nUser request: " + req.Prompt
 
-		// Generate plan
-		planCtx, cancel := context.WithTimeout(ctx, time.Duration(cfg.TimeoutSeconds)*time.Second)
+		// Generate plan with minimum 60 second timeout
+		llmTimeout := cfg.TimeoutSeconds
+		if llmTimeout < 60 {
+			llmTimeout = 60
+		}
+		planCtx, cancel := context.WithTimeout(ctx, time.Duration(llmTimeout)*time.Second)
 		defer cancel()
 
-		fmt.Println("Generating plan for execution...")
+		fmt.Printf("Generating plan for execution (timeout: %ds)...\n", llmTimeout)
 		start := time.Now()
 		p, err = llmProvider.GeneratePlan(planCtx, fullPrompt)
 		if err != nil {
