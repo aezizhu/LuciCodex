@@ -459,6 +459,48 @@
 
 .plan-commands {
     list-style: none;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.plan-card.collapsed .plan-commands {
+    max-height: 0;
+}
+
+.plan-card.collapsed .plan-summary {
+    border-bottom: none;
+}
+
+.plan-toggle {
+    display: none;
+    width: 100%;
+    padding: 10px 16px;
+    background: var(--bg-elevated);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.plan-toggle:hover {
+    color: var(--text-primary);
+}
+
+.plan-card.executed .plan-toggle {
+    display: block;
+}
+
+.plan-toggle-icon {
+    display: inline-block;
+    margin-right: 6px;
+    transition: transform 0.3s;
+}
+
+.plan-card.collapsed .plan-toggle-icon {
+    transform: rotate(-90deg);
 }
 
 .plan-cmd {
@@ -1097,6 +1139,7 @@ function execute(prompt, cmds) {
     }
 
     removeApproval();
+    collapsePlan();
     setBusy(true);
 
     // Try WebSocket streaming first, fallback to HTTP
@@ -1610,6 +1653,7 @@ function renderPlan(plan) {
     }
     var cmds = cmdsHtml.join('');
     var summaryHtml = plan.summary ? '<div class="plan-summary">' + esc(plan.summary) + '</div>' : '';
+    var cmdCount = plan.commands.length;
 
     var div = document.createElement('div');
     div.className = 'message ai';
@@ -1619,12 +1663,40 @@ function renderPlan(plan) {
         '<div class="plan-header">Execution Plan</div>' +
         summaryHtml +
         '<ul class="plan-commands">' + cmds + '</ul>' +
+        '<button class="plan-toggle" onclick="togglePlan(this)"><span class="plan-toggle-icon">▼</span>Show ' + cmdCount + ' command' + (cmdCount > 1 ? 's' : '') + '</button>' +
         '<div class="plan-actions">' +
         '<button class="btn-exec approve" onclick="approve()">Execute</button>' +
         '<button class="btn-exec reject" onclick="reject()">Cancel</button>' +
         '</div></div></div>';
     document.getElementById('messages').appendChild(div);
     scroll();
+}
+
+function togglePlan(btn) {
+    var planCard = btn.closest('.plan-card');
+    if (!planCard) return;
+
+    var isCollapsed = planCard.classList.contains('collapsed');
+    planCard.classList.toggle('collapsed');
+
+    var cmdCount = planCard.querySelectorAll('.plan-cmd').length;
+    btn.innerHTML = '<span class="plan-toggle-icon">▼</span>' +
+        (isCollapsed ? 'Hide' : 'Show ' + cmdCount) + ' command' + (cmdCount > 1 ? 's' : '');
+}
+
+function collapsePlan() {
+    // Find all plan cards and collapse them after execution
+    var planCards = document.querySelectorAll('.plan-card:not(.executed)');
+    for (var i = 0; i < planCards.length; i++) {
+        var card = planCards[i];
+        card.classList.add('executed', 'collapsed');
+
+        var toggle = card.querySelector('.plan-toggle');
+        if (toggle) {
+            var cmdCount = card.querySelectorAll('.plan-cmd').length;
+            toggle.innerHTML = '<span class="plan-toggle-icon">▼</span>Show ' + cmdCount + ' command' + (cmdCount > 1 ? 's' : '');
+        }
+    }
 }
 
 function renderResult(items, success, summary) {
