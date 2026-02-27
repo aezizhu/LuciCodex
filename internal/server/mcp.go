@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 
@@ -581,19 +579,3 @@ func sendMCPError(w http.ResponseWriter, id interface{}, code int, message strin
 	})
 }
 
-// readFileContent reads a file safely
-func readFileContent(path string, maxSize int64) (string, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	// Limit read size
-	limited := io.LimitReader(f, maxSize)
-	data, err := io.ReadAll(limited)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}

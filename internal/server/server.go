@@ -228,24 +228,7 @@ func (s *Server) handlePlan(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("  Config: nil")
 	}
 
-	// Merge config
-	cfg := s.cfg
-	if req.Provider != "" {
-		cfg.Provider = req.Provider
-	}
-	if req.Model != "" {
-		cfg.Model = req.Model
-	}
-	if val, ok := req.Config["openai_key"]; ok && val != "" {
-		cfg.OpenAIAPIKey = val
-	}
-	if val, ok := req.Config["gemini_key"]; ok && val != "" {
-		cfg.APIKey = val
-	}
-	if val, ok := req.Config["anthropic_key"]; ok && val != "" {
-		cfg.AnthropicAPIKey = val
-	}
-	cfg.ApplyProviderSettings()
+	cfg := s.mergeConfig(req.Provider, req.Model, req.Config)
 
 	// Debug: Log final config state (mask actual values)
 	fmt.Printf("Final config - Provider: %s, Model: %s\n", cfg.Provider, cfg.Model)
@@ -304,29 +287,11 @@ func (s *Server) handleExecute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Merge config
-	cfg := s.cfg
-	if req.Provider != "" {
-		cfg.Provider = req.Provider
-	}
-	if req.Model != "" {
-		cfg.Model = req.Model
-	}
+	cfg := s.mergeConfig(req.Provider, req.Model, req.Config)
 	if req.Timeout > 0 {
 		cfg.TimeoutSeconds = req.Timeout
 	}
 	cfg.DryRun = req.DryRun
-
-	if val, ok := req.Config["openai_key"]; ok && val != "" {
-		cfg.OpenAIAPIKey = val
-	}
-	if val, ok := req.Config["gemini_key"]; ok && val != "" {
-		cfg.APIKey = val
-	}
-	if val, ok := req.Config["anthropic_key"]; ok && val != "" {
-		cfg.AnthropicAPIKey = val
-	}
-	cfg.ApplyProviderSettings()
 
 	ctx := r.Context()
 	llmProvider := llm.NewProvider(cfg)
@@ -432,23 +397,7 @@ func (s *Server) handleSummarize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cfg := s.cfg
-	if req.Provider != "" {
-		cfg.Provider = req.Provider
-	}
-	if req.Model != "" {
-		cfg.Model = req.Model
-	}
-	if val, ok := req.Config["openai_key"]; ok && val != "" {
-		cfg.OpenAIAPIKey = val
-	}
-	if val, ok := req.Config["gemini_key"]; ok && val != "" {
-		cfg.APIKey = val
-	}
-	if val, ok := req.Config["anthropic_key"]; ok && val != "" {
-		cfg.AnthropicAPIKey = val
-	}
-	cfg.ApplyProviderSettings()
+	cfg := s.mergeConfig(req.Provider, req.Model, req.Config)
 
 	ctx := r.Context()
 

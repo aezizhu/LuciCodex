@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha1"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -218,7 +219,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	if token == "" {
 		token = r.Header.Get("X-Auth-Token")
 	}
-	if s.token != "" && token != s.token {
+	if s.token != "" && subtle.ConstantTimeCompare([]byte(token), []byte(s.token)) != 1 {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
