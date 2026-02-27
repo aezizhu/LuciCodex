@@ -30,8 +30,15 @@ var version = "1.0.0"
 var lockPaths = []string{"/var/lock/lucicodex.lock", "/tmp/lucicodex.lock"}
 
 func acquireLock() (*os.File, string, error) {
-	var lastErr error
+	// First check if any lock file already exists across all paths
+	for _, path := range lockPaths {
+		if _, err := os.Stat(path); err == nil {
+			return nil, "", fmt.Errorf("execution in progress (lock file exists: %s)", path)
+		}
+	}
 
+	// Try to create lock at first available path
+	var lastErr error
 	for i, path := range lockPaths {
 		f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 		if err == nil {

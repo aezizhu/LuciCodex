@@ -1,0 +1,117 @@
+name: Auto Debug & Merge
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Every 15 minutes
+  workflow_dispatch:         # Manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-debug-merge:
+    name: Auto Debug, Test & Merge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21.x'
+
+      - name: Run Tests
+        id: test
+        continue-on-error: true
+        run: |
+          go test -v -race -count=1 ./... 2>&1 | tee test-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Check Build
+        id: build
+        continue-on-error: true
+        run: |
+          go build ./... 2>&1 | tee build-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Run Vet
+        id: vet
+        continue-on-error: true
+        run: |
+          go vet ./... 2>&1 | tee vet-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      - name: Report Status
+        run: |
+          echo "## Auto Debug Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.test.outputs.exit_code }}" = "0" ]; then
+            echo "| Tests | Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Tests | **FAILED** |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ steps.build.outputs.exit_code }}" = "0" ]; then
+            echo "| Build | Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Build | **FAILED** |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ steps.vet.outputs.exit_code }}" = "0" ]; then
+            echo "| Vet | Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Vet | **FAILED** |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Auto Merge PRs on Success
+        if: steps.test.outputs.exit_code == '0' && steps.build.outputs.exit_code == '0' && steps.vet.outputs.exit_code == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "All checks passed - checking for mergeable PRs..."
+
+          # Find open PRs targeting main that have passed checks
+          prs=$(gh pr list --base main --state open --json number,title,mergeable --jq '.[] | select(.mergeable == "MERGEABLE") | .number')
+
+          if [ -z "$prs" ]; then
+            echo "No mergeable PRs found"
+            exit 0
+          fi
+
+          for pr in $prs; do
+            echo "Attempting to merge PR #$pr..."
+            # Only merge if all required checks have passed
+            if gh pr checks "$pr" --fail-fast 2>/dev/null; then
+              gh pr merge "$pr" --merge --auto || echo "Could not auto-merge PR #$pr"
+            else
+              echo "PR #$pr has pending/failed checks, skipping"
+            fi
+          done
+
+      - name: Notify on Failure
+        if: steps.test.outputs.exit_code != '0' || steps.build.outputs.exit_code != '0' || steps.vet.outputs.exit_code != '0'
+        run: |
+          echo "::warning::Auto debug detected failures. Review the step summary for details."
+          echo ""
+          echo "=== Failed Tests ==="
+          if [ "${{ steps.test.outputs.exit_code }}" != "0" ]; then
+            grep -E "^--- FAIL|FAIL\s" test-output.txt || true
+          fi
+          echo ""
+          echo "=== Build Errors ==="
+          if [ "${{ steps.build.outputs.exit_code }}" != "0" ]; then
+            cat build-output.txt
+          fi
+          echo ""
+          echo "=== Vet Issues ==="
+          if [ "${{ steps.vet.outputs.exit_code }}" != "0" ]; then
+            cat vet-output.txt
+          fi
