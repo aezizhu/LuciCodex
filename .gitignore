@@ -8,6 +8,7 @@
 /build/
 /coverage/
 /lucicodex
+coverage.out
 
 # Logs and temporary files
 *.log

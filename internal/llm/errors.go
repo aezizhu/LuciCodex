@@ -79,10 +79,15 @@ type ParseError struct {
 }
 
 func (e *ParseError) Error() string {
-	if e.Input != "" && len(e.Input) > 100 {
-		e.Input = e.Input[:100] + "..."
-	}
 	return fmt.Sprintf("%s parse error during %s: %v", e.Provider, e.Stage, e.Err)
+}
+
+// TruncatedInput returns the input, truncated to 100 characters for display.
+func (e *ParseError) TruncatedInput() string {
+	if len(e.Input) > 100 {
+		return e.Input[:100] + "..."
+	}
+	return e.Input
 }
 
 func (e *ParseError) Unwrap() error {

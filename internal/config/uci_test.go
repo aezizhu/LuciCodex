@@ -114,6 +114,20 @@ func TestHelperProcess(t *testing.T) {
 			os.Exit(0)
 		}
 
+		if os.Getenv("TEST_UCI_INVALID") == "1" {
+			switch key {
+			case "lucicodex.main.timeout":
+				fmt.Print("abc") // invalid: not a number
+			case "lucicodex.main.max_commands":
+				fmt.Print("-5") // invalid: negative
+			case "lucicodex.main.confirm_each":
+				fmt.Print("invalid") // invalid: not "0" or "1"
+			default:
+				os.Exit(1)
+			}
+			os.Exit(0)
+		}
+
 		switch key {
 		case "lucicodex.main.provider":
 			fmt.Print("openai")
@@ -225,8 +239,18 @@ func TestLoad_UCIError(t *testing.T) {
 	os.Setenv("TEST_UCI_ERROR", "1")
 	defer os.Unsetenv("TEST_UCI_ERROR")
 
+	// Use explicit empty config to avoid loading /etc/lucicodex/config.json
+	f, err := os.CreateTemp("", "config_test_*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpConfig := f.Name()
+	f.Write([]byte("{}"))
+	f.Close()
+	defer os.Remove(tmpConfig)
+
 	// Load should not fail, just return empty/defaults
-	cfg, err := Load("")
+	cfg, err := Load(tmpConfig)
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
@@ -245,7 +269,17 @@ func TestLoad_UCI_InvalidValues(t *testing.T) {
 	os.Setenv("TEST_UCI_INVALID", "1")
 	defer os.Unsetenv("TEST_UCI_INVALID")
 
-	cfg, err := Load("")
+	// Use explicit empty config to avoid loading /etc/lucicodex/config.json
+	f, err := os.CreateTemp("", "config_test_*.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpConfig := f.Name()
+	f.Write([]byte("{}"))
+	f.Close()
+	defer os.Remove(tmpConfig)
+
+	cfg, err := Load(tmpConfig)
 	if err != nil {
 		t.Fatalf("Load failed: %v", err)
 	}
